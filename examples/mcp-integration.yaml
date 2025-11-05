@@ -1,0 +1,56 @@
+name: "MCP Integration Example"
+description: "A workflow demonstrating MCP server integration"
+default_model: "llama2"
+start_state: "choose_task"
+
+# Configure MCP servers
+mcp_servers:
+  filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  memory:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+
+states:
+  choose_task:
+    type: "choice"
+    prompt: "What would you like to do with MCP servers?"
+    save_as: "task_choice"
+    choices:
+      - label: "Use filesystem tools"
+        value: "filesystem"
+        next: "filesystem_task"
+      - label: "Use memory tools"
+        value: "memory"
+        next: "memory_task"
+      - label: "Use both"
+        value: "both"
+        next: "combined_task"
+  
+  filesystem_task:
+    type: "prompt"
+    prompt: "Analyze the structure of /tmp directory and suggest best practices for organization"
+    mcp_servers: ["filesystem"]
+    save_as: "filesystem_result"
+    next: "end"
+  
+  memory_task:
+    type: "prompt"
+    prompt: "Store and recall information using the memory server"
+    mcp_servers: ["memory"]
+    save_as: "memory_result"
+    next: "end"
+  
+  combined_task:
+    type: "prompt"
+    prompt: "Use both filesystem and memory capabilities to create a comprehensive solution"
+    mcp_servers: ["filesystem", "memory"]
+    save_as: "combined_result"
+    next: "end"
+  
+  end:
+    type: "end"

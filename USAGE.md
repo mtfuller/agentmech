@@ -268,6 +268,9 @@ my_prompt_state:
   prompt: "Your question here"
   model: "llama2"  # optional, uses default_model if not set
   save_as: "variable_name"  # optional, saves response for later use
+  mcp_servers: ["server1"]  # optional, MCP servers to connect for this state
+  next: "next_state"  # or "end"
+```
   next: "next_state"  # or "end"
 ```
 
@@ -319,6 +322,70 @@ states:
 ```
 
 ## Advanced Usage
+
+### Using MCP Servers
+
+MCP (Model Context Protocol) servers extend workflow capabilities with additional tools and resources. You can configure MCP servers at the workflow level and specify which servers are available to each state.
+
+#### Configuring MCP Servers
+
+Define MCP servers in your workflow YAML:
+
+```yaml
+name: "MCP Workflow"
+default_model: "llama2"
+start_state: "task"
+
+mcp_servers:
+  filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  memory:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+
+states:
+  task:
+    type: "prompt"
+    prompt: "Analyze files and remember key insights"
+    mcp_servers: ["filesystem", "memory"]
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+#### Available MCP Servers
+
+Common MCP servers you can use:
+
+- **@modelcontextprotocol/server-filesystem**: Access and manipulate files
+- **@modelcontextprotocol/server-memory**: Store and recall information
+- **@modelcontextprotocol/server-github**: Interact with GitHub repositories
+- **@modelcontextprotocol/server-postgres**: Query PostgreSQL databases
+- **@modelcontextprotocol/server-puppeteer**: Browser automation
+
+#### State-Level MCP Configuration
+
+Each state can specify which MCP servers it needs:
+
+```yaml
+states:
+  read_files:
+    type: "prompt"
+    prompt: "Read and summarize important files"
+    mcp_servers: ["filesystem"]
+    next: "store_summary"
+  
+  store_summary:
+    type: "prompt"
+    prompt: "Store the summary for later recall"
+    mcp_servers: ["memory"]
+    next: "end"
+```
 
 ### Custom Ollama URL
 

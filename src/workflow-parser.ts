@@ -9,6 +9,12 @@ interface Choice {
   next?: string;
 }
 
+interface McpServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -17,6 +23,7 @@ interface State {
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
+  mcp_servers?: string[];
 }
 
 interface Workflow {
@@ -24,6 +31,7 @@ interface Workflow {
   description?: string;
   start_state: string;
   default_model?: string;
+  mcp_servers?: Record<string, McpServerConfig>;
   states: Record<string, State>;
 }
 
@@ -75,9 +83,35 @@ class WorkflowParser {
       throw new Error(`Start state "${workflow.start_state}" not found in states`);
     }
 
+    // Validate MCP servers configuration if present
+    if (workflow.mcp_servers) {
+      this.validateMcpServers(workflow.mcp_servers);
+    }
+
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states);
+      this.validateState(stateName, state, workflow.states, workflow.mcp_servers);
+    }
+  }
+
+  /**
+   * Validate MCP servers configuration
+   * @param mcpServers - MCP servers configuration
+   */
+  static validateMcpServers(mcpServers: Record<string, McpServerConfig>): void {
+    for (const [serverName, config] of Object.entries(mcpServers)) {
+      if (!config.command) {
+        throw new Error(`MCP server "${serverName}" must have a command`);
+      }
+      if (typeof config.command !== 'string') {
+        throw new Error(`MCP server "${serverName}" command must be a string`);
+      }
+      if (config.args && !Array.isArray(config.args)) {
+        throw new Error(`MCP server "${serverName}" args must be an array`);
+      }
+      if (config.env && typeof config.env !== 'object') {
+        throw new Error(`MCP server "${serverName}" env must be an object`);
+      }
     }
   }
 
@@ -86,8 +120,9 @@ class WorkflowParser {
    * @param name - State name
    * @param state - State configuration
    * @param allStates - All states for reference validation
+   * @param mcpServers - MCP servers available in workflow
    */
-  static validateState(name: string, state: State, allStates: Record<string, State>): void {
+  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>): void {
     if (!state.type) {
       throw new Error(`State "${name}" must have a type`);
     }
@@ -103,6 +138,21 @@ class WorkflowParser {
 
     if (state.type === 'choice' && !state.choices) {
       throw new Error(`Choice state "${name}" must have a choices field`);
+    }
+
+    // Validate MCP server references
+    if (state.mcp_servers) {
+      if (!Array.isArray(state.mcp_servers)) {
+        throw new Error(`State "${name}" mcp_servers must be an array`);
+      }
+      if (!mcpServers) {
+        throw new Error(`State "${name}" references MCP servers but workflow has no mcp_servers defined`);
+      }
+      for (const serverName of state.mcp_servers) {
+        if (!mcpServers[serverName]) {
+          throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
+        }
+      }
     }
 
     // Validate transitions

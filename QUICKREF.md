@@ -25,9 +25,18 @@ description: "Optional description"
 default_model: "llama2"
 start_state: "first_state"
 
+# Optional MCP server configuration
+mcp_servers:
+  server_name:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-name"]
+    env:
+      VAR: "value"
+
 states:
   state_name:
     type: "prompt" | "choice" | "end"
+    mcp_servers: ["server_name"]  # optional
     # ... configuration
     next: "next_state" | "end"
 ```
@@ -41,6 +50,7 @@ my_state:
   prompt: "Your question here"
   model: "llama2"              # optional
   save_as: "variable_name"     # optional
+  mcp_servers: ["server1"]     # optional
   next: "next_state"
 ```
 
@@ -152,6 +162,24 @@ states:
 ✓ Choice states must have `choices` array
 ✓ Next states must exist or be "end"
 ✓ Each choice must have `label` or `value`
+✓ MCP servers (if configured) must have `command`
+✓ State MCP server references must exist in workflow config
+
+## MCP Servers
+
+Common MCP servers:
+- `@modelcontextprotocol/server-filesystem` - File operations
+- `@modelcontextprotocol/server-memory` - Data storage
+- `@modelcontextprotocol/server-github` - GitHub integration
+- `@modelcontextprotocol/server-postgres` - Database queries
+
+Example MCP configuration:
+```yaml
+mcp_servers:
+  fs:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+```
 
 ## Common Models
 
@@ -175,6 +203,7 @@ ollama pull <model-name>
 5. Keep prompts clear and specific
 6. Add descriptions to workflows
 7. Name states descriptively
+8. Use MCP servers for extended capabilities
 
 ## Troubleshooting
 

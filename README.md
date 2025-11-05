@@ -5,6 +5,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 ## Features
 
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
+- 🔌 **MCP Server Integration**: Connect to Model Context Protocol (MCP) servers for extended capabilities
 - 📋 **YAML-Based Workflows**: Define workflows using simple, readable YAML syntax
 - 🔄 **State Machine**: Control workflow execution with state transitions
 - 💬 **Interactive Choices**: Present users with choices that affect workflow direction
@@ -104,8 +105,22 @@ A workflow file consists of:
 - **name**: Workflow name
 - **description**: Optional workflow description
 - **default_model**: Default Ollama model to use (e.g., "llama2", "mistral")
+- **mcp_servers**: Optional MCP server configurations
 - **start_state**: The initial state to begin execution
 - **states**: Object containing all workflow states
+
+### MCP Server Configuration
+
+You can configure Model Context Protocol (MCP) servers to extend workflow capabilities with tools and resources:
+
+```yaml
+mcp_servers:
+  server_name:
+    command: "npx"  # Command to start the server
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]  # Optional arguments
+    env:  # Optional environment variables
+      MCP_LOG_LEVEL: "info"
+```
 
 ### State Types
 
@@ -118,6 +133,7 @@ state_name:
   prompt: "Your question or prompt here"
   model: "llama2"  # Optional, uses default_model if not specified
   save_as: "variable_name"  # Optional, saves response to context
+  mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
   next: "next_state_name"  # Next state to transition to
 ```
 
@@ -190,6 +206,33 @@ states:
     type: "end"
 ```
 
+### MCP Integration Example
+
+```yaml
+name: "MCP Integration Example"
+description: "A workflow demonstrating MCP server integration"
+default_model: "llama2"
+start_state: "analyze"
+
+mcp_servers:
+  filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+  memory:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+
+states:
+  analyze:
+    type: "prompt"
+    prompt: "Analyze the filesystem and store insights"
+    mcp_servers: ["filesystem", "memory"]
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -198,6 +241,7 @@ The `examples/` directory contains sample workflows:
 - **story-generator.yaml**: Interactive story generation with choices
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
+- **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
@@ -212,6 +256,7 @@ ai-workflow-cli/
 ├── src/
 │   ├── cli.ts                 # CLI entry point
 │   ├── ollama-client.ts       # Ollama API client
+│   ├── mcp-client.ts          # MCP server client
 │   ├── workflow-parser.ts     # YAML parser and validator
 │   └── workflow-executor.ts   # State machine executor
 ├── dist/                      # Compiled JavaScript output
