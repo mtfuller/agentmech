@@ -291,7 +291,16 @@ my_prompt_state:
   mcp_servers: ["server1"]  # optional, MCP servers to connect for this state
   next: "next_state"  # or "end"
 ```
-  next: "next_state"  # or "end"
+
+You can also load prompts from external files:
+
+```yaml
+my_prompt_state:
+  type: "prompt"
+  prompt_file: "prompts/my-detailed-prompt.md"  # load from external file
+  model: "llama2"
+  save_as: "variable_name"
+  next: "next_state"
 ```
 
 #### Choice State
@@ -309,6 +318,16 @@ my_choice_state:
     - label: "Second Option"
       value: "option2"
       next: "state_for_option2"
+```
+
+#### Workflow Reference State
+References another workflow file:
+
+```yaml
+my_workflow_ref:
+  type: "workflow_ref"
+  workflow_ref: "other-workflow.yaml"  # path to another workflow
+  next: "continue_after"  # state to go to after referenced workflow completes
 ```
 
 #### End State
@@ -453,6 +472,96 @@ states:
     next: "end"
 ```
 
+### External File References
+
+#### Using External Prompt Files
+
+Keep your prompts organized in separate files:
+
+**prompts/story-prompt.md:**
+```markdown
+# Story Writing Prompt
+
+Write a creative and engaging short story about a time traveler...
+```
+
+**workflow.yaml:**
+```yaml
+states:
+  generate_story:
+    type: "prompt"
+    prompt_file: "prompts/story-prompt.md"
+    save_as: "story"
+    next: "end"
+```
+
+Benefits:
+- Easier to maintain long prompts
+- Better version control
+- Reuse prompts across workflows
+- Write in markdown with formatting
+
+#### Using Workflow References
+
+Create modular, reusable workflows:
+
+**greeting-workflow.yaml:**
+```yaml
+name: "Greeting Workflow"
+default_model: "llama2"
+start_state: "greet"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "Generate a friendly greeting"
+    save_as: "greeting"
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+**main-workflow.yaml:**
+```yaml
+name: "Main Workflow"
+default_model: "llama2"
+start_state: "start_greeting"
+
+states:
+  start_greeting:
+    type: "workflow_ref"
+    workflow_ref: "greeting-workflow.yaml"
+    next: "continue"
+  
+  continue:
+    type: "prompt"
+    prompt: "Continue with main workflow..."
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+Benefits:
+- Build modular workflow components
+- Reuse workflows across projects
+- Compose complex workflows from simpler ones
+- Better organization and maintainability
+      - label: "Path B"
+        next: "state_b"
+  
+  state_a:
+    type: "prompt"
+    prompt: "You chose path A"
+    next: "end"
+  
+  state_b:
+    type: "prompt"
+    prompt: "You chose path B"
+    next: "end"
+```
+
 ## Troubleshooting
 
 ### Issue: "Cannot connect to Ollama"
@@ -484,8 +593,10 @@ npm start run /full/path/to/workflow.yaml
 - Missing `start_state`
 - Invalid state `type`
 - State references non-existent `next` state
-- Prompt state missing `prompt` field
+- Prompt state missing `prompt` field (unless using `prompt_file`)
 - Choice state missing `choices` field
+- External prompt file not found (check path is relative to workflow file)
+- Referenced workflow file not found
 
 ## Tips
 
@@ -494,6 +605,8 @@ npm start run /full/path/to/workflow.yaml
 3. **Use Variables**: Store and reuse data between states with `save_as` and `{{variable}}`
 4. **Test Prompts**: Test your prompts in Ollama directly before adding them to workflows
 5. **Model Selection**: Different models have different strengths - experiment to find the best fit
+6. **Organize Prompts**: Use external prompt files for long or complex prompts
+7. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
 
 ## Next Steps
 
