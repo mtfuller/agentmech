@@ -194,6 +194,9 @@ The `examples/` directory contains sample workflows:
 - **simple-qa.yaml**: Basic question-answering workflow
 - **story-generator.yaml**: Interactive story generation with choices
 - **code-review.yaml**: Code review assistant with different review types
+- **writing-assistant.yaml**: Creative writing assistant with multiple tasks
+
+See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
 ## Development
 
