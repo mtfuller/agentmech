@@ -1,0 +1,30 @@
+name: "Complete Story Builder"
+description: "A comprehensive story creation workflow using external references"
+default_model: "llama2"
+start_state: "start_character_creation"
+
+states:
+  start_character_creation:
+    type: "workflow_ref"
+    workflow_ref: "character-creator.yaml"
+    next: "write_story"
+  
+  write_story:
+    type: "prompt"
+    prompt: "Now write a short story (200-300 words) featuring this character: {{character}}"
+    save_as: "story"
+    next: "ask_another"
+  
+  ask_another:
+    type: "choice"
+    prompt: "What would you like to do?"
+    choices:
+      - label: "Create another character"
+        value: "another"
+        next: "start_character_creation"
+      - label: "Finish"
+        value: "finish"
+        next: "end"
+  
+  end:
+    type: "end"
