@@ -11,6 +11,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 💬 **Interactive Choices**: Present users with choices that affect workflow direction
 - 🔗 **Context Variables**: Pass data between states using variable interpolation
 - ✅ **Validation**: Validate workflow files before execution
+- 🔍 **Observability**: Trace and log all workflow interactions with the `--trace` flag
 
 ## Prerequisites
 
@@ -65,13 +66,34 @@ ai-workflow run <workflow-file> [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -t, --trace             Enable tracing/observability for workflow execution
 ```
 
 Example:
 ```bash
 ai-workflow run examples/story-generator.yaml
 ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
+ai-workflow run my-workflow.yaml --trace
 ```
+
+#### Observability and Tracing
+
+Use the `--trace` flag to enable detailed logging of workflow execution:
+
+```bash
+ai-workflow run examples/simple-qa.yaml --trace
+```
+
+When tracing is enabled, the CLI logs all interactions including:
+- Workflow start and completion events
+- State transitions and execution
+- Model interactions with Ollama (prompts and responses)
+- MCP server connections and operations
+- Context variable updates
+- User choices and selections
+- Errors and their context
+
+This feature is useful for debugging workflows, understanding execution flow, and monitoring AI interactions.
 
 ### Validate a Workflow
 
