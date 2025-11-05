@@ -65,6 +65,19 @@ class RagService {
     try {
       const data = fs.readFileSync(filePath, 'utf8');
       const store: EmbeddingsStore = JSON.parse(data);
+      
+      // Validate embeddings store structure
+      if (!store.chunks || !Array.isArray(store.chunks)) {
+        throw new Error('Invalid embeddings file: missing or invalid chunks array');
+      }
+      
+      // Validate that chunks have required fields
+      for (const chunk of store.chunks) {
+        if (!chunk.id || !chunk.text || !chunk.embedding) {
+          throw new Error('Invalid embeddings file: chunks missing required fields');
+        }
+      }
+      
       this.chunks = store.chunks;
     } catch (error: any) {
       throw new Error(`Failed to load embeddings: ${error.message}`);
@@ -101,22 +114,36 @@ class RagService {
 
     console.log(`Processing ${files.length} files...`);
     
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB limit
+    
     for (const file of files) {
-      const content = fs.readFileSync(file, 'utf8');
-      const chunks = this.chunkText(content, this.config.chunkSize!);
+      try {
+        // Check file size before reading
+        const stats = fs.statSync(file);
+        if (stats.size > MAX_FILE_SIZE) {
+          console.warn(`Skipping ${file}: file too large (${(stats.size / 1024 / 1024).toFixed(2)}MB)`);
+          continue;
+        }
+        
+        const content = fs.readFileSync(file, 'utf8');
+        const chunks = this.chunkText(content, this.config.chunkSize!);
       
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk: DocumentChunk = {
-          id: `${path.basename(file)}_chunk_${i}`,
-          text: chunks[i],
-          source: path.relative(this.config.directory, file)
-        };
-        
-        // Generate embedding for the chunk
-        console.log(`Generating embedding for ${chunk.id}...`);
-        chunk.embedding = await this.generateEmbedding(chunk.text);
-        
-        this.chunks.push(chunk);
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk: DocumentChunk = {
+            id: `${path.basename(file)}_chunk_${i}`,
+            text: chunks[i],
+            source: path.relative(this.config.directory, file)
+          };
+          
+          // Generate embedding for the chunk
+          console.log(`Generating embedding for ${chunk.id}...`);
+          chunk.embedding = await this.generateEmbedding(chunk.text);
+          
+          this.chunks.push(chunk);
+        }
+      } catch (error: any) {
+        console.warn(`Error processing ${file}: ${error.message}`);
+        // Continue processing other files
       }
     }
   }
@@ -129,24 +156,35 @@ class RagService {
     const files: string[] = [];
     
     const traverse = (currentPath: string) => {
-      const items = fs.readdirSync(currentPath);
-      
-      for (const item of items) {
-        const fullPath = path.join(currentPath, item);
-        const stat = fs.statSync(fullPath);
+      try {
+        const items = fs.readdirSync(currentPath);
         
-        if (stat.isDirectory()) {
-          // Skip common directories
-          if (item === 'node_modules' || item === '.git' || item === 'dist') {
-            continue;
-          }
-          traverse(fullPath);
-        } else if (stat.isFile()) {
-          const ext = path.extname(item).toLowerCase();
-          if (textExtensions.includes(ext)) {
-            files.push(fullPath);
+        for (const item of items) {
+          const fullPath = path.join(currentPath, item);
+          
+          try {
+            const stat = fs.statSync(fullPath);
+            
+            if (stat.isDirectory()) {
+              // Skip common directories
+              if (item === 'node_modules' || item === '.git' || item === 'dist') {
+                continue;
+              }
+              traverse(fullPath);
+            } else if (stat.isFile()) {
+              const ext = path.extname(item).toLowerCase();
+              if (textExtensions.includes(ext)) {
+                files.push(fullPath);
+              }
+            }
+          } catch (error: any) {
+            // Skip files/directories we can't access
+            console.warn(`Warning: Cannot access ${fullPath}: ${error.message}`);
           }
         }
+      } catch (error: any) {
+        // Skip directories we can't read
+        console.warn(`Warning: Cannot read directory ${currentPath}: ${error.message}`);
       }
     };
     
@@ -187,13 +225,19 @@ class RagService {
       return await this.ollamaClient.embeddings(this.config.model!, text);
     } catch (error: any) {
       // Fallback: Create a simple hash-based embedding if API fails
+      // Note: This fallback uses 256 dimensions and is only for testing/debugging
+      // In production, ensure Ollama is properly configured with embedding support
       console.warn(`Failed to generate embedding via API, using fallback: ${error.message}`);
+      console.warn(`Note: Fallback embeddings use 256 dimensions and may not be compatible with all models`);
       return this.generateFallbackEmbedding(text);
     }
   }
 
   /**
    * Generate a simple fallback embedding (for testing when embeddings API is not available)
+   * WARNING: This is a simplified embedding that uses 256 dimensions.
+   * It is not compatible with embeddings from different models that use different dimensions.
+   * This should only be used for testing or when Ollama is not available.
    */
   private generateFallbackEmbedding(text: string): number[] {
     // Simple hash-based embedding (256 dimensions)
@@ -246,6 +290,7 @@ class RagService {
    */
   private cosineSimilarity(vec1: number[], vec2: number[]): number {
     if (vec1.length !== vec2.length) {
+      console.warn(`Warning: Embedding dimension mismatch (${vec1.length} vs ${vec2.length}). Returning 0 similarity.`);
       return 0;
     }
     
