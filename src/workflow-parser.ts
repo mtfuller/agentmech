@@ -42,15 +42,28 @@ class WorkflowParser {
   /**
    * Parse a workflow YAML file
    * @param filePath - Path to the YAML file
+   * @param visitedFiles - Set of already visited files to detect cycles
    * @returns Parsed workflow object
    */
-  static parseFile(filePath: string): Workflow {
+  static parseFile(filePath: string, visitedFiles: Set<string> = new Set()): Workflow {
     try {
+      // Resolve to absolute path for cycle detection
+      const absolutePath = path.resolve(filePath);
+      
+      // Check for circular references
+      if (visitedFiles.has(absolutePath)) {
+        throw new Error(`Circular workflow reference detected: ${absolutePath}`);
+      }
+      
+      // Add current file to visited set
+      const newVisitedFiles = new Set(visitedFiles);
+      newVisitedFiles.add(absolutePath);
+      
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const workflow = yaml.load(fileContent) as Workflow;
       
       // Resolve external file references
-      this.resolveExternalReferences(workflow, filePath);
+      this.resolveExternalReferences(workflow, filePath, newVisitedFiles);
       
       this.validateWorkflow(workflow);
       
@@ -67,8 +80,9 @@ class WorkflowParser {
    * Resolve external file references in the workflow
    * @param workflow - The workflow object
    * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
+   * @param visitedFiles - Set of already visited files to detect cycles
    */
-  static resolveExternalReferences(workflow: Workflow, workflowFilePath: string): void {
+  static resolveExternalReferences(workflow: Workflow, workflowFilePath: string, visitedFiles: Set<string> = new Set()): void {
     const workflowDir = path.dirname(workflowFilePath);
     
     for (const [stateName, state] of Object.entries(workflow.states)) {
@@ -88,9 +102,14 @@ class WorkflowParser {
       
       // Resolve workflow_ref reference
       if (state.workflow_ref) {
+        // Validate workflow_ref state before transformation
+        if (state.type !== 'workflow_ref') {
+          throw new Error(`State "${stateName}" has workflow_ref field but type is "${state.type}" instead of "workflow_ref"`);
+        }
+        
         const referencedWorkflowPath = path.resolve(workflowDir, state.workflow_ref);
         try {
-          const referencedWorkflow = this.parseFile(referencedWorkflowPath);
+          const referencedWorkflow = this.parseFile(referencedWorkflowPath, visitedFiles);
           
           // Import all states from the referenced workflow
           const statePrefix = stateName + '_ref_';
@@ -207,7 +226,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', 'transition', END_STATE];
+    const validTypes = ['prompt', 'choice', 'workflow_ref', 'transition', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
@@ -218,6 +237,10 @@ class WorkflowParser {
 
     if (state.type === 'choice' && !state.choices) {
       throw new Error(`Choice state "${name}" must have a choices field`);
+    }
+    
+    if (state.type === 'workflow_ref' && !state.workflow_ref) {
+      throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
     }
     
     if (state.type === 'transition' && !state.next) {

@@ -263,6 +263,62 @@ function testWorkflowParser() {
     failed++;
   }
   
+  // Test 14: Detect circular workflow references
+  try {
+    const fs = require('fs');
+    const yaml = require('js-yaml');
+    const tmpWorkflowA = path.join(__dirname, '../examples/tmp-test-circular-a.yaml');
+    const tmpWorkflowB = path.join(__dirname, '../examples/tmp-test-circular-b.yaml');
+    
+    // Create workflow A that references B
+    fs.writeFileSync(tmpWorkflowA, yaml.dump({
+      name: 'Circular A',
+      start_state: 'ref_b',
+      states: {
+        ref_b: {
+          type: 'workflow_ref',
+          workflow_ref: 'tmp-test-circular-b.yaml',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    }));
+    
+    // Create workflow B that references A (creating a cycle)
+    fs.writeFileSync(tmpWorkflowB, yaml.dump({
+      name: 'Circular B',
+      start_state: 'ref_a',
+      states: {
+        ref_a: {
+          type: 'workflow_ref',
+          workflow_ref: 'tmp-test-circular-a.yaml',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    }));
+    
+    try {
+      WorkflowParser.parseFile(tmpWorkflowA);
+      console.log('✗ Test 14 failed: Should detect circular workflow references');
+      failed++;
+    } catch (error) {
+      if (error.message.includes('Circular workflow reference')) {
+        console.log('✓ Test 14 passed: Detect circular workflow references');
+        passed++;
+      } else {
+        console.log('✗ Test 14 failed: Wrong error message:', error.message);
+        failed++;
+      }
+    } finally {
+      fs.unlinkSync(tmpWorkflowA);
+      fs.unlinkSync(tmpWorkflowB);
+    }
+  } catch (error) {
+    console.log('✗ Test 14 failed:', error.message);
+    failed++;
+  }
+  
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   return failed === 0;
 }
