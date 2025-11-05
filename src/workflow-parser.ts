@@ -212,8 +212,8 @@ class WorkflowParser {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
 
-    if (state.type === 'prompt' && !state.prompt) {
-      throw new Error(`Prompt state "${name}" must have a prompt field`);
+    if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
+      throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
     }
 
     if (state.type === 'choice' && !state.choices) {
