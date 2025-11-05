@@ -1,0 +1,14 @@
+name: "Greeting Workflow"
+description: "A simple workflow that generates a friendly greeting"
+default_model: "llama2"
+start_state: "greet"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "Generate a warm and friendly greeting message for someone starting their day. Make it uplifting and positive!"
+    save_as: "greeting"
+    next: "end"
+  
+  end:
+    type: "end"

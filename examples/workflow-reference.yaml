@@ -1,0 +1,24 @@
+name: "Workflow Reference Example"
+description: "Example workflow that references another workflow"
+default_model: "llama2"
+start_state: "start_greeting"
+
+states:
+  start_greeting:
+    type: "workflow_ref"
+    workflow_ref: "greeting-workflow.yaml"
+    next: "ask_continue"
+  
+  ask_continue:
+    type: "choice"
+    prompt: "Would you like another greeting?"
+    choices:
+      - label: "Yes, please"
+        value: "yes"
+        next: "start_greeting"
+      - label: "No, thank you"
+        value: "no"
+        next: "end"
+  
+  end:
+    type: "end"

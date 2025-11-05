@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const END_STATE = 'end';
 
@@ -18,6 +19,8 @@ interface McpServerConfig {
 interface State {
   type: string;
   prompt?: string;
+  prompt_file?: string;
+  workflow_ref?: string;
   choices?: Choice[];
   next?: string;
   model?: string;
@@ -46,6 +49,9 @@ class WorkflowParser {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const workflow = yaml.load(fileContent) as Workflow;
       
+      // Resolve external file references
+      this.resolveExternalReferences(workflow, filePath);
+      
       this.validateWorkflow(workflow);
       
       return workflow;
@@ -54,6 +60,80 @@ class WorkflowParser {
         throw new Error(`Workflow file not found: ${filePath}`);
       }
       throw new Error(`Failed to parse workflow: ${error.message}`);
+    }
+  }
+
+  /**
+   * Resolve external file references in the workflow
+   * @param workflow - The workflow object
+   * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
+   */
+  static resolveExternalReferences(workflow: Workflow, workflowFilePath: string): void {
+    const workflowDir = path.dirname(workflowFilePath);
+    
+    for (const [stateName, state] of Object.entries(workflow.states)) {
+      // Resolve prompt_file reference
+      if (state.prompt_file) {
+        const promptFilePath = path.resolve(workflowDir, state.prompt_file);
+        try {
+          state.prompt = fs.readFileSync(promptFilePath, 'utf8');
+          // Keep prompt_file for reference but prompt now contains the content
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            throw new Error(`Prompt file not found for state "${stateName}": ${promptFilePath}`);
+          }
+          throw new Error(`Failed to read prompt file for state "${stateName}": ${error.message}`);
+        }
+      }
+      
+      // Resolve workflow_ref reference
+      if (state.workflow_ref) {
+        const referencedWorkflowPath = path.resolve(workflowDir, state.workflow_ref);
+        try {
+          const referencedWorkflow = this.parseFile(referencedWorkflowPath);
+          
+          // Import all states from the referenced workflow
+          const statePrefix = stateName + '_ref_';
+          for (const [refStateName, refState] of Object.entries(referencedWorkflow.states)) {
+            const newStateName = statePrefix + refStateName;
+            workflow.states[newStateName] = { ...refState };
+            
+            // Update next references to point to prefixed states
+            if (workflow.states[newStateName].next && workflow.states[newStateName].next !== END_STATE) {
+              workflow.states[newStateName].next = statePrefix + workflow.states[newStateName].next;
+            }
+            
+            // Update choice next references
+            if (workflow.states[newStateName].choices) {
+              workflow.states[newStateName].choices = workflow.states[newStateName].choices!.map(choice => ({
+                ...choice,
+                next: choice.next && choice.next !== END_STATE ? statePrefix + choice.next : choice.next
+              }));
+            }
+          }
+          
+          // Replace the workflow_ref state with a transition to the referenced workflow's start state
+          const referencedStartState = statePrefix + referencedWorkflow.start_state;
+          state.type = 'transition';
+          state.next = referencedStartState;
+          delete state.workflow_ref;
+          
+          // Also copy over default_model and mcp_servers if not already present
+          if (referencedWorkflow.default_model && !workflow.default_model) {
+            workflow.default_model = referencedWorkflow.default_model;
+          }
+          if (referencedWorkflow.mcp_servers) {
+            workflow.mcp_servers = workflow.mcp_servers || {};
+            for (const [serverName, config] of Object.entries(referencedWorkflow.mcp_servers)) {
+              if (!workflow.mcp_servers[serverName]) {
+                workflow.mcp_servers[serverName] = config;
+              }
+            }
+          }
+        } catch (error: any) {
+          throw new Error(`Failed to load referenced workflow for state "${stateName}": ${error.message}`);
+        }
+      }
     }
   }
 
@@ -127,7 +207,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', END_STATE];
+    const validTypes = ['prompt', 'choice', 'transition', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
@@ -138,6 +218,10 @@ class WorkflowParser {
 
     if (state.type === 'choice' && !state.choices) {
       throw new Error(`Choice state "${name}" must have a choices field`);
+    }
+    
+    if (state.type === 'transition' && !state.next) {
+      throw new Error(`Transition state "${name}" must have a next field`);
     }
 
     // Validate MCP server references
