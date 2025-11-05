@@ -11,6 +11,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 🔄 **State Machine**: Control workflow execution with state transitions
 - 💬 **Interactive Choices**: Present users with choices that affect workflow direction
 - 🔗 **Context Variables**: Pass data between states using variable interpolation
+- 🧠 **RAG Support**: Retrieval-Augmented Generation for context-aware responses
 - ✅ **Validation**: Validate workflow files before execution
 
 ## Prerequisites
@@ -134,8 +135,24 @@ A workflow file consists of:
 - **description**: Optional workflow description
 - **default_model**: Default Ollama model to use (e.g., "llama2", "mistral")
 - **mcp_servers**: Optional MCP server configurations
+- **rag**: Optional RAG (Retrieval-Augmented Generation) configuration
 - **start_state**: The initial state to begin execution
 - **states**: Object containing all workflow states
+
+### RAG Configuration
+
+You can enable Retrieval-Augmented Generation (RAG) to provide context from a knowledge base:
+
+```yaml
+rag:
+  directory: "./knowledge-base"  # Directory containing documents
+  model: "llama2"                # Optional: Model for embeddings (default: workflow default_model)
+  embeddingsFile: "embeddings.json"  # Optional: Embeddings cache file (default: embeddings.json)
+  chunkSize: 500                 # Optional: Text chunk size (default: 1000)
+  topK: 3                        # Optional: Number of chunks to retrieve (default: 3)
+```
+
+When RAG is configured, states can use `use_rag: true` to automatically retrieve and include relevant context from the knowledge base in their prompts.
 
 ### MCP Server Configuration
 
@@ -162,8 +179,11 @@ state_name:
   model: "llama2"  # Optional, uses default_model if not specified
   save_as: "variable_name"  # Optional, saves response to context
   mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
+  use_rag: true  # Optional, enable RAG context retrieval for this prompt
   next: "next_state_name"  # Next state to transition to
 ```
+
+When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
 
 #### 2. Choice State
 Presents options to the user and transitions based on selection.
@@ -261,6 +281,46 @@ states:
     type: "end"
 ```
 
+### RAG Integration Example
+
+```yaml
+name: "RAG-Powered Q&A"
+description: "Answer questions using RAG to provide context from a knowledge base"
+default_model: "llama2"
+start_state: "ask_question"
+
+# Configure RAG with a knowledge base directory
+rag:
+  directory: "./examples/knowledge-base"
+  model: "llama2"
+  embeddingsFile: "embeddings.json"
+  chunkSize: 500
+  topK: 3
+
+states:
+  ask_question:
+    type: "choice"
+    prompt: "What would you like to know?"
+    save_as: "question"
+    choices:
+      - label: "How do I install this tool?"
+        value: "How do I install and set up this tool?"
+        next: "answer_with_rag"
+      - label: "What are the features?"
+        value: "What are the main features?"
+        next: "answer_with_rag"
+  
+  answer_with_rag:
+    type: "prompt"
+    prompt: "{{question}}"
+    use_rag: true  # Enable RAG context retrieval
+    save_as: "answer"
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -270,6 +330,7 @@ The `examples/` directory contains sample workflows:
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
+- **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
