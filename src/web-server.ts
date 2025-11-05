@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import WorkflowDiscovery = require('./workflow-discovery');
 import WorkflowParser = require('./workflow-parser');
 import WorkflowExecutor = require('./workflow-executor');
+import WebWorkflowExecutor = require('./web-workflow-executor');
 
 interface ServeOptions {
   port: number;
@@ -16,10 +17,12 @@ class WebServer {
   private app: express.Application;
   private options: ServeOptions;
   private server: any;
+  private activeExecutions: Map<string, WebWorkflowExecutor>;
 
   constructor(options: ServeOptions) {
     this.options = options;
     this.app = express();
+    this.activeExecutions = new Map();
     
     // Middleware
     this.app.use(cors());
@@ -33,6 +36,11 @@ class WebServer {
     // Serve static frontend
     this.app.get('/', (req: Request, res: Response) => {
       res.send(this.getIndexHtml());
+    });
+
+    // Serve execution page
+    this.app.get('/execute/:fileName', (req: Request, res: Response) => {
+      res.send(this.getExecutionHtml());
     });
 
     // API: List all workflows
@@ -64,8 +72,8 @@ class WebServer {
       }
     });
 
-    // API: Execute workflow (stub - actual execution would need WebSocket or SSE)
-    this.app.post('/api/workflows/:fileName/execute', (req: Request, res: Response) => {
+    // API: Start workflow execution with SSE
+    this.app.get('/api/workflows/:fileName/execute', (req: Request, res: Response) => {
       try {
         const filePath = path.join(this.options.workflowDir, req.params.fileName);
         
@@ -76,12 +84,55 @@ class WebServer {
           return res.status(403).json({ error: 'Access denied' });
         }
         
-        // For now, just return a message indicating execution would start
-        // Full implementation would require WebSocket or Server-Sent Events
-        res.json({
-          message: 'Workflow execution is not yet fully supported in web UI. Please use CLI for execution.',
-          suggestion: `Run: ai-workflow run ${filePath}`
+        // Parse and create executor
+        const workflow = WorkflowParser.parseFile(filePath);
+        const sessionId = `${req.params.fileName}-${Date.now()}`;
+        const executor = new WebWorkflowExecutor(workflow, this.options.ollamaUrl);
+        
+        // Store executor
+        this.activeExecutions.set(sessionId, executor);
+        
+        // Set SSE response
+        executor.setSseResponse(res);
+        
+        // Start execution
+        executor.execute().catch((error) => {
+          console.error('Workflow execution error:', error);
+        }).finally(() => {
+          // Clean up
+          this.activeExecutions.delete(sessionId);
         });
+        
+        // Store session ID in response headers for client reference
+        res.setHeader('X-Session-ID', sessionId);
+        
+        // Handle client disconnect
+        req.on('close', () => {
+          this.activeExecutions.delete(sessionId);
+        });
+        
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // API: Provide input to workflow execution
+    this.app.post('/api/workflows/:fileName/input', (req: Request, res: Response) => {
+      try {
+        const { sessionId, input } = req.body;
+        
+        if (!sessionId || input === undefined) {
+          return res.status(400).json({ error: 'Missing sessionId or input' });
+        }
+        
+        const executor = this.activeExecutions.get(sessionId);
+        if (!executor) {
+          return res.status(404).json({ error: 'Execution session not found' });
+        }
+        
+        executor.provideInput(input);
+        res.json({ success: true });
+        
       } catch (error: any) {
         res.status(500).json({ error: error.message });
       }
@@ -145,13 +196,11 @@ class WebServer {
             padding: 20px;
             margin-bottom: 20px;
             transition: all 0.3s ease;
-            cursor: pointer;
         }
         
         .workflow-card:hover {
             border-color: #667eea;
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-            transform: translateY(-2px);
         }
         
         .workflow-card.invalid {
@@ -180,6 +229,46 @@ class WebServer {
             padding: 5px 10px;
             border-radius: 4px;
             display: inline-block;
+        }
+        
+        .workflow-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-run {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-run:hover {
+            background: #218838;
+        }
+        
+        .btn-details {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-details:hover {
+            background: #5568d3;
         }
         
         .workflow-error {
@@ -378,7 +467,7 @@ class WebServer {
             }
             
             container.innerHTML = workflows.map(wf => \`
-                <div class="workflow-card \${wf.valid ? '' : 'invalid'}" onclick="showWorkflowDetails('\${wf.fileName}')">
+                <div class="workflow-card \${wf.valid ? '' : 'invalid'}">
                     <div class="workflow-name">
                         \${wf.name}
                         <span class="badge \${wf.valid ? 'valid' : 'invalid'}">
@@ -388,6 +477,12 @@ class WebServer {
                     \${wf.description ? \`<div class="workflow-description">\${wf.description}</div>\` : ''}
                     <div class="workflow-file">\${wf.fileName}</div>
                     \${wf.error ? \`<div class="workflow-error"><strong>Error:</strong> \${wf.error}</div>\` : ''}
+                    \${wf.valid ? \`
+                        <div class="workflow-actions">
+                            <a href="/execute/\${wf.fileName}" class="btn-run">▶ Run</a>
+                            <button class="btn-details" onclick="showWorkflowDetails('\${wf.fileName}')">ℹ Details</button>
+                        </div>
+                    \` : ''}
                 </div>
             \`).join('');
         }
@@ -402,11 +497,6 @@ class WebServer {
                 
                 const modalBody = document.getElementById('modal-body');
                 modalBody.innerHTML = \`
-                    <div class="info-box">
-                        <strong>Note:</strong> Workflow execution through the web UI is coming soon!<br>
-                        For now, use the CLI command: <code>ai-workflow run \${workflow.filePath}</code>
-                    </div>
-                    
                     <h3>Workflow Information</h3>
                     <p><strong>Name:</strong> \${data.name}</p>
                     \${data.description ? \`<p><strong>Description:</strong> \${data.description}</p>\` : ''}
@@ -446,6 +536,406 @@ class WebServer {
         
         // Load workflows on page load
         loadWorkflows();
+    </script>
+</body>
+</html>`;
+  }
+
+  private getExecutionHtml(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Execution - AI Workflow CLI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+        }
+        
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: #5568d3;
+        }
+        
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.system {
+            background: #e3f2fd;
+            color: #1976d2;
+            align-self: flex-start;
+        }
+        
+        .message.log {
+            background: #f5f5f5;
+            color: #666;
+            align-self: flex-start;
+        }
+        
+        .message.response {
+            background: #667eea;
+            color: white;
+            align-self: flex-start;
+            max-width: 90%;
+            white-space: pre-wrap;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            align-self: flex-start;
+        }
+        
+        .message.user {
+            background: #e8eaf6;
+            color: #333;
+            align-self: flex-end;
+        }
+        
+        .message.state-change {
+            background: #fff3e0;
+            color: #e65100;
+            align-self: center;
+            font-weight: 600;
+            max-width: 100%;
+            text-align: center;
+        }
+        
+        .choices {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 400px;
+            align-self: flex-start;
+        }
+        
+        .choice-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            transition: background 0.3s ease;
+        }
+        
+        .choice-btn:hover {
+            background: #5568d3;
+        }
+        
+        .input-container {
+            border-top: 2px solid #e0e0e0;
+            padding: 15px 20px;
+            display: none;
+            gap: 10px;
+        }
+        
+        .input-container.active {
+            display: flex;
+        }
+        
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .send-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .send-btn:hover {
+            background: #218838;
+        }
+        
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px 20px;
+            text-align: center;
+            background: #f5f5f5;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .status.complete {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="workflow-title">🚀 Workflow Execution</h1>
+            <a href="/" class="back-btn">← Back to Workflows</a>
+        </header>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">Connecting to workflow...</div>
+            </div>
+            
+            <div class="status" id="status">Initializing...</div>
+            
+            <div class="input-container" id="input-container">
+                <input type="text" id="input-field" class="input-field" placeholder="Type your response...">
+                <button id="send-btn" class="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const fileName = window.location.pathname.split('/').pop();
+        let sessionId = null;
+        let eventSource = null;
+        
+        // Get workflow info
+        async function loadWorkflowInfo() {
+            try {
+                const response = await fetch(\`/api/workflows/\${fileName}\`);
+                const data = await response.json();
+                document.getElementById('workflow-title').textContent = \`🚀 \${data.name}\`;
+            } catch (error) {
+                console.error('Failed to load workflow info:', error);
+            }
+        }
+        
+        function addMessage(type, message) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = \`message \${type}\`;
+            messageDiv.textContent = message;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function addChoices(choices) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const choicesDiv = document.createElement('div');
+            choicesDiv.className = 'choices';
+            
+            choices.forEach((choice, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'choice-btn';
+                btn.textContent = \`\${index + 1}. \${choice.label || choice.value}\`;
+                btn.onclick = () => sendInput(index.toString());
+                choicesDiv.appendChild(btn);
+            });
+            
+            messagesContainer.appendChild(choicesDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showInputField(prompt) {
+            const inputContainer = document.getElementById('input-container');
+            const inputField = document.getElementById('input-field');
+            inputField.placeholder = prompt || 'Type your response...';
+            inputContainer.classList.add('active');
+            inputField.focus();
+        }
+        
+        function hideInputField() {
+            const inputContainer = document.getElementById('input-container');
+            inputContainer.classList.remove('active');
+        }
+        
+        async function sendInput(input) {
+            if (!input || !sessionId) return;
+            
+            addMessage('user', input);
+            hideInputField();
+            
+            try {
+                await fetch(\`/api/workflows/\${fileName}/input\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, input })
+                });
+                
+                document.getElementById('input-field').value = '';
+            } catch (error) {
+                addMessage('error', 'Failed to send input: ' + error.message);
+            }
+        }
+        
+        function connectToWorkflow() {
+            eventSource = new EventSource(\`/api/workflows/\${fileName}/execute\`);
+            
+            eventSource.onopen = (e) => {
+                sessionId = e.target.responseURL; // Try to get session ID
+                document.getElementById('status').textContent = 'Running...';
+                addMessage('system', 'Workflow execution started');
+            };
+            
+            eventSource.onmessage = (e) => {
+                try {
+                    const event = JSON.parse(e.data);
+                    
+                    switch (event.type) {
+                        case 'log':
+                            addMessage('log', event.message);
+                            break;
+                        case 'state_change':
+                            addMessage('state-change', event.message);
+                            break;
+                        case 'response':
+                            addMessage('response', event.message);
+                            break;
+                        case 'prompt':
+                            showInputField(event.message);
+                            break;
+                        case 'choice':
+                            addChoices(event.data.choices);
+                            break;
+                        case 'error':
+                            addMessage('error', event.message);
+                            break;
+                        case 'complete':
+                            addMessage('system', event.message);
+                            document.getElementById('status').textContent = 'Workflow completed successfully';
+                            document.getElementById('status').classList.add('complete');
+                            hideInputField();
+                            eventSource.close();
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse event:', error);
+                }
+            };
+            
+            eventSource.onerror = (e) => {
+                addMessage('error', 'Connection error. Please try again.');
+                document.getElementById('status').textContent = 'Connection lost';
+                eventSource.close();
+            };
+        }
+        
+        // Setup send button
+        document.getElementById('send-btn').onclick = () => {
+            const input = document.getElementById('input-field').value.trim();
+            if (input) {
+                sendInput(input);
+            }
+        };
+        
+        // Setup enter key
+        document.getElementById('input-field').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const input = e.target.value.trim();
+                if (input) {
+                    sendInput(input);
+                }
+            }
+        });
+        
+        // Load workflow info and start execution
+        loadWorkflowInfo();
+        connectToWorkflow();
     </script>
 </body>
 </html>`;
