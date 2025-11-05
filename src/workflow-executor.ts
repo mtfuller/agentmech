@@ -1,5 +1,6 @@
 import * as readline from 'readline';
 import OllamaClient = require('./ollama-client');
+import McpClient = require('./mcp-client');
 
 const END_STATE = 'end';
 
@@ -7,6 +8,12 @@ interface Choice {
   label?: string;
   value?: string;
   next?: string;
+}
+
+interface McpServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
 }
 
 interface State {
@@ -17,6 +24,7 @@ interface State {
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
+  mcp_servers?: string[];
 }
 
 interface Workflow {
@@ -24,12 +32,14 @@ interface Workflow {
   description?: string;
   start_state: string;
   default_model?: string;
+  mcp_servers?: Record<string, McpServerConfig>;
   states: Record<string, State>;
 }
 
 class WorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
+  private mcpClient: McpClient;
   private context: Record<string, any>;
   private history: string[];
   private rl: readline.Interface;
@@ -37,6 +47,7 @@ class WorkflowExecutor {
   constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434') {
     this.workflow = workflow;
     this.ollamaClient = new OllamaClient(ollamaUrl);
+    this.mcpClient = new McpClient();
     this.context = {};
     this.history = [];
     
@@ -56,24 +67,37 @@ class WorkflowExecutor {
       console.log(`${this.workflow.description}\n`);
     }
 
-    let currentState: string | null = this.workflow.start_state;
-    
-    while (currentState && currentState !== END_STATE) {
-      const state = this.workflow.states[currentState];
-      console.log(`\n--- State: ${currentState} ---`);
-      
-      try {
-        this.history.push(currentState);
-        currentState = await this.executeState(currentState, state);
-      } catch (error: any) {
-        console.error(`\nError in state "${currentState}": ${error.message}`);
-        this.rl.close();
-        throw error;
+    // Initialize MCP servers if configured
+    if (this.workflow.mcp_servers) {
+      console.log('Initializing MCP servers...');
+      for (const [serverName, config] of Object.entries(this.workflow.mcp_servers)) {
+        this.mcpClient.registerServer(serverName, config);
       }
+      console.log(`Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)\n`);
     }
-    
-    console.log('\n=== Workflow Completed ===\n');
-    this.rl.close();
+
+    try {
+      let currentState: string | null = this.workflow.start_state;
+      
+      while (currentState && currentState !== END_STATE) {
+        const state = this.workflow.states[currentState];
+        console.log(`\n--- State: ${currentState} ---`);
+        
+        try {
+          this.history.push(currentState);
+          currentState = await this.executeState(currentState, state);
+        } catch (error: any) {
+          console.error(`\nError in state "${currentState}": ${error.message}`);
+          throw error;
+        }
+      }
+      
+      console.log('\n=== Workflow Completed ===\n');
+    } finally {
+      // Clean up MCP connections
+      await this.mcpClient.disconnectAll();
+      this.rl.close();
+    }
   }
 
   /**
@@ -105,9 +129,33 @@ class WorkflowExecutor {
     const prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
     
+    // Connect to MCP servers if specified for this state
+    if (state.mcp_servers && state.mcp_servers.length > 0) {
+      console.log(`\nConnecting to MCP servers: ${state.mcp_servers.join(', ')}`);
+      for (const serverName of state.mcp_servers) {
+        try {
+          await this.mcpClient.connectServer(serverName);
+          console.log(`✓ Connected to MCP server: ${serverName}`);
+        } catch (error: any) {
+          console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
+        }
+      }
+      
+      // Display available tools and resources
+      const tools = this.mcpClient.getAvailableTools(state.mcp_servers);
+      const resources = this.mcpClient.getAvailableResources(state.mcp_servers);
+      
+      if (tools.length > 0) {
+        console.log(`\nAvailable MCP tools: ${tools.map(t => t.tool.name).join(', ')}`);
+      }
+      if (resources.length > 0) {
+        console.log(`Available MCP resources: ${resources.map(r => r.resource.name || r.resource.uri).join(', ')}`);
+      }
+    }
+    
     const model = state.model || this.workflow.default_model || 'llama2';
-    console.log(`Using model: ${model}`);
-    console.log('\nGenerating response...\n');
+    console.log(`\nUsing model: ${model}`);
+    console.log('Generating response...\n');
     
     try {
       const response = await this.ollamaClient.generate(model, prompt, state.options || {});
