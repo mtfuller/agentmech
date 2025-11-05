@@ -1,4 +1,4 @@
-const WorkflowParser = require('../src/workflow-parser');
+const WorkflowParser = require('../dist/workflow-parser');
 const path = require('path');
 
 /**
