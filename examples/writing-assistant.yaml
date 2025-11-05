@@ -1,0 +1,62 @@
+name: "Creative Writing Assistant"
+description: "A workflow to help with creative writing tasks"
+default_model: "llama2"
+
+start_state: "choose_task"
+
+states:
+  choose_task:
+    type: "choice"
+    prompt: "What would you like help with?"
+    save_as: "task_type"
+    choices:
+      - label: "Generate a story idea"
+        value: "story_idea"
+        next: "generate_idea"
+      - label: "Create character descriptions"
+        value: "character"
+        next: "create_character"
+      - label: "Write dialogue"
+        value: "dialogue"
+        next: "write_dialogue"
+      - label: "Improve a paragraph"
+        value: "improve"
+        next: "improve_text"
+  
+  generate_idea:
+    type: "prompt"
+    prompt: "Generate 3 unique and creative story ideas. Each should include a brief premise, main conflict, and potential twist."
+    save_as: "ideas"
+    next: "ask_continue"
+  
+  create_character:
+    type: "prompt"
+    prompt: "Create a detailed character profile including: name, age, physical description, personality traits, backstory, motivations, and a unique quirk."
+    save_as: "character_profile"
+    next: "ask_continue"
+  
+  write_dialogue:
+    type: "prompt"
+    prompt: "Write a compelling dialogue exchange between two characters who are meeting for the first time in an unusual situation."
+    save_as: "dialogue"
+    next: "ask_continue"
+  
+  improve_text:
+    type: "prompt"
+    prompt: "Take this paragraph and improve it with better word choice, varied sentence structure, and vivid imagery: 'The man walked down the street. It was dark. He was scared. Something was following him.'"
+    save_as: "improved_text"
+    next: "ask_continue"
+  
+  ask_continue:
+    type: "choice"
+    prompt: "What would you like to do next?"
+    choices:
+      - label: "Try another writing task"
+        value: "continue"
+        next: "choose_task"
+      - label: "Exit"
+        value: "exit"
+        next: "end"
+  
+  end:
+    type: "end"

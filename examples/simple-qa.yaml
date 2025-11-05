@@ -1,0 +1,15 @@
+name: "Simple Q&A Workflow"
+description: "Ask Ollama a question and get an answer"
+default_model: "llama2"
+
+start_state: "ask_question"
+
+states:
+  ask_question:
+    type: "prompt"
+    prompt: "What is artificial intelligence and how does it work?"
+    save_as: "answer"
+    next: "end"
+  
+  end:
+    type: "end"
