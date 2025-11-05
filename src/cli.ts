@@ -117,4 +117,7 @@ program
     }
   });
 
+// TODO: Add serve command from main branch
+// This requires web-server.ts and web-workflow-executor.ts which need proper HTML template escaping
+
 program.parse();
