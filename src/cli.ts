@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-const { Command } = require('commander');
-const WorkflowParser = require('./workflow-parser');
-const WorkflowExecutor = require('./workflow-executor');
-const OllamaClient = require('./ollama-client');
-const path = require('path');
+import { Command } from 'commander';
+import WorkflowParser = require('./workflow-parser');
+import WorkflowExecutor = require('./workflow-executor');
+import OllamaClient = require('./ollama-client');
+import * as path from 'path';
 
 const program = new Command();
 
@@ -13,12 +13,16 @@ program
   .description('A CLI tool for running AI workflows locally with Ollama')
   .version('1.0.0');
 
+interface RunOptions {
+  ollamaUrl: string;
+}
+
 program
   .command('run')
   .description('Run a workflow from a YAML file')
   .argument('<workflow-file>', 'Path to workflow YAML file')
   .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
-  .action(async (workflowFile, options) => {
+  .action(async (workflowFile: string, options: RunOptions) => {
     try {
       // Parse the workflow file
       const workflowPath = path.resolve(workflowFile);
@@ -31,7 +35,7 @@ program
       const executor = new WorkflowExecutor(workflow, options.ollamaUrl);
       await executor.execute();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(`\nError: ${error.message}`);
       process.exit(1);
     }
@@ -41,7 +45,7 @@ program
   .command('validate')
   .description('Validate a workflow YAML file')
   .argument('<workflow-file>', 'Path to workflow YAML file')
-  .action((workflowFile) => {
+  .action((workflowFile: string) => {
     try {
       const workflowPath = path.resolve(workflowFile);
       console.log(`Validating workflow: ${workflowPath}`);
@@ -53,17 +57,21 @@ program
       console.log(`  States: ${Object.keys(workflow.states).length}`);
       console.log(`  Start state: ${workflow.start_state}`);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(`\n✗ Validation failed: ${error.message}`);
       process.exit(1);
     }
   });
 
+interface ListModelsOptions {
+  ollamaUrl: string;
+}
+
 program
   .command('list-models')
   .description('List available Ollama models')
   .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
-  .action(async (options) => {
+  .action(async (options: ListModelsOptions) => {
     try {
       const client = new OllamaClient(options.ollamaUrl);
       console.log('Fetching available models...\n');
@@ -79,7 +87,7 @@ program
         });
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error(`\nError: ${error.message}`);
       process.exit(1);
     }

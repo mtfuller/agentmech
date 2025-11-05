@@ -26,6 +26,9 @@ cd ai-workflow-cli
 # Install dependencies
 npm install
 
+# Build the TypeScript code
+npm run build
+
 # Make CLI executable (optional)
 npm link
 ```
@@ -200,23 +203,36 @@ See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
 ## Development
 
+This project is written in TypeScript and compiled to JavaScript.
+
 ### Project Structure
 
 ```
 ai-workflow-cli/
 ├── src/
-│   ├── cli.js                 # CLI entry point
-│   ├── ollama-client.js       # Ollama API client
-│   ├── workflow-parser.js     # YAML parser and validator
-│   └── workflow-executor.js   # State machine executor
+│   ├── cli.ts                 # CLI entry point
+│   ├── ollama-client.ts       # Ollama API client
+│   ├── workflow-parser.ts     # YAML parser and validator
+│   └── workflow-executor.ts   # State machine executor
+├── dist/                      # Compiled JavaScript output
 ├── examples/
 │   ├── simple-qa.yaml
 │   ├── story-generator.yaml
 │   └── code-review.yaml
 ├── tests/
 │   └── (test files)
+├── tsconfig.json              # TypeScript configuration
 ├── package.json
 └── README.md
+```
+
+### Building from Source
+
+```bash
+# Build TypeScript code
+npm run build
+
+# The compiled JavaScript will be output to the dist/ directory
 ```
 
 ### Running Tests
@@ -224,6 +240,8 @@ ai-workflow-cli/
 ```bash
 npm test
 ```
+
+The test command automatically builds the TypeScript code before running tests.
 
 ## Troubleshooting
 

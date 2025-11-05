@@ -2,13 +2,15 @@
   "name": "ai-workflow-cli",
   "version": "1.0.0",
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
-  "main": "src/index.js",
+  "main": "dist/cli.js",
   "bin": {
-    "ai-workflow": "./src/cli.js"
+    "ai-workflow": "./dist/cli.js"
   },
   "scripts": {
-    "start": "node src/cli.js",
-    "test": "node tests/run-tests.js"
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "test": "npm run build && node tests/run-tests.js",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "ai",
@@ -23,5 +25,10 @@
     "axios": "^1.13.2",
     "commander": "^14.0.2",
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^24.10.0",
+    "typescript": "^5.9.3"
   }
 }

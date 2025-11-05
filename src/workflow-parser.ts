@@ -1,24 +1,47 @@
-const yaml = require('js-yaml');
-const fs = require('fs');
-const path = require('path');
+import * as yaml from 'js-yaml';
+import * as fs from 'fs';
 
 const END_STATE = 'end';
+
+interface Choice {
+  label?: string;
+  value?: string;
+  next?: string;
+}
+
+interface State {
+  type: string;
+  prompt?: string;
+  choices?: Choice[];
+  next?: string;
+  model?: string;
+  save_as?: string;
+  options?: Record<string, any>;
+}
+
+interface Workflow {
+  name: string;
+  description?: string;
+  start_state: string;
+  default_model?: string;
+  states: Record<string, State>;
+}
 
 class WorkflowParser {
   /**
    * Parse a workflow YAML file
-   * @param {string} filePath - Path to the YAML file
-   * @returns {Object} Parsed workflow object
+   * @param filePath - Path to the YAML file
+   * @returns Parsed workflow object
    */
-  static parseFile(filePath) {
+  static parseFile(filePath: string): Workflow {
     try {
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      const workflow = yaml.load(fileContent);
+      const workflow = yaml.load(fileContent) as Workflow;
       
       this.validateWorkflow(workflow);
       
       return workflow;
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error(`Workflow file not found: ${filePath}`);
       }
@@ -28,10 +51,10 @@ class WorkflowParser {
 
   /**
    * Validate workflow structure
-   * @param {Object} workflow - The workflow object to validate
+   * @param workflow - The workflow object to validate
    * @throws {Error} If workflow is invalid
    */
-  static validateWorkflow(workflow) {
+  static validateWorkflow(workflow: Workflow): void {
     if (!workflow) {
       throw new Error('Workflow is empty');
     }
@@ -60,11 +83,11 @@ class WorkflowParser {
 
   /**
    * Validate a single state
-   * @param {string} name - State name
-   * @param {Object} state - State configuration
-   * @param {Object} allStates - All states for reference validation
+   * @param name - State name
+   * @param state - State configuration
+   * @param allStates - All states for reference validation
    */
-  static validateState(name, state, allStates) {
+  static validateState(name: string, state: State, allStates: Record<string, State>): void {
     if (!state.type) {
       throw new Error(`State "${name}" must have a type`);
     }
@@ -98,4 +121,4 @@ class WorkflowParser {
   }
 }
 
-module.exports = WorkflowParser;
+export = WorkflowParser;
