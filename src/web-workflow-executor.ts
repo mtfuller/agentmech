@@ -1,5 +1,6 @@
 import OllamaClient = require('./ollama-client');
 import McpClient = require('./mcp-client');
+import RagService = require('./rag-service');
 import { Response } from 'express';
 
 const END_STATE = 'end';
@@ -17,6 +18,14 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
+interface RagConfig {
+  directory: string;
+  model?: string;
+  embeddingsFile?: string;
+  chunkSize?: number;
+  topK?: number;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -26,6 +35,7 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
+  use_rag?: boolean;
 }
 
 interface Workflow {
@@ -34,6 +44,7 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
+  rag?: RagConfig;
   states: Record<string, State>;
 }
 
@@ -47,6 +58,7 @@ class WebWorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
+  private ragService?: RagService;
   private context: Record<string, any>;
   private history: string[];
   private sseResponse?: Response;
@@ -58,6 +70,11 @@ class WebWorkflowExecutor {
     this.mcpClient = new McpClient();
     this.context = {};
     this.history = [];
+    
+    // Initialize RAG service if configured
+    if (workflow.rag) {
+      this.ragService = new RagService(workflow.rag, ollamaUrl);
+    }
   }
 
   /**
@@ -176,6 +193,19 @@ class WebWorkflowExecutor {
         });
       }
 
+      // Initialize RAG if configured
+      if (this.ragService) {
+        this.sendEvent({
+          type: 'log',
+          message: 'Initializing RAG system...'
+        });
+        await this.ragService.initialize();
+        this.sendEvent({
+          type: 'log',
+          message: 'RAG system initialized'
+        });
+      }
+
       let currentState: string | null = this.workflow.start_state;
 
       while (currentState && currentState !== END_STATE) {
@@ -240,12 +270,31 @@ class WebWorkflowExecutor {
    * Execute a prompt state (sends prompt to Ollama)
    */
   private async executePromptState(stateName: string, state: State): Promise<string> {
-    const prompt = this.interpolateVariables(state.prompt || '');
+    let prompt = this.interpolateVariables(state.prompt || '');
     
     this.sendEvent({
       type: 'log',
       message: `Prompt: ${prompt}`
     });
+
+    // Add RAG context if enabled for this state
+    if (state.use_rag && this.ragService) {
+      this.sendEvent({
+        type: 'log',
+        message: 'Retrieving relevant context from RAG...'
+      });
+      
+      const relevantChunks = await this.ragService.search(prompt);
+      const ragContext = this.ragService.formatContext(relevantChunks);
+      
+      if (ragContext) {
+        prompt = prompt + ragContext;
+        this.sendEvent({
+          type: 'log',
+          message: 'RAG context added to prompt'
+        });
+      }
+    }
 
     // Connect to MCP servers if specified for this state
     if (state.mcp_servers && state.mcp_servers.length > 0) {
