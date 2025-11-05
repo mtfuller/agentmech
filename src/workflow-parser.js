@@ -2,6 +2,8 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const path = require('path');
 
+const END_STATE = 'end';
+
 class WorkflowParser {
   /**
    * Parse a workflow YAML file
@@ -67,7 +69,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', 'end'];
+    const validTypes = ['prompt', 'choice', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
@@ -81,14 +83,14 @@ class WorkflowParser {
     }
 
     // Validate transitions
-    if (state.next && !allStates[state.next] && state.next !== 'end') {
+    if (state.next && !allStates[state.next] && state.next !== END_STATE) {
       throw new Error(`State "${name}" references non-existent next state "${state.next}"`);
     }
 
     // Validate choice transitions
     if (state.type === 'choice' && state.choices) {
       for (const choice of state.choices) {
-        if (choice.next && !allStates[choice.next] && choice.next !== 'end') {
+        if (choice.next && !allStates[choice.next] && choice.next !== END_STATE) {
           throw new Error(`Choice in state "${name}" references non-existent next state "${choice.next}"`);
         }
       }

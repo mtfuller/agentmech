@@ -1,6 +1,8 @@
 const readline = require('readline');
 const OllamaClient = require('./ollama-client');
 
+const END_STATE = 'end';
+
 class WorkflowExecutor {
   constructor(workflow, ollamaUrl = 'http://localhost:11434') {
     this.workflow = workflow;
@@ -26,13 +28,13 @@ class WorkflowExecutor {
 
     let currentState = this.workflow.start_state;
     
-    while (currentState && currentState !== 'end') {
+    while (currentState && currentState !== END_STATE) {
       const state = this.workflow.states[currentState];
       console.log(`\n--- State: ${currentState} ---`);
       
       try {
-        currentState = await this.executeState(currentState, state);
         this.history.push(currentState);
+        currentState = await this.executeState(currentState, state);
       } catch (error) {
         console.error(`\nError in state "${currentState}": ${error.message}`);
         this.rl.close();
@@ -56,8 +58,8 @@ class WorkflowExecutor {
         return await this.executePromptState(stateName, state);
       case 'choice':
         return await this.executeChoiceState(stateName, state);
-      case 'end':
-        return 'end';
+      case END_STATE:
+        return END_STATE;
       default:
         throw new Error(`Unknown state type: ${state.type}`);
     }
@@ -86,7 +88,7 @@ class WorkflowExecutor {
         this.context[state.save_as] = response;
       }
       
-      return state.next || 'end';
+      return state.next || END_STATE;
     } catch (error) {
       throw new Error(`Failed to generate response: ${error.message}`);
     }
@@ -125,7 +127,7 @@ class WorkflowExecutor {
     
     console.log(`\nSelected: ${selectedChoice.label || selectedChoice.value}`);
     
-    return selectedChoice.next || state.next || 'end';
+    return selectedChoice.next || state.next || END_STATE;
   }
 
   /**

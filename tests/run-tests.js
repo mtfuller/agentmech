@@ -1,6 +1,11 @@
 const WorkflowParser = require('../src/workflow-parser');
 const path = require('path');
 
+/**
+ * Test the WorkflowParser module
+ * Validates workflow parsing, structure validation, and error detection
+ * @returns {boolean} True if all tests pass, false otherwise
+ */
 function testWorkflowParser() {
   console.log('Testing WorkflowParser...\n');
   
@@ -82,6 +87,11 @@ function testWorkflowParser() {
   return failed === 0;
 }
 
+/**
+ * Test the OllamaClient module
+ * Note: Tests are skipped as they require a running Ollama instance
+ * @returns {boolean} Always returns true
+ */
 function testOllamaClient() {
   console.log('\n\nTesting OllamaClient...\n');
   console.log('ℹ Skipping Ollama client tests (requires running Ollama instance)');
