@@ -225,7 +225,7 @@ function testTracer() {
     const tracer = new Tracer(false);
     tracer.trace('test_event', { data: 'test' });
     if (tracer.getEvents().length === 0) {
-      console.log('✓ Test 3 passed: Tracer doesn\'t log when disabled');
+      console.log("✓ Test 3 passed: Tracer doesn't log when disabled");
       passed++;
     } else {
       console.log('✗ Test 3 failed: Tracer logged events when disabled');

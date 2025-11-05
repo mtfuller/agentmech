@@ -162,10 +162,24 @@ class Tracer {
    * @param value - Value stored (truncated for large values)
    */
   traceContextUpdate(variableName: string, value: any): void {
+    let displayValue: any;
+    let valueType = typeof value;
+    
+    if (typeof value === 'string') {
+      displayValue = this.truncate(value, 100);
+    } else if (typeof value === 'object' && value !== null) {
+      // For objects, convert to JSON and truncate if needed
+      const jsonStr = JSON.stringify(value);
+      displayValue = this.truncate(jsonStr, 100);
+      valueType = 'object';
+    } else {
+      displayValue = value;
+    }
+    
     this.trace('context_update', {
       variable: variableName,
-      value: typeof value === 'string' ? this.truncate(value, 100) : value,
-      value_type: typeof value
+      value: displayValue,
+      value_type: valueType
     });
   }
 
@@ -214,7 +228,13 @@ class Tracer {
    * @param str - String to truncate
    * @param maxLength - Maximum length
    */
-  private truncate(str: string, maxLength: number): string {
+  private truncate(str: string | null | undefined, maxLength: number): string {
+    if (str === null || str === undefined) {
+      return String(str);
+    }
+    if (typeof str !== 'string') {
+      str = String(str);
+    }
     if (str.length <= maxLength) {
       return str;
     }
