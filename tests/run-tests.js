@@ -1,5 +1,7 @@
 const WorkflowParser = require('../dist/workflow-parser');
 const path = require('path');
+const fs = require('fs');
+const yaml = require('js-yaml');
 
 /**
  * Test the WorkflowParser module
@@ -208,8 +210,6 @@ function testWorkflowParser() {
   
   // Test 12: Detect missing external prompt file
   try {
-    const fs = require('fs');
-    const yaml = require('js-yaml');
     const tmpWorkflow = path.join(__dirname, '../examples/tmp-test-missing-prompt.yaml');
     fs.writeFileSync(tmpWorkflow, yaml.dump({
       name: 'Test',
@@ -265,8 +265,6 @@ function testWorkflowParser() {
   
   // Test 14: Detect circular workflow references
   try {
-    const fs = require('fs');
-    const yaml = require('js-yaml');
     const tmpWorkflowA = path.join(__dirname, '../examples/tmp-test-circular-a.yaml');
     const tmpWorkflowB = path.join(__dirname, '../examples/tmp-test-circular-b.yaml');
     
@@ -316,6 +314,42 @@ function testWorkflowParser() {
     }
   } catch (error) {
     console.log('✗ Test 14 failed:', error.message);
+    failed++;
+  }
+  
+  // Test 15: Detect conflicting prompt and prompt_file
+  try {
+    const tmpWorkflow = path.join(__dirname, '../examples/tmp-test-conflicting-prompt.yaml');
+    fs.writeFileSync(tmpWorkflow, yaml.dump({
+      name: 'Test',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'inline prompt',
+          prompt_file: 'prompts/story-prompt.md',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    }));
+    try {
+      WorkflowParser.parseFile(tmpWorkflow);
+      console.log('✗ Test 15 failed: Should detect conflicting prompt and prompt_file');
+      failed++;
+    } catch (error) {
+      if (error.message.includes('both prompt and prompt_file')) {
+        console.log('✓ Test 15 passed: Detect conflicting prompt and prompt_file');
+        passed++;
+      } else {
+        console.log('✗ Test 15 failed: Wrong error message:', error.message);
+        failed++;
+      }
+    } finally {
+      fs.unlinkSync(tmpWorkflow);
+    }
+  } catch (error) {
+    console.log('✗ Test 15 failed:', error.message);
     failed++;
   }
   

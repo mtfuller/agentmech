@@ -88,6 +88,11 @@ class WorkflowParser {
     for (const [stateName, state] of Object.entries(workflow.states)) {
       // Resolve prompt_file reference
       if (state.prompt_file) {
+        // Check for conflicting prompt definitions
+        if (state.prompt) {
+          throw new Error(`State "${stateName}" has both prompt and prompt_file fields. Use only one.`);
+        }
+        
         const promptFilePath = path.resolve(workflowDir, state.prompt_file);
         try {
           state.prompt = fs.readFileSync(promptFilePath, 'utf8');
