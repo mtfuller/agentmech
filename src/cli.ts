@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import WorkflowParser = require('./workflow-parser');
 import WorkflowExecutor = require('./workflow-executor');
 import OllamaClient = require('./ollama-client');
+import Tracer = require('./tracer');
 import * as path from 'path';
 
 const program = new Command();
@@ -15,6 +16,7 @@ program
 
 interface RunOptions {
   ollamaUrl: string;
+  trace: boolean;
 }
 
 program
@@ -22,6 +24,7 @@ program
   .description('Run a workflow from a YAML file')
   .argument('<workflow-file>', 'Path to workflow YAML file')
   .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
+  .option('-t, --trace', 'Enable tracing/observability for workflow execution', false)
   .action(async (workflowFile: string, options: RunOptions) => {
     try {
       // Parse the workflow file
@@ -31,8 +34,14 @@ program
       const workflow = WorkflowParser.parseFile(workflowPath);
       console.log(`Workflow "${workflow.name}" loaded successfully`);
       
+      // Create tracer
+      const tracer = new Tracer(options.trace);
+      if (options.trace) {
+        console.log('Tracing enabled\n');
+      }
+      
       // Execute the workflow
-      const executor = new WorkflowExecutor(workflow, options.ollamaUrl);
+      const executor = new WorkflowExecutor(workflow, options.ollamaUrl, tracer);
       await executor.execute();
       
     } catch (error: any) {

@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import Tracer = require('./tracer');
 
 interface OllamaModel {
   name: string;
@@ -16,9 +17,11 @@ interface GenerateOptions {
 
 class OllamaClient {
   private baseUrl: string;
+  private tracer: Tracer;
 
-  constructor(baseUrl: string = 'http://localhost:11434') {
+  constructor(baseUrl: string = 'http://localhost:11434', tracer?: Tracer) {
     this.baseUrl = baseUrl;
+    this.tracer = tracer || new Tracer(false);
   }
 
   /**
@@ -37,13 +40,19 @@ class OllamaClient {
         ...options
       });
       
-      return response.data.response;
+      const result = response.data.response;
+      this.tracer.traceModelInteraction(model, prompt, result, options);
+      return result;
     } catch (error) {
       const axiosError = error as AxiosError;
       if ((axiosError as any).code === 'ECONNREFUSED') {
-        throw new Error(`Cannot connect to Ollama at ${this.baseUrl}. Please ensure Ollama is running.`);
+        const errorMsg = `Cannot connect to Ollama at ${this.baseUrl}. Please ensure Ollama is running.`;
+        this.tracer.traceError('ollama_connection_error', errorMsg, { model, baseUrl: this.baseUrl });
+        throw new Error(errorMsg);
       }
-      throw new Error(`Ollama API error: ${axiosError.message}`);
+      const errorMsg = `Ollama API error: ${axiosError.message}`;
+      this.tracer.traceError('ollama_api_error', errorMsg, { model });
+      throw new Error(errorMsg);
     }
   }
 

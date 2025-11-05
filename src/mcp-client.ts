@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
+import Tracer = require('./tracer');
 
 interface McpServerConfig {
   command: string;
@@ -24,12 +25,14 @@ class McpClient {
   private serverConfigs: Map<string, McpServerConfig>;
   private serverTools: Map<string, McpTool[]>;
   private serverResources: Map<string, McpResource[]>;
+  private tracer: Tracer;
 
-  constructor() {
+  constructor(tracer?: Tracer) {
     this.servers = new Map();
     this.serverConfigs = new Map();
     this.serverTools = new Map();
     this.serverResources = new Map();
+    this.tracer = tracer || new Tracer(false);
   }
 
   /**
@@ -39,6 +42,7 @@ class McpClient {
    */
   registerServer(name: string, config: McpServerConfig): void {
     this.serverConfigs.set(name, config);
+    this.tracer.traceMcpServerRegister(name, config.command);
   }
 
   /**
@@ -49,11 +53,14 @@ class McpClient {
   async connectServer(name: string): Promise<void> {
     const config = this.serverConfigs.get(name);
     if (!config) {
-      throw new Error(`MCP server "${name}" is not registered`);
+      const error = `MCP server "${name}" is not registered`;
+      this.tracer.traceMcpServerConnect(name, false, error);
+      throw new Error(error);
     }
 
     if (this.servers.has(name)) {
       // Already connected
+      this.tracer.traceMcpServerConnect(name, true);
       return;
     }
 
@@ -70,7 +77,9 @@ class McpClient {
         });
 
         serverProcess.on('error', (error) => {
-          reject(new Error(`Failed to start MCP server "${name}": ${error.message}`));
+          const errorMsg = `Failed to start MCP server "${name}": ${error.message}`;
+          this.tracer.traceMcpServerConnect(name, false, errorMsg);
+          reject(new Error(errorMsg));
         });
 
         serverProcess.on('spawn', () => {
@@ -81,6 +90,7 @@ class McpClient {
           // This provides the infrastructure for future MCP protocol integration.
           this.serverTools.set(name, []);
           this.serverResources.set(name, []);
+          this.tracer.traceMcpServerConnect(name, true);
           resolve();
         });
 
@@ -91,7 +101,9 @@ class McpClient {
           this.servers.delete(name);
         });
       } catch (error: any) {
-        reject(new Error(`Failed to connect to MCP server "${name}": ${error.message}`));
+        const errorMsg = `Failed to connect to MCP server "${name}": ${error.message}`;
+        this.tracer.traceMcpServerConnect(name, false, errorMsg);
+        reject(new Error(errorMsg));
       }
     });
   }
@@ -107,6 +119,7 @@ class McpClient {
       this.servers.delete(name);
       this.serverTools.delete(name);
       this.serverResources.delete(name);
+      this.tracer.traceMcpServerDisconnect(name);
     }
   }
 
