@@ -1,0 +1,22 @@
+name: "Simple MCP Test"
+description: "A minimal workflow to test MCP configuration parsing"
+default_model: "llama2"
+start_state: "test"
+
+# MCP server configuration (will not actually connect in test)
+mcp_servers:
+  test_server:
+    command: "echo"
+    args: ["test"]
+    env:
+      TEST: "value"
+
+states:
+  test:
+    type: "prompt"
+    prompt: "This is a test with MCP configuration"
+    mcp_servers: ["test_server"]
+    next: "end"
+  
+  end:
+    type: "end"

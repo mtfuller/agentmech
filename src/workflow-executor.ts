@@ -141,16 +141,8 @@ class WorkflowExecutor {
         }
       }
       
-      // Display available tools and resources
-      const tools = this.mcpClient.getAvailableTools(state.mcp_servers);
-      const resources = this.mcpClient.getAvailableResources(state.mcp_servers);
-      
-      if (tools.length > 0) {
-        console.log(`\nAvailable MCP tools: ${tools.map(t => t.tool.name).join(', ')}`);
-      }
-      if (resources.length > 0) {
-        console.log(`Available MCP resources: ${resources.map(r => r.resource.name || r.resource.uri).join(', ')}`);
-      }
+      // Note: Full MCP protocol communication for querying tools/resources is not yet implemented.
+      // The infrastructure is in place for future integration with MCP servers via JSON-RPC over stdio.
     }
     
     const model = state.model || this.workflow.default_model || 'llama2';

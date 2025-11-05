@@ -75,7 +75,10 @@ class McpClient {
 
         serverProcess.on('spawn', () => {
           this.servers.set(name, serverProcess);
-          // Initialize tools and resources lists
+          // Initialize empty tools and resources lists
+          // Note: Full MCP protocol implementation for querying tools/resources
+          // would require JSON-RPC communication over stdio, which is not yet implemented.
+          // This provides the infrastructure for future MCP protocol integration.
           this.serverTools.set(name, []);
           this.serverResources.set(name, []);
           resolve();
