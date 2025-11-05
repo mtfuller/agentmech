@@ -15,6 +15,14 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
+interface RagConfig {
+  directory: string;
+  model?: string;
+  embeddingsFile?: string;
+  chunkSize?: number;
+  topK?: number;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -24,6 +32,7 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
+  use_rag?: boolean;
 }
 
 interface Workflow {
@@ -32,6 +41,7 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
+  rag?: RagConfig;
   states: Record<string, State>;
 }
 
@@ -83,6 +93,11 @@ class WorkflowParser {
       throw new Error(`Start state "${workflow.start_state}" not found in states`);
     }
 
+    // Validate RAG configuration if present
+    if (workflow.rag) {
+      this.validateRagConfig(workflow.rag);
+    }
+
     // Validate MCP servers configuration if present
     if (workflow.mcp_servers) {
       this.validateMcpServers(workflow.mcp_servers);
@@ -90,7 +105,32 @@ class WorkflowParser {
 
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states, workflow.mcp_servers);
+      this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag);
+    }
+  }
+
+  /**
+   * Validate RAG configuration
+   * @param ragConfig - RAG configuration
+   */
+  static validateRagConfig(ragConfig: RagConfig): void {
+    if (!ragConfig.directory) {
+      throw new Error('RAG configuration must have a directory');
+    }
+    if (typeof ragConfig.directory !== 'string') {
+      throw new Error('RAG directory must be a string');
+    }
+    if (ragConfig.model && typeof ragConfig.model !== 'string') {
+      throw new Error('RAG model must be a string');
+    }
+    if (ragConfig.embeddingsFile && typeof ragConfig.embeddingsFile !== 'string') {
+      throw new Error('RAG embeddingsFile must be a string');
+    }
+    if (ragConfig.chunkSize && (typeof ragConfig.chunkSize !== 'number' || ragConfig.chunkSize <= 0)) {
+      throw new Error('RAG chunkSize must be a positive number');
+    }
+    if (ragConfig.topK && (typeof ragConfig.topK !== 'number' || ragConfig.topK <= 0)) {
+      throw new Error('RAG topK must be a positive number');
     }
   }
 
@@ -121,8 +161,9 @@ class WorkflowParser {
    * @param state - State configuration
    * @param allStates - All states for reference validation
    * @param mcpServers - MCP servers available in workflow
+   * @param ragConfig - RAG configuration if present
    */
-  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>): void {
+  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>, ragConfig?: RagConfig): void {
     if (!state.type) {
       throw new Error(`State "${name}" must have a type`);
     }
@@ -152,6 +193,19 @@ class WorkflowParser {
         if (!mcpServers[serverName]) {
           throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
         }
+      }
+    }
+
+    // Validate RAG usage
+    if (state.use_rag) {
+      if (typeof state.use_rag !== 'boolean') {
+        throw new Error(`State "${name}" use_rag must be a boolean`);
+      }
+      if (!ragConfig) {
+        throw new Error(`State "${name}" uses RAG but workflow has no rag configuration defined`);
+      }
+      if (state.type !== 'prompt') {
+        throw new Error(`State "${name}" can only use RAG with prompt type states`);
       }
     }
 

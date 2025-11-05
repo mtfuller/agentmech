@@ -1,0 +1,24 @@
+Product: AI Workflow CLI
+
+The AI Workflow CLI is a powerful command-line tool that enables users to create and execute complex AI-powered workflows using simple YAML configuration files. It integrates seamlessly with Ollama for local LLM processing.
+
+Key Features:
+- YAML-based workflow definitions
+- State machine execution model
+- Support for prompt and choice states
+- Variable interpolation for dynamic content
+- Integration with Ollama local models
+- MCP (Model Context Protocol) server support
+- Web UI for workflow management
+- RAG (Retrieval-Augmented Generation) capabilities
+
+Pricing:
+- Open source and free to use
+- No subscription required
+- Runs entirely on your local machine
+
+System Requirements:
+- Node.js v14 or higher
+- Ollama installed and running
+- At least 8GB RAM for running LLMs
+- 10GB disk space for models

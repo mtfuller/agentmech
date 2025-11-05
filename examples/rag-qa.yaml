@@ -1,0 +1,63 @@
+name: "RAG-Powered Q&A"
+description: "Answer questions using RAG to provide context from a knowledge base"
+default_model: "llama2"
+start_state: "ask_question"
+
+# RAG Configuration
+rag:
+  directory: "./examples/knowledge-base"
+  model: "llama2"
+  embeddingsFile: "embeddings.json"
+  chunkSize: 500
+  topK: 3
+
+states:
+  ask_question:
+    type: "choice"
+    prompt: "What would you like to know about AI Workflow CLI?"
+    save_as: "question_choice"
+    choices:
+      - label: "What is AI Workflow CLI and what are its features?"
+        value: "What is AI Workflow CLI and what are its main features?"
+        next: "answer_with_rag"
+      - label: "How do I install AI Workflow CLI?"
+        value: "How do I install and set up AI Workflow CLI?"
+        next: "answer_with_rag"
+      - label: "What can I use AI Workflow CLI for?"
+        value: "What are the common use cases for AI Workflow CLI?"
+        next: "answer_with_rag"
+      - label: "Ask a custom question"
+        value: "custom"
+        next: "custom_question"
+  
+  custom_question:
+    type: "prompt"
+    prompt: "Please enter your question (this is simulated - the workflow will use a predefined question):"
+    save_as: "custom_q"
+    next: "answer_custom"
+  
+  answer_custom:
+    type: "prompt"
+    prompt: "Tell me about the pricing and system requirements for AI Workflow CLI"
+    use_rag: true
+    save_as: "answer"
+    next: "ask_another"
+  
+  answer_with_rag:
+    type: "prompt"
+    prompt: "{{question_choice}}"
+    use_rag: true
+    save_as: "answer"
+    next: "ask_another"
+  
+  ask_another:
+    type: "choice"
+    prompt: "Would you like to ask another question?"
+    choices:
+      - label: "Yes"
+        next: "ask_question"
+      - label: "No"
+        next: "end"
+  
+  end:
+    type: "end"

@@ -89,6 +89,29 @@ class OllamaClient {
       throw new Error(`Ollama API error: ${axiosError.message}`);
     }
   }
+
+  /**
+   * Generate embeddings for text
+   * @param model - The model to use for embeddings
+   * @param prompt - The text to embed
+   * @returns The embedding vector
+   */
+  async embeddings(model: string, prompt: string): Promise<number[]> {
+    try {
+      const response = await axios.post(`${this.baseUrl}/api/embeddings`, {
+        model,
+        prompt
+      });
+      
+      return response.data.embedding;
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      if ((axiosError as any).code === 'ECONNREFUSED') {
+        throw new Error(`Cannot connect to Ollama at ${this.baseUrl}. Please ensure Ollama is running.`);
+      }
+      throw new Error(`Ollama API error: ${axiosError.message}`);
+    }
+  }
 }
 
 export = OllamaClient;

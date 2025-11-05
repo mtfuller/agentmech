@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import OllamaClient = require('./ollama-client');
 import McpClient = require('./mcp-client');
+import RagService = require('./rag-service');
 
 const END_STATE = 'end';
 
@@ -16,6 +17,14 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
+interface RagConfig {
+  directory: string;
+  model?: string;
+  embeddingsFile?: string;
+  chunkSize?: number;
+  topK?: number;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -25,6 +34,7 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
+  use_rag?: boolean;
 }
 
 interface Workflow {
@@ -33,6 +43,7 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
+  rag?: RagConfig;
   states: Record<string, State>;
 }
 
@@ -40,6 +51,7 @@ class WorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
+  private ragService?: RagService;
   private context: Record<string, any>;
   private history: string[];
   private rl: readline.Interface;
@@ -50,6 +62,11 @@ class WorkflowExecutor {
     this.mcpClient = new McpClient();
     this.context = {};
     this.history = [];
+    
+    // Initialize RAG service if configured
+    if (workflow.rag) {
+      this.ragService = new RagService(workflow.rag, ollamaUrl);
+    }
     
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -74,6 +91,13 @@ class WorkflowExecutor {
         this.mcpClient.registerServer(serverName, config);
       }
       console.log(`Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)\n`);
+    }
+
+    // Initialize RAG if configured
+    if (this.ragService) {
+      console.log('Initializing RAG system...');
+      await this.ragService.initialize();
+      console.log('');
     }
 
     try {
@@ -126,8 +150,20 @@ class WorkflowExecutor {
    * @returns Next state name
    */
   async executePromptState(stateName: string, state: State): Promise<string> {
-    const prompt = this.interpolateVariables(state.prompt || '');
+    let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
+    
+    // Add RAG context if enabled for this state
+    if (state.use_rag && this.ragService) {
+      console.log('\nRetrieving relevant context from RAG...');
+      const relevantChunks = await this.ragService.search(prompt);
+      const ragContext = this.ragService.formatContext(relevantChunks);
+      
+      if (ragContext) {
+        prompt = prompt + ragContext;
+        console.log('RAG context added to prompt');
+      }
+    }
     
     // Connect to MCP servers if specified for this state
     if (state.mcp_servers && state.mcp_servers.length > 0) {

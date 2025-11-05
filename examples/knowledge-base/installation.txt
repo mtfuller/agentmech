@@ -1,0 +1,45 @@
+Installation Guide
+
+Step 1: Clone the Repository
+```bash
+git clone https://github.com/mtfuller/ai-workflow-cli.git
+cd ai-workflow-cli
+```
+
+Step 2: Install Dependencies
+```bash
+npm install
+```
+
+Step 3: Build the Project
+```bash
+npm run build
+```
+
+Step 4: Link the CLI (Optional)
+```bash
+npm link
+```
+
+Step 5: Install Ollama
+Visit https://ollama.ai/ and download the installer for your operating system.
+
+Step 6: Start Ollama
+```bash
+ollama serve
+```
+
+Step 7: Pull a Model
+```bash
+ollama pull llama2
+```
+
+Step 8: Verify Installation
+```bash
+ai-workflow list-models
+```
+
+Troubleshooting:
+- If you get a connection error, make sure Ollama is running
+- If models are not found, try pulling them with ollama pull
+- For permission issues, try running with sudo or adjusting file permissions
