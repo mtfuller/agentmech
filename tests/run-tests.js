@@ -370,8 +370,50 @@ function testTracer() {
     failed++;
   }
   
-  console.log(`\nResults: ${passed} passed, ${failed} failed`);
-  return failed === 0;
+  // Test 11: File logging
+  try {
+    const fs = require('fs');
+    const testLogFile = '/tmp/test-tracer-log.log';
+    
+    // Clean up any existing file
+    if (fs.existsSync(testLogFile)) {
+      fs.unlinkSync(testLogFile);
+    }
+    
+    const tracer = new Tracer(true, testLogFile);
+    tracer.trace('test_file_event', { data: 'test' });
+    tracer.close();
+    
+    // Use setTimeout with a reasonable delay for async file operations
+    return new Promise(resolve => {
+      setTimeout(() => {
+        if (fs.existsSync(testLogFile)) {
+          const content = fs.readFileSync(testLogFile, 'utf8');
+          if (content.includes('test_file_event') && content.includes('Trace Session Started')) {
+            console.log('✓ Test 11 passed: File logging works');
+            passed++;
+          } else {
+            console.log('✗ Test 11 failed: File content incorrect');
+            console.log('  Content:', content);
+            failed++;
+          }
+          // Clean up
+          fs.unlinkSync(testLogFile);
+        } else {
+          console.log('✗ Test 11 failed: Log file not created');
+          failed++;
+        }
+        
+        console.log(`\nResults: ${passed} passed, ${failed} failed`);
+        resolve(failed === 0);
+      }, 100); // Increased delay to allow for file I/O
+    });
+  } catch (error) {
+    console.log('✗ Test 11 failed:', error.message);
+    failed++;
+    console.log(`\nResults: ${passed} passed, ${failed} failed`);
+    return Promise.resolve(failed === 0);
+  }
 }
 
 /**
@@ -388,14 +430,18 @@ function testOllamaClient() {
 
 // Run tests
 console.log('=== Running Tests ===\n');
-const parserPassed = testWorkflowParser();
-const tracerPassed = testTracer();
-const ollamaPassed = testOllamaClient();
 
-if (parserPassed && tracerPassed && ollamaPassed) {
-  console.log('\n✓ All tests passed!');
-  process.exit(0);
-} else {
-  console.log('\n✗ Some tests failed');
-  process.exit(1);
-}
+// Run tests asynchronously to handle Promise returns
+(async () => {
+  const parserPassed = testWorkflowParser();
+  const tracerPassed = await testTracer(); // Now async
+  const ollamaPassed = testOllamaClient();
+
+  if (parserPassed && tracerPassed && ollamaPassed) {
+    console.log('\n✓ All tests passed!');
+    process.exit(0);
+  } else {
+    console.log('\n✗ Some tests failed');
+    process.exit(1);
+  }
+})();

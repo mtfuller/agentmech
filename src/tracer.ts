@@ -3,6 +3,9 @@
  * Logs all interactions between model, MCP servers, state changes, etc.
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
 interface TraceEvent {
   timestamp: string;
   type: string;
@@ -12,10 +15,31 @@ interface TraceEvent {
 class Tracer {
   private enabled: boolean;
   private events: TraceEvent[];
+  private logFilePath?: string;
+  private fileStream?: fs.WriteStream;
 
-  constructor(enabled: boolean = false) {
+  constructor(enabled: boolean = false, logFilePath?: string) {
     this.enabled = enabled;
     this.events = [];
+    this.logFilePath = logFilePath;
+    
+    // Initialize file stream if log file path is provided
+    if (this.enabled && this.logFilePath) {
+      try {
+        // Ensure directory exists
+        const dir = path.dirname(this.logFilePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        
+        // Create write stream in append mode
+        this.fileStream = fs.createWriteStream(this.logFilePath, { flags: 'a' });
+        this.fileStream.write(`\n=== Trace Session Started: ${new Date().toISOString()} ===\n`);
+      } catch (error: any) {
+        console.warn(`Failed to open log file "${this.logFilePath}": ${error.message}`);
+        this.fileStream = undefined;
+      }
+    }
   }
 
   /**
@@ -210,7 +234,7 @@ class Tracer {
   }
 
   /**
-   * Log a trace event to console
+   * Log a trace event to console and optionally to file
    * @param event - Event to log
    */
   private logEvent(event: TraceEvent): void {
@@ -220,7 +244,15 @@ class Tracer {
           .join(', ')
       : '';
     
-    console.log(`[TRACE ${event.timestamp}] ${event.type}${detailsStr}`);
+    const logLine = `[TRACE ${event.timestamp}] ${event.type}${detailsStr}`;
+    
+    // Log to console
+    console.log(logLine);
+    
+    // Log to file if file stream is available
+    if (this.fileStream) {
+      this.fileStream.write(logLine + '\n');
+    }
   }
 
   /**
@@ -254,6 +286,17 @@ class Tracer {
    */
   clear(): void {
     this.events = [];
+  }
+
+  /**
+   * Close the log file stream if open
+   */
+  close(): void {
+    if (this.fileStream) {
+      this.fileStream.write(`=== Trace Session Ended: ${new Date().toISOString()} ===\n\n`);
+      this.fileStream.end();
+      this.fileStream = undefined;
+    }
   }
 }
 
