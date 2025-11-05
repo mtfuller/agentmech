@@ -3,6 +3,7 @@ import McpClient = require('./mcp-client');
 import { Response } from 'express';
 
 const END_STATE = 'end';
+const INPUT_TIMEOUT_MS = 300000; // 5 minutes
 
 interface Choice {
   label?: string;
@@ -107,7 +108,7 @@ class WebWorkflowExecutor {
           this.pendingInput.reject(new Error('Input timeout'));
           this.pendingInput = undefined;
         }
-      }, 300000); // 5 minute timeout
+      }, INPUT_TIMEOUT_MS);
     });
   }
 
@@ -139,7 +140,7 @@ class WebWorkflowExecutor {
           this.pendingInput.reject(new Error('Choice timeout'));
           this.pendingInput = undefined;
         }
-      }, 300000); // 5 minute timeout
+      }, INPUT_TIMEOUT_MS);
     });
   }
 
