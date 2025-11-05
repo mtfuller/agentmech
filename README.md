@@ -141,18 +141,44 @@ A workflow file consists of:
 
 ### RAG Configuration
 
-You can enable Retrieval-Augmented Generation (RAG) to provide context from a knowledge base:
+You can enable Retrieval-Augmented Generation (RAG) to provide context from a knowledge base in three flexible ways:
 
+#### 1. Default RAG (Workflow-level)
 ```yaml
 rag:
   directory: "./knowledge-base"  # Directory containing documents
-  model: "llama2"                # Optional: Model for embeddings (default: workflow default_model)
-  embeddingsFile: "embeddings.json"  # Optional: Embeddings cache file (default: embeddings.json)
+  model: "llama2"                # Optional: Model for embeddings
+  embeddingsFile: "embeddings.json"  # Optional: Cache file
   chunkSize: 500                 # Optional: Text chunk size (default: 1000)
   topK: 3                        # Optional: Number of chunks to retrieve (default: 3)
 ```
 
-When RAG is configured, states can use `use_rag: true` to automatically retrieve and include relevant context from the knowledge base in their prompts.
+States can then use `use_rag: true` to use this default configuration.
+
+#### 2. Named RAG Configurations
+```yaml
+rags:
+  product_kb:
+    directory: "./docs/products"
+  technical_kb:
+    directory: "./docs/technical"
+    chunkSize: 800
+    topK: 5
+```
+
+States can reference by name: `use_rag: "product_kb"`
+
+#### 3. Inline RAG (State-level)
+```yaml
+states:
+  my_state:
+    type: "prompt"
+    prompt: "Question here"
+    rag:
+      directory: "./specific-docs"
+      chunkSize: 400
+    next: "end"
+```
 
 ### MCP Server Configuration
 
@@ -179,9 +205,18 @@ state_name:
   model: "llama2"  # Optional, uses default_model if not specified
   save_as: "variable_name"  # Optional, saves response to context
   mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
-  use_rag: true  # Optional, enable RAG context retrieval for this prompt
+  use_rag: true  # Optional: true (default RAG) or "rag_name" (named RAG)
+  rag:  # Optional: inline RAG configuration
+    directory: "./docs"
+    chunkSize: 500
   next: "next_state_name"  # Next state to transition to
 ```
+
+RAG Options:
+- `use_rag: true` - Use default workflow-level RAG
+- `use_rag: "name"` - Use named RAG configuration
+- `rag: {...}` - Use inline RAG configuration
+- Omit all - No RAG context retrieval
 
 When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
 
@@ -281,15 +316,16 @@ states:
     type: "end"
 ```
 
-### RAG Integration Example
+### RAG Integration Examples
 
+#### Simple RAG Example
 ```yaml
 name: "RAG-Powered Q&A"
 description: "Answer questions using RAG to provide context from a knowledge base"
 default_model: "llama2"
 start_state: "ask_question"
 
-# Configure RAG with a knowledge base directory
+# Configure default RAG
 rag:
   directory: "./examples/knowledge-base"
   model: "llama2"
@@ -321,6 +357,45 @@ states:
     type: "end"
 ```
 
+#### Multiple Named RAG Example
+```yaml
+name: "Multi-KB System"
+default_model: "llama2"
+start_state: "choose"
+
+# Multiple named RAG configurations
+rags:
+  product_kb:
+    directory: "./docs/products"
+  technical_kb:
+    directory: "./docs/technical"
+    chunkSize: 800
+
+states:
+  choose:
+    type: "choice"
+    choices:
+      - label: "Product Question"
+        next: "product_q"
+      - label: "Technical Question"
+        next: "tech_q"
+  
+  product_q:
+    type: "prompt"
+    prompt: "What are the features?"
+    use_rag: "product_kb"  # Use specific RAG
+    next: "end"
+  
+  tech_q:
+    type: "prompt"
+    prompt: "How to install?"
+    use_rag: "technical_kb"  # Use different RAG
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -331,6 +406,8 @@ The `examples/` directory contains sample workflows:
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
 - **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
+- **multi-rag-qa.yaml**: Multiple named RAG configurations
+- **inline-rag.yaml**: Inline state-level RAG configuration
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 

@@ -18,9 +18,13 @@ The RAG feature allows workflows to retrieve relevant context from a knowledge b
    - Top K most relevant chunks are appended to the prompt
    - The enhanced prompt is sent to the AI model
 
-## Configuration
+## Configuration Options
 
-Add a `rag` section to your workflow YAML:
+RAG can be configured in three flexible ways:
+
+### 1. Default RAG (Workflow-level)
+
+Best for: Single knowledge base used across multiple states
 
 ```yaml
 rag:
@@ -31,18 +35,73 @@ rag:
   topK: 3                           # Optional: Number of chunks to retrieve
 ```
 
-## Using RAG in States
+States use it with: `use_rag: true`
 
-Add `use_rag: true` to any prompt state:
+### 2. Named RAG Configurations
+
+Best for: Multiple knowledge bases in one workflow
+
+```yaml
+rags:
+  product_kb:
+    directory: "./docs/products"
+    chunkSize: 500
+    topK: 3
+  
+  technical_kb:
+    directory: "./docs/technical"
+    chunkSize: 800
+    topK: 5
+```
+
+States reference by name: `use_rag: "product_kb"`
+
+### 3. Inline RAG (State-level)
+
+Best for: State-specific knowledge base or settings
 
 ```yaml
 states:
   answer_question:
     type: "prompt"
     prompt: "{{user_question}}"
-    use_rag: true  # Enable RAG for this state
+    rag:
+      directory: "./specific-docs"
+      chunkSize: 400
+      topK: 2
     next: "end"
 ```
+
+## Using RAG in States
+
+Three ways to enable RAG in a prompt state:
+
+```yaml
+# Option 1: Use default RAG configuration
+state1:
+  type: "prompt"
+  prompt: "Question here"
+  use_rag: true
+  next: "end"
+
+# Option 2: Use named RAG configuration
+state2:
+  type: "prompt"
+  prompt: "Question here"
+  use_rag: "technical_kb"
+  next: "end"
+
+# Option 3: Use inline RAG configuration
+state3:
+  type: "prompt"
+  prompt: "Question here"
+  rag:
+    directory: "./docs"
+    chunkSize: 600
+  next: "end"
+```
+
+**Note**: You cannot combine `rag` and `use_rag` in the same state.
 
 ## Supported File Types
 

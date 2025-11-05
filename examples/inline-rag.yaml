@@ -1,0 +1,43 @@
+name: "Inline RAG Example"
+description: "Demonstrate inline RAG configuration within states"
+default_model: "llama2"
+start_state: "choose_source"
+
+states:
+  choose_source:
+    type: "choice"
+    prompt: "What knowledge base would you like to query?"
+    save_as: "source_choice"
+    choices:
+      - label: "Product Documentation"
+        value: "product"
+        next: "query_product_docs"
+      - label: "Custom Knowledge (inline config)"
+        value: "custom"
+        next: "query_custom"
+  
+  query_product_docs:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    # Inline RAG configuration - specific to this state
+    rag:
+      directory: "./examples/knowledge-base"
+      chunkSize: 400
+      topK: 2
+    save_as: "answer"
+    next: "end"
+  
+  query_custom:
+    type: "prompt"
+    prompt: "Tell me about the installation process"
+    # Different inline RAG configuration for this state
+    rag:
+      directory: "./examples/knowledge-base"
+      chunkSize: 1000
+      topK: 5
+      embeddingsFile: "custom_embeddings.json"
+    save_as: "answer"
+    next: "end"
+  
+  end:
+    type: "end"

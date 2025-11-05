@@ -34,7 +34,8 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
-  use_rag?: boolean;
+  use_rag?: boolean | string;  // true for default, or name of rag config
+  rag?: RagConfig;  // inline RAG configuration
 }
 
 interface Workflow {
@@ -43,7 +44,8 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
-  rag?: RagConfig;
+  rag?: RagConfig;  // Backward compatibility: default RAG config
+  rags?: Record<string, RagConfig>;  // Named RAG configurations
   states: Record<string, State>;
 }
 
@@ -52,6 +54,7 @@ class WorkflowExecutor {
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
   private ragService?: RagService;
+  private namedRagServices: Map<string, RagService>;
   private context: Record<string, any>;
   private history: string[];
   private rl: readline.Interface;
@@ -62,8 +65,9 @@ class WorkflowExecutor {
     this.mcpClient = new McpClient();
     this.context = {};
     this.history = [];
+    this.namedRagServices = new Map();
     
-    // Initialize RAG service if configured
+    // Initialize default RAG service if configured
     if (workflow.rag) {
       this.ragService = new RagService(workflow.rag, ollamaUrl);
     }
@@ -93,10 +97,22 @@ class WorkflowExecutor {
       console.log(`Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)\n`);
     }
 
-    // Initialize RAG if configured
+    // Initialize default RAG if configured
     if (this.ragService) {
-      console.log('Initializing RAG system...');
+      console.log('Initializing default RAG system...');
       await this.ragService.initialize();
+      console.log('');
+    }
+
+    // Initialize named RAG services if configured
+    if (this.workflow.rags) {
+      console.log('Initializing named RAG systems...');
+      for (const [ragName, ragConfig] of Object.entries(this.workflow.rags)) {
+        const ragService = new RagService(ragConfig, 'http://localhost:11434');
+        await ragService.initialize();
+        this.namedRagServices.set(ragName, ragService);
+        console.log(`  ✓ Initialized RAG: ${ragName}`);
+      }
       console.log('');
     }
 
@@ -153,11 +169,36 @@ class WorkflowExecutor {
     let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
     
-    // Add RAG context if enabled for this state
-    if (state.use_rag && this.ragService) {
-      console.log('\nRetrieving relevant context from RAG...');
-      const relevantChunks = await this.ragService.search(prompt);
-      const ragContext = this.ragService.formatContext(relevantChunks);
+    // Determine which RAG service to use
+    let ragServiceToUse: RagService | undefined = undefined;
+    
+    // Priority: inline rag > use_rag (named/default) 
+    if (state.rag) {
+      // Inline RAG configuration
+      console.log('\nInitializing inline RAG configuration...');
+      ragServiceToUse = new RagService(state.rag, 'http://localhost:11434');
+      await ragServiceToUse.initialize();
+    } else if (state.use_rag) {
+      if (typeof state.use_rag === 'string') {
+        // Named RAG reference
+        ragServiceToUse = this.namedRagServices.get(state.use_rag);
+        if (ragServiceToUse) {
+          console.log(`\nUsing RAG configuration: ${state.use_rag}`);
+        }
+      } else if (state.use_rag === true) {
+        // Default RAG
+        ragServiceToUse = this.ragService;
+        if (ragServiceToUse) {
+          console.log('\nUsing default RAG configuration');
+        }
+      }
+    }
+    
+    // Add RAG context if a service is available
+    if (ragServiceToUse) {
+      console.log('Retrieving relevant context from RAG...');
+      const relevantChunks = await ragServiceToUse.search(prompt);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks);
       
       if (ragContext) {
         prompt = prompt + ragContext;
