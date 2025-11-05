@@ -4,6 +4,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 
 ## Features
 
+- 🌐 **Web UI**: Browse and manage workflows through a beautiful web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
 - 🔌 **MCP Server Integration**: Connect to Model Context Protocol (MCP) servers for extended capabilities
 - 📋 **YAML-Based Workflows**: Define workflows using simple, readable YAML syntax
@@ -57,6 +58,33 @@ ai-workflow run examples/simple-qa.yaml
 ```
 
 ## Usage
+
+### Serve Web UI
+
+Start a web interface to browse and manage workflows:
+
+```bash
+ai-workflow serve [workflow-dir] [options]
+
+Arguments:
+  workflow-dir            Directory containing workflow files (default: "./examples")
+
+Options:
+  -p, --port <port>       Port to run the web server on (default: "3000")
+  -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+```
+
+Example:
+```bash
+ai-workflow serve examples
+ai-workflow serve ./my-workflows --port 8080
+```
+
+The web UI provides:
+- 📋 Browse all available workflows in a directory
+- 🔍 View detailed workflow information
+- ✅ Validate workflow files automatically
+- 🎨 Beautiful, responsive interface
 
 ### Run a Workflow
 
