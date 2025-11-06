@@ -472,8 +472,11 @@ class WebWorkflowExecutor {
 
     const userInput = await this.requestInput(state.prompt || 'Enter your response:');
 
-    // Use default value if no input provided
-    const finalInput = userInput.trim() || defaultValue || '';
+    // Use default value if no input provided (matching CLI behavior)
+    let finalInput = userInput.trim();
+    if (!finalInput && state.default_value) {
+      finalInput = this.interpolateVariables(state.default_value);
+    }
 
     // Store input in context if variable is specified
     if (state.save_as) {
