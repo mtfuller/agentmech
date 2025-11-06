@@ -444,7 +444,7 @@ class WebWorkflowExecutor {
     // Send input request event with optional default value
     const defaultValue = state.default_value ? this.interpolateVariables(state.default_value) : undefined;
     
-    // Request input from user (similar to requestChoice pattern)
+    // Request input from user
     const userInput = await new Promise<string>((resolve, reject) => {
       this.sendEvent({
         type: 'input',
