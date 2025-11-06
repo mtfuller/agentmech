@@ -539,7 +539,7 @@ class WebServer {
                 if (state.next_options && Array.isArray(state.next_options)) {
                     state.next_options.forEach((option) => {
                         if (option.state) {
-                            const desc = option.description || '';
+                            const desc = option.description ?? '';
                             edges.push({
                                 from: stateName,
                                 to: option.state,
@@ -566,11 +566,11 @@ class WebServer {
             const positions = layoutGraph(nodes, edges, workflow.start_state);
             
             // Calculate SVG dimensions
-            const width = 800;
+            const GRAPH_WIDTH = 800;
             const height = Math.max(400, positions.maxY + 100);
             
             // Build SVG
-            let svg = \`<svg width="\${width}" height="\${height}" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">\`;
+            let svg = \`<svg width="\${GRAPH_WIDTH}" height="\${height}" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">\`;
             
             // Define arrow marker
             svg += \`
@@ -693,7 +693,8 @@ class WebServer {
             // Assign positions to unvisited nodes (disconnected from start)
             nodes.forEach(node => {
                 if (!visited.has(node.id)) {
-                    levels[node.id] = Object.keys(levels).length;
+                    const maxLevel = Object.keys(levels).length > 0 ? Math.max(...Object.values(levels)) : -1;
+                    levels[node.id] = maxLevel + 1;
                 }
             });
             
@@ -706,6 +707,7 @@ class WebServer {
             });
             
             // Position nodes
+            const GRAPH_WIDTH = 800;
             const levelHeight = 150;
             const nodeSpacing = 180;
             let maxY = 0;
@@ -716,7 +718,7 @@ class WebServer {
                 maxY = Math.max(maxY, y);
                 
                 const totalWidth = (nodesInLevel.length - 1) * nodeSpacing;
-                const startX = (800 - totalWidth) / 2;
+                const startX = (GRAPH_WIDTH - totalWidth) / 2;
                 
                 nodesInLevel.forEach((nodeId, idx) => {
                     positions[nodeId] = {
