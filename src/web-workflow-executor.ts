@@ -465,12 +465,27 @@ class WebWorkflowExecutor {
 
     // Send input request event with optional default value
     const defaultValue = state.default_value ? this.interpolateVariables(state.default_value) : undefined;
-    this.sendEvent({
-      type: 'input',
-      data: { defaultValue }
+    
+    // Request input from user (similar to requestChoice pattern)
+    const userInput = await new Promise<string>((resolve, reject) => {
+      this.sendEvent({
+        type: 'input',
+        data: { defaultValue }
+      });
+      
+      this.pendingInput = { 
+        resolve: (value: string) => resolve(value),
+        reject 
+      };
+      
+      // Set timeout to prevent hanging forever
+      setTimeout(() => {
+        if (this.pendingInput) {
+          this.pendingInput.reject(new Error('Input timeout'));
+          this.pendingInput = undefined;
+        }
+      }, INPUT_TIMEOUT_MS);
     });
-
-    const userInput = await this.requestInput(state.prompt || 'Enter your response:');
 
     // Use default value if no input provided (matching CLI behavior)
     let finalInput = userInput.trim();
