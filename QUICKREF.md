@@ -32,6 +32,11 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-name"]
     env:
       VAR: "value"
+  
+  # Custom JavaScript tools
+  custom_tools:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "path/to/tools"]
 
 states:
   state_name:
@@ -40,6 +45,47 @@ states:
     # ... configuration
     next: "next_state" | "end"
 ```
+
+## Custom JavaScript Tools
+
+Create custom tools as JavaScript functions:
+
+```javascript
+// my-tool.js
+function myTool(args) {
+  const { param1, param2 } = args;
+  return { result: param1 + param2 };
+}
+
+myTool.description = 'My custom tool';
+myTool.inputSchema = {
+  type: 'object',
+  properties: {
+    param1: { type: 'number' },
+    param2: { type: 'number' },
+  },
+  required: ['param1', 'param2'],
+};
+
+module.exports = myTool;
+```
+
+Use in workflow:
+```yaml
+mcp_servers:
+  custom_tools:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "tools-directory"]
+
+states:
+  use_tool:
+    type: "prompt"
+    prompt: "Use my-tool to add 5 and 3"
+    mcp_servers: ["custom_tools"]
+    next: "end"
+```
+
+See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for details.
 
 ## State Types
 
