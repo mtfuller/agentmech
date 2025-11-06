@@ -93,7 +93,8 @@ class WebServer {
         this.activeExecutions.set(sessionId, executor);
         
         // Set SSE response and send session ID
-        // Note: This must be called before any other response methods
+        // Note: This calls writeHead() which must be done before any other response methods
+        // like res.json() or res.setHeader() that would fail after headers are sent
         executor.setSseResponse(res, sessionId);
         
         // Handle client disconnect
@@ -875,8 +876,8 @@ class WebServer {
                 try {
                     const event = JSON.parse(e.data);
                     
-                    // Capture session ID from the first event
-                    if (event.data && event.data.sessionId && !sessionId) {
+                    // Capture session ID from the connection event
+                    if (event.data && event.data.sessionId && !sessionId && event.type === 'log' && event.message === 'Connected') {
                         sessionId = event.data.sessionId;
                         document.getElementById('status').textContent = 'Running...';
                     }
