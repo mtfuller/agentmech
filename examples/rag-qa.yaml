@@ -1,12 +1,12 @@
 name: "RAG-Powered Q&A"
 description: "Answer questions using RAG to provide context from a knowledge base"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "ask_question"
 
 # RAG Configuration
 rag:
   directory: "./examples/knowledge-base"
-  model: "llama2"
+  model: "gemma3:4b"
   embeddingsFile: "embeddings.json"
   chunkSize: 500
   topK: 3

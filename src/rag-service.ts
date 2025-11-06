@@ -30,7 +30,7 @@ class RagService {
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
     this.config = {
-      model: config.model || 'llama2',
+      model: config.model || 'gemma3:4b',
       embeddingsFile: config.embeddingsFile || 'embeddings.json',
       chunkSize: config.chunkSize || 1000,
       topK: config.topK || 3,

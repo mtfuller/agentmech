@@ -1,6 +1,6 @@
 name: "Character Creator Workflow"
 description: "Creates a detailed character for a story"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "choose_genre"
 
 states:

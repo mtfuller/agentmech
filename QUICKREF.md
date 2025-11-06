@@ -22,7 +22,7 @@ npm start run <workflow.yaml> -- --ollama-url http://localhost:11434
 ```yaml
 name: "Workflow Name"
 description: "Optional description"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "first_state"
 
 # Optional MCP server configuration
@@ -48,7 +48,7 @@ states:
 my_state:
   type: "prompt"
   prompt: "Your question here"
-  model: "llama2"              # optional
+  model: "gemma3:4b"              # optional
   save_as: "variable_name"     # optional
   mcp_servers: ["server1"]     # optional
   next: "next_state"
@@ -201,7 +201,7 @@ mcp_servers:
 
 ## Common Models
 
-- `llama2` - General purpose
+- `gemma3:4b` - General purpose
 - `mistral` - Faster alternative
 - `codellama` - Code-specific
 - `llama3` - Latest version (if available)

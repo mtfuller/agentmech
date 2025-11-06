@@ -31,7 +31,7 @@ ollama serve
 
 Step 7: Pull a Model
 ```bash
-ollama pull llama2
+ollama pull gemma3:4b
 ```
 
 Step 8: Verify Installation

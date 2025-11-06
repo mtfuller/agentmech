@@ -1,20 +1,20 @@
 name: "Multi-RAG Q&A System"
 description: "Answer questions using multiple RAG configurations for different knowledge bases"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "choose_topic"
 
 # Named RAG configurations - each with its own knowledge base
 rags:
   product_kb:
     directory: "./examples/knowledge-base"
-    model: "llama2"
+    model: "gemma3:4b"
     embeddingsFile: "product_embeddings.json"
     chunkSize: 500
     topK: 3
   
   technical_kb:
     directory: "./examples/knowledge-base"
-    model: "llama2"
+    model: "gemma3:4b"
     embeddingsFile: "technical_embeddings.json"
     chunkSize: 800
     topK: 5

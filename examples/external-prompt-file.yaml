@@ -1,6 +1,6 @@
 name: "External Prompt File Example"
 description: "Example workflow using a prompt from an external markdown file"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "generate_story"
 
 states:

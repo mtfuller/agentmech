@@ -29,7 +29,7 @@ Best for: Single knowledge base used across multiple states
 ```yaml
 rag:
   directory: "./knowledge-base"     # Required: Directory with documents
-  model: "llama2"                   # Optional: Model for embeddings
+  model: "gemma3:4b"                   # Optional: Model for embeddings
   embeddingsFile: "embeddings.json" # Optional: Cache file name
   chunkSize: 500                    # Optional: Characters per chunk
   topK: 3                           # Optional: Number of chunks to retrieve
@@ -147,7 +147,7 @@ knowledge-base/
 ### 4. Model Selection
 
 Use embedding-capable models:
-- `llama2` ✅
+- `gemma3:4b` ✅
 - `mistral` ✅
 - `codellama` ✅
 

@@ -26,7 +26,7 @@ class OllamaClient {
 
   /**
    * Generate a response from Ollama
-   * @param model - The model to use (e.g., 'llama2', 'mistral')
+   * @param model - The model to use (e.g., 'gemma3:4b', 'mistral')
    * @param prompt - The prompt to send
    * @param options - Additional options
    * @returns The generated response
