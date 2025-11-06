@@ -282,7 +282,21 @@ state_name:
   next: "default_next_state"  # Optional fallback
 ```
 
-#### 3. Workflow Reference State
+#### 3. Input State
+Asks the user for freeform text input.
+
+```yaml
+state_name:
+  type: "input"
+  prompt: "What is your name?"  # Question to ask the user
+  save_as: "variable_name"  # Optional, saves input to context
+  default_value: "Default Name"  # Optional, default value if user provides no input
+  next: "next_state_name"  # Next state to transition to
+```
+
+The input state allows workflows to collect freeform text from users, as opposed to the choice state which presents a fixed set of options. The collected input can be saved to a context variable and used in subsequent states via variable interpolation (e.g., `{{variable_name}}`).
+
+#### 4. Workflow Reference State
 References and includes another workflow as part of the current workflow.
 
 ```yaml
@@ -292,7 +306,7 @@ state_name:
   next: "next_state_name"  # State to go to after referenced workflow completes
 ```
 
-#### 4. End State
+#### 5. End State
 Terminates the workflow.
 
 ```yaml
@@ -504,6 +518,7 @@ The `examples/` directory contains sample workflows:
 
 - **simple-qa.yaml**: Basic question-answering workflow
 - **story-generator.yaml**: Interactive story generation with choices
+- **user-input-demo.yaml**: Demonstrates the input state for collecting user information
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
