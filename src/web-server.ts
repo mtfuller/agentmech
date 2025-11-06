@@ -358,7 +358,7 @@ class WebServer {
             background: white;
             border-radius: 10px;
             padding: 30px;
-            max-width: 800px;
+            max-width: 900px;
             max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
@@ -489,6 +489,245 @@ class WebServer {
             \`).join('');
         }
         
+        function buildWorkflowGraph(workflow) {
+            const states = workflow.states;
+            const startState = workflow.start_state;
+            
+            // Build graph data structure
+            const nodes = [];
+            const edges = [];
+            const stateNames = Object.keys(states);
+            
+            // Create nodes
+            stateNames.forEach((stateName) => {
+                const state = states[stateName];
+                nodes.push({
+                    id: stateName,
+                    label: stateName,
+                    type: state.type,
+                    isStart: stateName === startState
+                });
+            });
+            
+            // Create edges
+            stateNames.forEach((stateName) => {
+                const state = states[stateName];
+                
+                // Handle simple next transitions
+                if (state.next) {
+                    edges.push({
+                        from: stateName,
+                        to: state.next,
+                        label: ''
+                    });
+                }
+                
+                // Handle choice transitions
+                if (state.choices && Array.isArray(state.choices)) {
+                    state.choices.forEach((choice, idx) => {
+                        if (choice.next) {
+                            edges.push({
+                                from: stateName,
+                                to: choice.next,
+                                label: choice.label || choice.value || \`Choice \${idx + 1}\`
+                            });
+                        }
+                    });
+                }
+                
+                // Handle next_options
+                if (state.next_options && Array.isArray(state.next_options)) {
+                    state.next_options.forEach((option) => {
+                        if (option.state) {
+                            edges.push({
+                                from: stateName,
+                                to: option.state,
+                                label: option.description.substring(0, 20) + '...'
+                            });
+                        }
+                    });
+                }
+            });
+            
+            return { nodes, edges };
+        }
+        
+        function renderWorkflowGraph(workflow, containerId) {
+            const { nodes, edges } = buildWorkflowGraph(workflow);
+            const container = document.getElementById(containerId);
+            
+            if (nodes.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">No states to visualize</p>';
+                return;
+            }
+            
+            // Simple layout algorithm - hierarchical top-to-bottom
+            const positions = layoutGraph(nodes, edges, workflow.start_state);
+            
+            // Calculate SVG dimensions
+            const width = 800;
+            const height = Math.max(400, positions.maxY + 100);
+            
+            // Build SVG
+            let svg = \`<svg width="\${width}" height="\${height}" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">\`;
+            
+            // Define arrow marker
+            svg += \`
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                    </marker>
+                </defs>
+            \`;
+            
+            // Draw edges first (so they appear behind nodes)
+            edges.forEach(edge => {
+                const fromPos = positions.nodes[edge.from];
+                const toPos = positions.nodes[edge.to];
+                
+                if (!fromPos || !toPos) return;
+                
+                // Calculate connection points (bottom of from node to top of to node)
+                const x1 = fromPos.x;
+                const y1 = fromPos.y + 30; // bottom of node
+                const x2 = toPos.x;
+                const y2 = toPos.y - 30; // top of node
+                
+                // Draw curved path
+                const midY = (y1 + y2) / 2;
+                const path = \`M \${x1} \${y1} C \${x1} \${midY}, \${x2} \${midY}, \${x2} \${y2}\`;
+                
+                svg += \`<path d="\${path}" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />\`;
+                
+                // Add edge label if present
+                if (edge.label) {
+                    const labelX = (x1 + x2) / 2;
+                    const labelY = midY;
+                    svg += \`<text x="\${labelX}" y="\${labelY}" text-anchor="middle" font-size="11" fill="#666" style="background: white;">\${edge.label}\</text>\`;
+                }
+            });
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                const pos = positions.nodes[node.id];
+                if (!pos) return;
+                
+                const x = pos.x;
+                const y = pos.y;
+                
+                // Choose color based on state type
+                let fillColor = '#e3f2fd';
+                let strokeColor = '#2196f3';
+                
+                if (node.type === 'end') {
+                    fillColor = '#ffebee';
+                    strokeColor = '#f44336';
+                } else if (node.type === 'choice') {
+                    fillColor = '#fff3e0';
+                    strokeColor = '#ff9800';
+                } else if (node.type === 'input') {
+                    fillColor = '#f3e5f5';
+                    strokeColor = '#9c27b0';
+                } else if (node.type === 'prompt') {
+                    fillColor = '#e8f5e9';
+                    strokeColor = '#4caf50';
+                }
+                
+                // Draw node box
+                const boxWidth = 140;
+                const boxHeight = 60;
+                svg += \`<rect x="\${x - boxWidth/2}" y="\${y - boxHeight/2}" width="\${boxWidth}" height="\${boxHeight}" rx="8" fill="\${fillColor}" stroke="\${strokeColor}" stroke-width="\${node.isStart ? 3 : 2}" />\`;
+                
+                // Add start indicator
+                if (node.isStart) {
+                    svg += \`<text x="\${x}" y="\${y - boxHeight/2 - 10}" text-anchor="middle" font-size="12" fill="#4caf50" font-weight="bold">▼ START\</text>\`;
+                }
+                
+                // Add node label (truncate if too long)
+                const labelText = node.label.length > 15 ? node.label.substring(0, 13) + '...' : node.label;
+                svg += \`<text x="\${x}" y="\${y}" text-anchor="middle" font-size="13" font-weight="600" fill="#333">\${labelText}\</text>\`;
+                
+                // Add type label
+                svg += \`<text x="\${x}" y="\${y + 16}" text-anchor="middle" font-size="10" fill="#666">\${node.type}\</text>\`;
+            });
+            
+            svg += '</svg>';
+            container.innerHTML = svg;
+        }
+        
+        function layoutGraph(nodes, edges, startState) {
+            // Simple hierarchical layout
+            const positions = {};
+            const levels = {};
+            const visited = new Set();
+            
+            // Build adjacency list
+            const adjacency = {};
+            nodes.forEach(node => adjacency[node.id] = []);
+            edges.forEach(edge => {
+                if (adjacency[edge.from]) {
+                    adjacency[edge.from].push(edge.to);
+                }
+            });
+            
+            // BFS to assign levels
+            const queue = [{ id: startState, level: 0 }];
+            levels[startState] = 0;
+            visited.add(startState);
+            
+            while (queue.length > 0) {
+                const { id, level } = queue.shift();
+                
+                if (adjacency[id]) {
+                    adjacency[id].forEach(nextId => {
+                        if (!visited.has(nextId)) {
+                            visited.add(nextId);
+                            levels[nextId] = level + 1;
+                            queue.push({ id: nextId, level: level + 1 });
+                        }
+                    });
+                }
+            }
+            
+            // Assign positions to unvisited nodes (disconnected from start)
+            nodes.forEach(node => {
+                if (!visited.has(node.id)) {
+                    levels[node.id] = Object.keys(levels).length;
+                }
+            });
+            
+            // Group nodes by level
+            const levelGroups = {};
+            Object.keys(levels).forEach(nodeId => {
+                const level = levels[nodeId];
+                if (!levelGroups[level]) levelGroups[level] = [];
+                levelGroups[level].push(nodeId);
+            });
+            
+            // Position nodes
+            const levelHeight = 150;
+            const nodeSpacing = 180;
+            let maxY = 0;
+            
+            Object.keys(levelGroups).forEach(level => {
+                const nodesInLevel = levelGroups[level];
+                const y = 80 + parseInt(level) * levelHeight;
+                maxY = Math.max(maxY, y);
+                
+                const totalWidth = (nodesInLevel.length - 1) * nodeSpacing;
+                const startX = (800 - totalWidth) / 2;
+                
+                nodesInLevel.forEach((nodeId, idx) => {
+                    positions[nodeId] = {
+                        x: startX + idx * nodeSpacing,
+                        y: y
+                    };
+                });
+            });
+            
+            return { nodes: positions, maxY };
+        }
+        
         async function showWorkflowDetails(fileName) {
             const workflow = workflows.find(wf => wf.fileName === fileName);
             if (!workflow || !workflow.valid) return;
@@ -506,6 +745,9 @@ class WebServer {
                     <p><strong>Start State:</strong> \${data.start_state}</p>
                     <p><strong>Total States:</strong> \${Object.keys(data.states).length}</p>
                     
+                    <h3 style="margin-top: 20px;">Workflow Graph</h3>
+                    <div id="workflow-graph" style="margin: 20px 0; overflow-x: auto;"></div>
+                    
                     <h3 style="margin-top: 20px;">States</h3>
                     <pre>\${JSON.stringify(data.states, null, 2)}</pre>
                     
@@ -517,6 +759,9 @@ class WebServer {
                 
                 document.getElementById('modal-title').textContent = data.name;
                 document.getElementById('workflow-modal').classList.add('active');
+                
+                // Render the graph after the modal content is added to the DOM
+                renderWorkflowGraph(data, 'workflow-graph');
             } catch (error) {
                 alert('Error loading workflow details: ' + error.message);
             }
