@@ -93,11 +93,12 @@ class WorkflowTester {
     const fileContent = fs.readFileSync(testFilePath, 'utf8');
     this.testSuite = yaml.load(fileContent) as TestSuite;
     
+    // Validate first, before trying to resolve paths
+    this.validateTestSuite();
+    
     // Resolve workflow path relative to test file
     const testDir = path.dirname(testFilePath);
     this.workflowPath = path.resolve(testDir, this.testSuite.workflow);
-    
-    this.validateTestSuite();
   }
 
   /**

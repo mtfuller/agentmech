@@ -136,6 +136,30 @@ Trace logs include timestamps and are written in a structured format. When using
 
 This feature is useful for debugging workflows, understanding execution flow, monitoring AI interactions, and maintaining audit trails.
 
+### Test a Workflow
+
+Run test scenarios to validate workflow behavior:
+
+```bash
+ai-workflow test <test-file> [options]
+
+Options:
+  -r, --report <path>  Save test report to file
+```
+
+Example:
+```bash
+ai-workflow test examples/simple-qa.test.yaml
+ai-workflow test examples/story-generator.test.yaml --report test-results.txt
+```
+
+Test files define scenarios with:
+- Mock responses for LLM prompts
+- User inputs for choice/input states
+- Assertions to validate workflow behavior and outputs
+
+See the [Test Scenario Format](#test-scenario-format) section for details on writing test files.
+
 ### Validate a Workflow
 
 ```bash
@@ -690,7 +714,138 @@ The `examples/` directory contains sample workflows:
 - **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
 - **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
 
+Sample test files are also included:
+- **simple-qa.test.yaml**: Tests for the simple Q&A workflow
+- **story-generator.test.yaml**: Tests for the story generator workflow with choices
+- **user-input-demo.test.yaml**: Tests for the user input workflow
+
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
+
+## Test Scenario Format
+
+Test scenarios allow you to validate workflow behavior without requiring Ollama or live interactions. Test files are YAML documents that define:
+
+### Basic Structure
+
+```yaml
+workflow: <path-to-workflow-file>  # Relative to test file location
+
+scenarios:
+  - name: "Test Scenario Name"
+    description: "Optional description"  # Optional
+    timeout: 30000                      # Optional timeout in ms (default: 30000)
+    
+    # Mock LLM responses
+    mocks:
+      - state: state_name
+        response: "Mocked LLM response text"
+    
+    # User inputs for choice/input states
+    inputs:
+      - state: choice_state_name
+        input: 1  # Choice number (1-based index)
+      - state: input_state_name
+        input: "User input text"
+    
+    # Assertions to validate
+    assertions:
+      - type: contains
+        target: output  # or variable name
+        value: "expected text"
+```
+
+### Assertion Types
+
+Test scenarios support multiple assertion types:
+
+#### 1. `contains` - Check if text contains a substring
+```yaml
+assertions:
+  - type: contains
+    target: output  # 'output' for console output, or variable name
+    value: "expected substring"
+```
+
+#### 2. `equals` - Exact match
+```yaml
+assertions:
+  - type: equals
+    target: variable_name
+    value: "exact value"
+```
+
+#### 3. `not_contains` - Check that text does NOT contain substring
+```yaml
+assertions:
+  - type: not_contains
+    target: output
+    value: "should not appear"
+```
+
+#### 4. `regex` - Regular expression match
+```yaml
+assertions:
+  - type: regex
+    target: output
+    pattern: "^[A-Z].*"  # Regex pattern
+```
+
+#### 5. `variable_set` - Check if a variable exists
+```yaml
+assertions:
+  - type: variable_set
+    target: variable_name  # Just check if it's set
+```
+
+### Complete Example
+
+```yaml
+workflow: story-generator.yaml
+
+scenarios:
+  - name: "Generate Science Fiction Story"
+    description: "Test workflow with science fiction choice"
+    inputs:
+      - state: choose_genre
+        input: 1  # Select "Science Fiction"
+      - state: choose_setting
+        input: 1  # Select "A distant planet"
+      - state: ask_continue
+        input: 2  # Select "No"
+    mocks:
+      - state: generate_story
+        response: "In 2157, humanity colonized Mars..."
+    assertions:
+      - type: contains
+        target: output
+        value: "Science Fiction"
+      - type: variable_set
+        target: genre
+      - type: equals
+        target: genre
+        value: "science fiction"
+      - type: contains
+        target: story
+        value: "2157"
+```
+
+### Running Tests
+
+```bash
+# Run tests
+ai-workflow test examples/simple-qa.test.yaml
+
+# Save report to file
+ai-workflow test examples/story-generator.test.yaml --report results.txt
+```
+
+Test output shows:
+- Test scenario results (pass/fail)
+- Assertion details
+- Captured workflow output
+- Summary report with timing
+
+Exit code is 0 if all tests pass, 1 if any fail, making it suitable for CI/CD pipelines.
 
 ## Development
 
@@ -705,12 +860,14 @@ ai-workflow-cli/
 │   ├── ollama-client.ts       # Ollama API client
 │   ├── mcp-client.ts          # MCP server client
 │   ├── workflow-parser.ts     # YAML parser and validator
-│   └── workflow-executor.ts   # State machine executor
+│   ├── workflow-executor.ts   # State machine executor
+│   └── workflow-tester.ts     # Test scenario runner
 ├── dist/                      # Compiled JavaScript output
 ├── examples/
 │   ├── simple-qa.yaml
 │   ├── story-generator.yaml
-│   └── code-review.yaml
+│   ├── simple-qa.test.yaml
+│   └── story-generator.test.yaml
 ├── tests/
 │   └── (test files)
 ├── tsconfig.json              # TypeScript configuration

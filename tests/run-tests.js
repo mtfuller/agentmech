@@ -1151,17 +1151,25 @@ function testFallbackFlow() {
 }
 
 // Run tests
-console.log('=== Running Tests ===\n');
-const parserPassed = testWorkflowParser();
-const ragPassed = testRagValidation();
-const nextOptionsPassed = testNextOptionsValidation();
-const ollamaPassed = testOllamaClient();
-const fallbackPassed = testFallbackFlow();
+async function runAllTests() {
+  console.log('=== Running Tests ===\n');
+  const parserPassed = testWorkflowParser();
+  const ragPassed = testRagValidation();
+  const nextOptionsPassed = testNextOptionsValidation();
+  const ollamaPassed = testOllamaClient();
+  const fallbackPassed = testFallbackFlow();
+  
+  // Run workflow tester tests
+  const { runAllTests: runWorkflowTesterTests } = require('./test-workflow-tester');
+  const testerPassed = await runWorkflowTesterTests();
 
-if (parserPassed && ragPassed && ollamaPassed && nextOptionsPassed && fallbackPassed) {
-  console.log('\n✓ All tests passed!');
-  process.exit(0);
-} else {
-  console.log('\n✗ Some tests failed');
-  process.exit(1);
+  if (parserPassed && ragPassed && ollamaPassed && nextOptionsPassed && fallbackPassed && testerPassed) {
+    console.log('\n✓ All tests passed!');
+    process.exit(0);
+  } else {
+    console.log('\n✗ Some tests failed');
+    process.exit(1);
+  }
 }
+
+runAllTests();
