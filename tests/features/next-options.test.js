@@ -1,11 +1,16 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
+/**
+ * Test next_options (LLM-driven state selection) validation
+ * @returns {boolean} True if all tests pass, false otherwise
+ */
 function testNextOptions() {
   console.log('Testing Next Options (LLM State Selection)...\n');
   
   let passed = 0;
   let failed = 0;
   
+  // Test 1: Accept valid next_options configuration
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test Next Options',
@@ -39,6 +44,7 @@ function testNextOptions() {
     failed++;
   }
   
+  // Test 2: Detect next_options with less than 2 options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -61,6 +67,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 3: Detect missing state field in next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -84,6 +91,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 4: Detect missing description field in next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -112,6 +120,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 5: Detect non-existent state reference in next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -140,6 +149,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 6: Detect conflicting next and next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -169,15 +179,17 @@ function testNextOptions() {
     passed++;
   }
   
-  // Test 7: Detect next_options on non-prompt state (updated to use input instead of choice)
+  // Test 7: Detect next_options on non-prompt state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
       start_state: 'test',
       states: {
         test: {
-          type: 'input',
-          prompt: 'Enter something',
+          type: 'choice',
+          choices: [
+            { label: 'Option', next: 'end' }
+          ],
           next_options: [
             { state: 'state1', description: 'Option 1' },
             { state: 'end', description: 'Option 2' }
@@ -198,6 +210,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 8: Accept next_options with 'end' state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -226,6 +239,7 @@ function testNextOptions() {
     failed++;
   }
   
+  // Test 9: Detect empty state string in next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -249,6 +263,7 @@ function testNextOptions() {
     passed++;
   }
   
+  // Test 10: Detect empty description string in next_options
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',

@@ -1,11 +1,16 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
+/**
+ * Test input state validation
+ * @returns {boolean} True if all tests pass, false otherwise
+ */
 function testInputStates() {
   console.log('Testing Input State Validation...\n');
   
   let passed = 0;
   let failed = 0;
   
+  // Test 1: Accept valid input state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test Input',
@@ -27,6 +32,7 @@ function testInputStates() {
     failed++;
   }
   
+  // Test 2: Detect missing prompt in input state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -47,6 +53,7 @@ function testInputStates() {
     passed++;
   }
   
+  // Test 3: Accept input state with default value
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test Input with Default',
