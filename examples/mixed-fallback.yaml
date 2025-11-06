@@ -1,0 +1,43 @@
+name: "Mixed Fallback Example"
+description: "Demonstrates both state-level and workflow-level fallback priorities"
+default_model: "gemma3:4b"
+
+# Workflow-level fallback as default
+on_error: "global_fallback"
+
+start_state: "normal_step"
+
+states:
+  normal_step:
+    type: "prompt"
+    prompt: "This is a normal step. What is machine learning?"
+    save_as: "normal_result"
+    next: "state_with_specific_fallback"
+  
+  state_with_specific_fallback:
+    type: "prompt"
+    prompt: "This state has its own fallback. Testing with invalid model."
+    model: "invalid-model-123"
+    on_error: "specific_error_handler"
+    next: "another_step"
+  
+  specific_error_handler:
+    type: "prompt"
+    prompt: "State-specific error handler (takes priority over global). Recovered successfully. What is error recovery?"
+    save_as: "specific_recovery"
+    next: "end"
+  
+  another_step:
+    type: "prompt"
+    prompt: "This will error and use the global fallback."
+    model: "another-invalid-model"
+    next: "end"
+  
+  global_fallback:
+    type: "prompt"
+    prompt: "Global fallback handler activated. What is system resilience?"
+    save_as: "global_recovery"
+    next: "end"
+  
+  end:
+    type: "end"

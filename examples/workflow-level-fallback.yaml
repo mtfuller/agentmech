@@ -1,0 +1,35 @@
+name: "Workflow-Level Fallback Example"
+description: "Demonstrates workflow-level error handling that applies to all states"
+default_model: "gemma3:4b"
+
+# Workflow-level fallback - applies to all states without specific on_error
+on_error: "global_error_handler"
+
+start_state: "step_one"
+
+states:
+  step_one:
+    type: "prompt"
+    prompt: "Executing step one. What is artificial intelligence?"
+    save_as: "step_one_result"
+    next: "step_two"
+  
+  step_two:
+    type: "prompt"
+    prompt: "Executing step two with an invalid model."
+    model: "this-model-does-not-exist"
+    next: "step_three"
+  
+  step_three:
+    type: "prompt"
+    prompt: "This step will not be reached due to error in step_two."
+    next: "end"
+  
+  global_error_handler:
+    type: "prompt"
+    prompt: "Global error handler activated. The workflow encountered an error but recovered. What is resilience?"
+    save_as: "error_recovery"
+    next: "end"
+  
+  end:
+    type: "end"
