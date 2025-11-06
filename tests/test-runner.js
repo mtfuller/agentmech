@@ -16,6 +16,7 @@ const testRagConfiguration = require('./rag/configuration.test');
 const testNextOptions = require('./features/next-options.test');
 const testFallbackFlow = require('./features/fallback-flow.test');
 const testOllamaClient = require('./features/ollama-client.test');
+const testTestScenarios = require('./features/test-scenarios.test');
 
 console.log('=== AI Workflow CLI Test Suite ===\n');
 console.log('Running tests organized by feature...\n');
@@ -52,6 +53,8 @@ console.log();
 allTestsPassed = testFallbackFlow() && allTestsPassed;
 console.log();
 allTestsPassed = testOllamaClient() && allTestsPassed;
+console.log();
+allTestsPassed = testTestScenarios() && allTestsPassed;
 
 // Print final summary
 console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
