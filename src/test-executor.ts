@@ -306,7 +306,14 @@ class TestWorkflowExecutor extends WorkflowExecutor {
   async executeState(stateName: string, state: any): Promise<string> {
     this.stateHistory.push(stateName);
     this.currentStateName = stateName;
-    return await super.executeState(stateName, state);
+    const nextState = await super.executeState(stateName, state);
+    
+    // If the next state is 'end', add it to history since the main loop won't execute it
+    if (nextState === 'end') {
+      this.stateHistory.push('end');
+    }
+    
+    return nextState;
   }
 
   /**
