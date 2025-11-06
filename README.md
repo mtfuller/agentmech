@@ -12,6 +12,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 💬 **Interactive Choices**: Present users with choices that affect workflow direction
 - 🔗 **Context Variables**: Pass data between states using variable interpolation
 - ✅ **Validation**: Validate workflow files before execution
+- 🔍 **Observability**: Trace and log all workflow interactions with the `--trace` flag
 
 ## Prerequisites
 
@@ -93,13 +94,46 @@ ai-workflow run <workflow-file> [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -t, --trace             Enable tracing/observability for workflow execution
+  -l, --log-file <path>   Path to file for logging trace events
 ```
 
 Example:
 ```bash
 ai-workflow run examples/story-generator.yaml
 ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
+ai-workflow run my-workflow.yaml --trace
+ai-workflow run my-workflow.yaml --trace --log-file trace.log
 ```
+
+#### Observability and Tracing
+
+Use the `--trace` flag to enable detailed logging of workflow execution:
+
+```bash
+ai-workflow run examples/simple-qa.yaml --trace
+```
+
+To save trace events to a file in addition to console output, use the `--log-file` option:
+
+```bash
+ai-workflow run examples/simple-qa.yaml --trace --log-file workflow-trace.log
+```
+
+Note: If you specify `--log-file` without `--trace`, tracing will be automatically enabled.
+
+When tracing is enabled, the CLI logs all interactions including:
+- Workflow start and completion events
+- State transitions and execution
+- Model interactions with Ollama (prompts and responses)
+- MCP server connections and operations
+- Context variable updates
+- User choices and selections
+- Errors and their context
+
+Trace logs include timestamps and are written in a structured format. When using `--log-file`, each workflow execution session is clearly marked with session start/end markers, and new runs append to the existing file for continuous logging.
+
+This feature is useful for debugging workflows, understanding execution flow, monitoring AI interactions, and maintaining audit trails.
 
 ### Validate a Workflow
 

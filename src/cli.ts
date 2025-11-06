@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import WorkflowParser = require('./workflow-parser');
 import WorkflowExecutor = require('./workflow-executor');
 import OllamaClient = require('./ollama-client');
+import Tracer = require('./tracer');
 import WebServer = require('./web-server');
 import * as path from 'path';
 import * as fs from 'fs';
@@ -17,6 +18,8 @@ program
 
 interface RunOptions {
   ollamaUrl: string;
+  trace: boolean;
+  logFile?: string;
 }
 
 program
@@ -24,6 +27,8 @@ program
   .description('Run a workflow from a YAML file')
   .argument('<workflow-file>', 'Path to workflow YAML file')
   .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
+  .option('-t, --trace', 'Enable tracing/observability for workflow execution', false)
+  .option('-l, --log-file <path>', 'Path to file for logging trace events')
   .action(async (workflowFile: string, options: RunOptions) => {
     try {
       // Parse the workflow file
@@ -33,9 +38,28 @@ program
       const workflow = WorkflowParser.parseFile(workflowPath);
       console.log(`Workflow "${workflow.name}" loaded successfully`);
       
+      // Validate options
+      if (options.logFile && !options.trace) {
+        console.log('Warning: --log-file requires --trace to be enabled. Enabling tracing automatically.\n');
+        options.trace = true;
+      }
+      
+      // Create tracer
+      const tracer = new Tracer(options.trace, options.logFile);
+      if (options.trace) {
+        console.log('Tracing enabled');
+        if (options.logFile) {
+          console.log(`Logging to file: ${options.logFile}`);
+        }
+        console.log('');
+      }
+      
       // Execute the workflow
-      const executor = new WorkflowExecutor(workflow, options.ollamaUrl);
+      const executor = new WorkflowExecutor(workflow, options.ollamaUrl, tracer);
       await executor.execute();
+      
+      // Close the tracer to flush file stream
+      tracer.close();
       
     } catch (error: any) {
       console.error(`\nError: ${error.message}`);
@@ -157,6 +181,5 @@ program
       process.exit(1);
     }
   });
-
 
 program.parse();
