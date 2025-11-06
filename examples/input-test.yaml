@@ -1,0 +1,21 @@
+name: "Input Test Workflow"
+description: "A workflow with inputs for testing"
+default_model: "gemma3:4b"
+start_state: "get_name"
+
+states:
+  get_name:
+    type: "input"
+    prompt: "What is your name?"
+    save_as: "user_name"
+    next: "get_age"
+  
+  get_age:
+    type: "input"
+    prompt: "What is your age?"
+    save_as: "user_age"
+    default_value: "unknown"
+    next: "end"
+  
+  end:
+    type: "end"
