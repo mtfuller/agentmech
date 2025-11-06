@@ -14,6 +14,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 🧠 **RAG Support**: Retrieval-Augmented Generation for context-aware responses
 - ✅ **Validation**: Validate workflow files before execution
 - 🔍 **Observability**: Trace and log all workflow interactions with the `--trace` flag
+- 🧪 **Testing**: Define and run automated test scenarios to validate workflow behavior
 
 ## Prerequisites
 
@@ -135,6 +136,34 @@ When tracing is enabled, the CLI logs all interactions including:
 Trace logs include timestamps and are written in a structured format. When using `--log-file`, each workflow execution session is clearly marked with session start/end markers, and new runs append to the existing file for continuous logging.
 
 This feature is useful for debugging workflows, understanding execution flow, monitoring AI interactions, and maintaining audit trails.
+
+### Test a Workflow
+
+Run automated tests against a workflow to verify it performs as expected:
+
+```bash
+ai-workflow test <test-file> [options]
+
+Options:
+  -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -o, --output <path>     Path to save test report (for json/markdown formats)
+  -f, --format <format>   Report format: console, json, or markdown (default: "console")
+```
+
+Example:
+```bash
+ai-workflow test examples/user-input-demo.test.yaml
+ai-workflow test examples/simple-qa.test.yaml --format json --output report.json
+ai-workflow test examples/user-input-demo.test.yaml --format markdown --output report.md
+```
+
+Test files define scenarios with mocked inputs and assertions to validate workflow behavior. The test command:
+- Executes workflows with predefined inputs
+- Evaluates assertions against workflow outputs
+- Generates detailed test reports
+- Exits with code 0 if all tests pass, 1 if any fail
+
+See the [Test Scenarios](#test-scenarios) section for details on creating test files.
 
 ### Validate a Workflow
 
@@ -663,6 +692,126 @@ states:
 
 In this example, the LLM analyzes the research focus response and autonomously decides whether to search the web first or create a research plan, making the workflow more adaptive and intelligent.
 
+## Test Scenarios
+
+Test scenarios allow you to validate that workflows behave as expected by running them with predefined inputs and checking assertions against the outputs.
+
+### Test Scenario YAML Format
+
+A test scenario file consists of:
+
+- **workflow**: Path to the workflow file to test (relative to test file location)
+- **test_scenarios**: Array of test scenarios
+
+Each test scenario contains:
+
+- **name**: Test scenario name (required)
+- **description**: Optional description of what the test validates
+- **inputs**: Array of mocked inputs for `input` and `choice` states
+  - **state**: Name of the state where input should be provided
+  - **value**: Value to provide as input
+- **assertions**: Array of assertions to validate workflow behavior (at least one required)
+  - **type**: Assertion type (see below)
+  - **target**: Variable name to check (for most assertion types)
+  - **value**: Expected value or pattern
+  - **description**: Optional description of what this assertion validates
+
+### Assertion Types
+
+- **`state_reached`**: Verifies that a specific state was reached during execution
+  - Requires: `value` (state name)
+  - Example: `{ type: "state_reached", value: "end" }`
+
+- **`equals`**: Checks if a variable exactly matches an expected value
+  - Requires: `target` (variable name), `value` (expected value)
+  - Example: `{ type: "equals", target: "name", value: "Alice" }`
+
+- **`contains`**: Checks if a variable contains a substring
+  - Requires: `target` (variable name), `value` (expected substring)
+  - Example: `{ type: "contains", target: "response", value: "artificial intelligence" }`
+
+- **`not_contains`**: Checks if a variable does NOT contain a substring
+  - Requires: `target` (variable name), `value` (unexpected substring)
+  - Example: `{ type: "not_contains", target: "answer", value: "error" }`
+
+- **`regex`**: Checks if a variable matches a regular expression pattern
+  - Requires: `target` (variable name), `value` (regex pattern)
+  - Example: `{ type: "regex", target: "email", value: "^[a-z]+@[a-z]+\\.[a-z]+$" }`
+
+### Test Scenario Example
+
+```yaml
+# user-input-demo.test.yaml
+workflow: user-input-demo.yaml
+
+test_scenarios:
+  - name: "Complete User Flow"
+    description: "Test complete workflow with user inputs and AI response"
+    inputs:
+      - state: "get_name"
+        value: "Alice"
+      - state: "get_location"
+        value: "San Francisco"
+      - state: "get_interest"
+        value: "machine learning"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "equals"
+        target: "name"
+        value: "Alice"
+        description: "Name should be saved correctly"
+      - type: "contains"
+        target: "response"
+        value: "machine learning"
+        description: "Response should mention the topic"
+
+  - name: "Default Value Test"
+    description: "Test that default value is used when no location is provided"
+    inputs:
+      - state: "get_name"
+        value: "Bob"
+      - state: "get_location"
+        value: ""
+      - state: "get_interest"
+        value: "astronomy"
+    assertions:
+      - type: "equals"
+        target: "location"
+        value: "Earth"
+        description: "Should use default location value"
+```
+
+### Running Tests
+
+Run tests using the `test` command:
+
+```bash
+# Run tests with console output
+ai-workflow test examples/user-input-demo.test.yaml
+
+# Generate JSON report
+ai-workflow test examples/simple-qa.test.yaml --format json --output report.json
+
+# Generate Markdown report
+ai-workflow test examples/user-input-demo.test.yaml --format markdown --output report.md
+```
+
+The test command will:
+1. Execute each test scenario with the provided inputs
+2. Evaluate all assertions
+3. Generate a test report showing pass/fail status
+4. Exit with code 0 if all tests pass, 1 if any fail
+
+### Test Report Formats
+
+**Console** (default): Displays test results in the terminal with color-coded pass/fail indicators and detailed assertion messages.
+
+**JSON**: Generates a structured JSON file with complete test results, suitable for integration with CI/CD pipelines.
+
+**Markdown**: Creates a formatted markdown report that can be included in documentation or pull requests.
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -684,6 +833,11 @@ The `examples/` directory contains sample workflows:
 - **mixed-fallback.yaml**: Shows both state-level and workflow-level fallback priorities
 - **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
 - **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
+
+### Test Scenario Files
+
+- **simple-qa.test.yaml**: Test scenarios for simple Q&A workflow
+- **user-input-demo.test.yaml**: Test scenarios demonstrating input mocking and assertions
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
