@@ -2,15 +2,15 @@ const TestScenarioParser = require('../../dist/test-scenario-parser').TestScenar
 const path = require('path');
 
 describe('Test Scenario Parser', () => {
-  test('Parse valid test scenario file', () => {
+  test('should parse valid test scenario file', () => {
     const testSuite = TestScenarioParser.parseFile(
       path.join(__dirname, '../../examples/user-input-demo.test.yaml')
     );
     expect(testSuite.workflow).toBe('user-input-demo.yaml');
     expect(testSuite.test_scenarios.length).toBeGreaterThan(0);
   });
-  
-  test('Detect missing workflow field', () => {
+
+  test('should detect missing workflow field', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         test_scenarios: [
@@ -19,16 +19,16 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing test_scenarios', () => {
+
+  test('should detect missing test_scenarios', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml'
       });
     }).toThrow();
   });
-  
-  test('Detect empty test_scenarios', () => {
+
+  test('should detect empty test_scenarios', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -36,8 +36,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing scenario name', () => {
+
+  test('should detect missing scenario name', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -47,8 +47,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing assertions', () => {
+
+  test('should detect missing assertions', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -58,8 +58,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect empty assertions', () => {
+
+  test('should detect empty assertions', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -69,8 +69,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect invalid assertion type', () => {
+
+  test('should detect invalid assertion type', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -83,8 +83,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept valid state_reached assertion', () => {
+
+  test('should accept valid state_reached assertion', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -97,8 +97,8 @@ describe('Test Scenario Parser', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Accept valid contains assertion', () => {
+
+  test('should accept valid contains assertion', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -111,8 +111,8 @@ describe('Test Scenario Parser', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect missing target in contains assertion', () => {
+
+  test('should detect missing target in contains assertion', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -125,8 +125,8 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept valid inputs array', () => {
+
+  test('should accept valid inputs array', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -140,8 +140,8 @@ describe('Test Scenario Parser', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect invalid regex pattern', () => {
+
+  test('should detect invalid regex pattern', () => {
     expect(() => {
       TestScenarioParser.validateTestSuite({
         workflow: 'test.yaml',
@@ -155,3 +155,4 @@ describe('Test Scenario Parser', () => {
     }).toThrow();
   });
 });
+

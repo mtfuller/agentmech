@@ -1,7 +1,7 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
 describe('Input State Validation', () => {
-  test('Accept valid input state', () => {
+  test('should accept valid input state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test Input',
@@ -18,8 +18,8 @@ describe('Input State Validation', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect missing prompt in input state', () => {
+
+  test('should detect missing prompt in input state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -35,8 +35,8 @@ describe('Input State Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept input state with default value', () => {
+
+  test('should accept input state with default value', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test Input with Default',
@@ -55,3 +55,4 @@ describe('Input State Validation', () => {
     }).not.toThrow();
   });
 });
+

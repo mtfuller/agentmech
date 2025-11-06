@@ -4,21 +4,21 @@ const fs = require('fs');
 const yaml = require('js-yaml');
 
 describe('External File Handling', () => {
-  test('Parse workflow with external prompt file', () => {
+  test('should parse workflow with external prompt file', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/external-prompt-file.yaml'));
     expect(workflow.states.generate_story.prompt).toBeDefined();
     expect(workflow.states.generate_story.prompt).toContain('time traveler');
   });
-  
-  test('Parse workflow with workflow reference', () => {
+
+  test('should parse workflow with workflow reference', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/workflow-reference.yaml'));
     // Should have imported states from greeting-workflow.yaml
     // The referenced workflow should have its states prefixed
     expect(workflow.states['start_greeting_ref_greet']).toBeDefined();
     expect(workflow.states['start_greeting_ref_greet'].type).toBe('prompt');
   });
-  
-  test('Detect missing external prompt file', () => {
+
+  test('should detect missing external prompt file', () => {
     const tmpWorkflow = path.join(__dirname, '../../examples/tmp-test-missing-prompt.yaml');
     fs.writeFileSync(tmpWorkflow, yaml.dump({
       name: 'Test',
@@ -33,16 +33,17 @@ describe('External File Handling', () => {
       }
     }));
     
+    
     try {
       expect(() => {
         WorkflowParser.parseFile(tmpWorkflow);
-      }).toThrow(/Prompt file not found/);
+      }).toThrow('Prompt file not found');
     } finally {
       fs.unlinkSync(tmpWorkflow);
     }
   });
-  
-  test('Detect circular workflow references', () => {
+
+  test('should detect circular workflow references', () => {
     const tmpWorkflowA = path.join(__dirname, '../../examples/tmp-test-circular-a.yaml');
     const tmpWorkflowB = path.join(__dirname, '../../examples/tmp-test-circular-b.yaml');
     
@@ -77,14 +78,14 @@ describe('External File Handling', () => {
     try {
       expect(() => {
         WorkflowParser.parseFile(tmpWorkflowA);
-      }).toThrow(/Circular workflow reference/);
+      }).toThrow('Circular workflow reference');
     } finally {
       fs.unlinkSync(tmpWorkflowA);
       fs.unlinkSync(tmpWorkflowB);
     }
   });
-  
-  test('Detect conflicting prompt and prompt_file', () => {
+
+  test('should detect conflicting prompt and prompt_file', () => {
     const tmpWorkflow = path.join(__dirname, '../../examples/tmp-test-conflicting-prompt.yaml');
     fs.writeFileSync(tmpWorkflow, yaml.dump({
       name: 'Test',
@@ -100,12 +101,14 @@ describe('External File Handling', () => {
       }
     }));
     
+    
     try {
       expect(() => {
         WorkflowParser.parseFile(tmpWorkflow);
-      }).toThrow(/both prompt and prompt_file/);
+      }).toThrow('both prompt and prompt_file');
     } finally {
       fs.unlinkSync(tmpWorkflow);
     }
   });
 });
+

@@ -2,13 +2,13 @@ const WorkflowParser = require('../../dist/workflow-parser');
 const path = require('path');
 
 describe('RAG Configuration Validation', () => {
-  test('Parse workflow with RAG configuration', () => {
+  test('should parse workflow with RAG configuration', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/rag-qa.yaml'));
     expect(workflow.rag).toBeDefined();
     expect(workflow.rag.directory).toBe('./examples/knowledge-base');
   });
-  
-  test('Validate RAG configuration with directory', () => {
+
+  test('should validate RAG configuration with directory', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test RAG',
@@ -28,8 +28,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect missing RAG directory', () => {
+
+  test('should detect missing RAG directory', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -43,8 +43,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect use_rag without RAG config', () => {
+
+  test('should detect use_rag without RAG config', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -61,8 +61,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect use_rag on non-prompt state', () => {
+
+  test('should detect use_rag on non-prompt state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -83,8 +83,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept valid RAG configuration with all options', () => {
+
+  test('should accept valid RAG configuration with all options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test RAG',
@@ -108,8 +108,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Accept inline RAG configuration in state', () => {
+
+  test('should accept inline RAG configuration in state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test Inline RAG',
@@ -128,8 +128,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Accept named RAG configurations', () => {
+
+  test('should accept named RAG configurations', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test Named RAG',
@@ -154,8 +154,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect reference to non-existent named RAG', () => {
+
+  test('should detect reference to non-existent named RAG', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -177,8 +177,8 @@ describe('RAG Configuration Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect conflicting inline rag and use_rag', () => {
+
+  test('should detect conflicting inline rag and use_rag', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -202,3 +202,4 @@ describe('RAG Configuration Validation', () => {
     }).toThrow();
   });
 });
+

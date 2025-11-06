@@ -1,7 +1,7 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
 describe('Next Options (LLM State Selection)', () => {
-  test('Accept valid next_options configuration', () => {
+  test('should accept valid next_options configuration', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test Next Options',
@@ -30,8 +30,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect next_options with less than 2 options', () => {
+
+  test('should detect next_options with less than 2 options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -49,8 +49,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing state field in next_options', () => {
+
+  test('should detect missing state field in next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -69,8 +69,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing description field in next_options', () => {
+
+  test('should detect missing description field in next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -94,8 +94,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect non-existent state reference in next_options', () => {
+
+  test('should detect non-existent state reference in next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -119,8 +119,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect conflicting next and next_options', () => {
+
+  test('should detect conflicting next and next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -145,8 +145,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect next_options on non-prompt state', () => {
+
+  test('should detect next_options on non-prompt state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -172,8 +172,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept next_options with end state', () => {
+
+  test('should accept next_options with end state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -197,8 +197,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Detect empty state string in next_options', () => {
+
+  test('should detect empty state string in next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -217,8 +217,8 @@ describe('Next Options (LLM State Selection)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect empty description string in next_options', () => {
+
+  test('should detect empty description string in next_options', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -243,3 +243,4 @@ describe('Next Options (LLM State Selection)', () => {
     }).toThrow();
   });
 });
+

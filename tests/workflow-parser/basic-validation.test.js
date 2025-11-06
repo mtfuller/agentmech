@@ -2,18 +2,18 @@ const WorkflowParser = require('../../dist/workflow-parser');
 const path = require('path');
 
 describe('Basic Workflow Validation', () => {
-  test('Parse valid workflow', () => {
+  test('should parse valid workflow', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/simple-qa.yaml'));
     expect(workflow.name).toBe('Simple Q&A Workflow');
   });
-  
-  test('Validate workflow structure', () => {
+
+  test('should validate workflow structure', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/story-generator.yaml'));
     expect(workflow.start_state).toBeDefined();
     expect(workflow.states[workflow.start_state]).toBeDefined();
   });
-  
-  test('Detect missing start_state', () => {
+
+  test('should detect missing start_state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -21,8 +21,8 @@ describe('Basic Workflow Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect invalid state type', () => {
+
+  test('should detect invalid state type', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -31,8 +31,8 @@ describe('Basic Workflow Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect missing prompt in prompt state', () => {
+
+  test('should detect missing prompt in prompt state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -41,8 +41,8 @@ describe('Basic Workflow Validation', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept transition state type', () => {
+
+  test('should validate transition state type', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -58,3 +58,4 @@ describe('Basic Workflow Validation', () => {
     }).not.toThrow();
   });
 });
+

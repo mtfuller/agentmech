@@ -1,7 +1,7 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
 describe('MCP Server Configuration', () => {
-  test('Validate MCP server configuration', () => {
+  test('should validate MCP server configuration', () => {
     const workflow = {
       name: 'MCP Test',
       start_state: 'test',
@@ -18,8 +18,8 @@ describe('MCP Server Configuration', () => {
       WorkflowParser.validateWorkflow(workflow);
     }).not.toThrow();
   });
-  
-  test('Detect missing MCP server command', () => {
+
+  test('should detect invalid MCP server configuration (missing command)', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -33,8 +33,8 @@ describe('MCP Server Configuration', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect invalid MCP server reference', () => {
+
+  test('should detect invalid MCP server reference in state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -54,8 +54,8 @@ describe('MCP Server Configuration', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept valid MCP server reference', () => {
+
+  test('should accept valid MCP server reference in state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -76,3 +76,4 @@ describe('MCP Server Configuration', () => {
     }).not.toThrow();
   });
 });
+

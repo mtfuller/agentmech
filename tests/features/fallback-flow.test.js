@@ -2,17 +2,17 @@ const WorkflowParser = require('../../dist/workflow-parser');
 const path = require('path');
 
 describe('Fallback Flow (Error Handling)', () => {
-  test('Parse workflow with state-level fallback', () => {
+  test('should parse workflow with state-level fallback', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/state-level-fallback.yaml'));
     expect(workflow.states.risky_operation.on_error).toBe('error_handler');
   });
-  
-  test('Parse workflow with workflow-level fallback', () => {
+
+  test('should parse workflow with workflow-level fallback', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/workflow-level-fallback.yaml'));
     expect(workflow.on_error).toBe('global_error_handler');
   });
-  
-  test('Detect invalid state-level fallback reference', () => {
+
+  test('should detect invalid state-level fallback reference', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -29,8 +29,8 @@ describe('Fallback Flow (Error Handling)', () => {
       });
     }).toThrow();
   });
-  
-  test('Detect invalid workflow-level fallback reference', () => {
+
+  test('should detect invalid workflow-level fallback reference', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -47,8 +47,8 @@ describe('Fallback Flow (Error Handling)', () => {
       });
     }).toThrow();
   });
-  
-  test('Accept valid state-level fallback to end state', () => {
+
+  test('should accept valid state-level fallback to end state', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -70,8 +70,8 @@ describe('Fallback Flow (Error Handling)', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Accept valid workflow-level fallback', () => {
+
+  test('should accept valid workflow-level fallback', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
@@ -93,10 +93,11 @@ describe('Fallback Flow (Error Handling)', () => {
       });
     }).not.toThrow();
   });
-  
-  test('Parse workflow with mixed fallback configurations', () => {
+
+  test('should parse workflow with mixed fallback configurations', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/mixed-fallback.yaml'));
     expect(workflow.on_error).toBe('global_fallback');
     expect(workflow.states.state_with_specific_fallback.on_error).toBe('specific_error_handler');
   });
 });
+
