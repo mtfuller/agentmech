@@ -1,11 +1,10 @@
-const RagService = require('../../dist/rag-service');
+const RagService = require('../dist/rag-service');
 const fs = require('fs');
 const path = require('path');
 
 /**
  * Test RAG storage format functionality
  * Validates MessagePack format, JSON backward compatibility, and migration
- * @returns {boolean} True if all tests pass, false otherwise
  */
 function testRagStorage() {
   console.log('Testing RAG Storage Formats...\n');
@@ -14,7 +13,7 @@ function testRagStorage() {
   let failed = 0;
   
   // Create a temporary test directory
-  const testDir = path.join(__dirname, '../../tmp-rag-test');
+  const testDir = path.join(__dirname, '../tmp-rag-test');
   if (!fs.existsSync(testDir)) {
     fs.mkdirSync(testDir, { recursive: true });
   }
@@ -222,12 +221,6 @@ function testRagStorage() {
   }
 }
 
-module.exports = testRagStorage;
-
-// Run tests if this file is executed directly
-// This test is async and has special cleanup requirements, so it's designed
-// to be run standalone via: npm run test:rag-storage
-if (require.main === module) {
-  console.log('=== Running RAG Storage Format Tests ===\n');
-  testRagStorage();
-}
+// Run tests
+console.log('=== Running RAG Storage Format Tests ===\n');
+testRagStorage();
