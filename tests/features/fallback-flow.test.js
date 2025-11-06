@@ -1,18 +1,12 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 const path = require('path');
 
-/**
- * Test fallback flow functionality
- * Validates state-level and workflow-level error handling
- * @returns {boolean} True if all tests pass, false otherwise
- */
 function testFallbackFlow() {
   console.log('Testing Fallback Flow (Error Handling)...\n');
   
   let passed = 0;
   let failed = 0;
   
-  // Test 1: Parse workflow with state-level fallback
   try {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/state-level-fallback.yaml'));
     if (workflow.states.risky_operation.on_error === 'error_handler') {
@@ -27,7 +21,6 @@ function testFallbackFlow() {
     failed++;
   }
   
-  // Test 2: Parse workflow with workflow-level fallback
   try {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/workflow-level-fallback.yaml'));
     if (workflow.on_error === 'global_error_handler') {
@@ -42,7 +35,6 @@ function testFallbackFlow() {
     failed++;
   }
   
-  // Test 3: Detect invalid state-level fallback reference
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -64,7 +56,6 @@ function testFallbackFlow() {
     passed++;
   }
   
-  // Test 4: Detect invalid workflow-level fallback reference
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -86,7 +77,6 @@ function testFallbackFlow() {
     passed++;
   }
   
-  // Test 5: Accept valid state-level fallback to end state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -113,7 +103,6 @@ function testFallbackFlow() {
     failed++;
   }
   
-  // Test 6: Accept valid workflow-level fallback
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -140,7 +129,6 @@ function testFallbackFlow() {
     failed++;
   }
   
-  // Test 7: Parse mixed fallback workflow
   try {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/mixed-fallback.yaml'));
     if (workflow.on_error === 'global_fallback' && 

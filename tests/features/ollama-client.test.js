@@ -1,8 +1,3 @@
-/**
- * Test the OllamaClient module
- * Note: Tests are skipped as they require a running Ollama instance
- * @returns {boolean} Always returns true
- */
 function testOllamaClient() {
   console.log('Testing Ollama Client Integration...\n');
   console.log('ℹ Skipping Ollama client tests (requires running Ollama instance)');

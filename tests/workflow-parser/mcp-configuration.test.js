@@ -1,16 +1,11 @@
 const WorkflowParser = require('../../dist/workflow-parser');
 
-/**
- * Test MCP (Model Context Protocol) server configuration validation
- * @returns {boolean} True if all tests pass, false otherwise
- */
 function testMcpConfiguration() {
   console.log('Testing MCP Server Configuration...\n');
   
   let passed = 0;
   let failed = 0;
   
-  // Test 1: Validate MCP server configuration
   try {
     const workflow = {
       name: 'MCP Test',
@@ -32,7 +27,6 @@ function testMcpConfiguration() {
     failed++;
   }
   
-  // Test 2: Detect invalid MCP server configuration (missing command)
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -51,7 +45,6 @@ function testMcpConfiguration() {
     passed++;
   }
   
-  // Test 3: Detect invalid MCP server reference in state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',
@@ -76,7 +69,6 @@ function testMcpConfiguration() {
     passed++;
   }
   
-  // Test 4: Accept valid MCP server reference in state
   try {
     WorkflowParser.validateWorkflow({
       name: 'Test',

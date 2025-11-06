@@ -102,10 +102,8 @@ function testRagConfiguration() {
       },
       states: {
         test: {
-          type: 'choice',
-          choices: [
-            { label: 'Option', next: 'end' }
-          ],
+          type: 'input',
+          prompt: 'Enter something',
           use_rag: true
         },
         end: { type: 'end' }
