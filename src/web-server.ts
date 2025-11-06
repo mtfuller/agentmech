@@ -539,10 +539,11 @@ class WebServer {
                 if (state.next_options && Array.isArray(state.next_options)) {
                     state.next_options.forEach((option) => {
                         if (option.state) {
+                            const desc = option.description || '';
                             edges.push({
                                 from: stateName,
                                 to: option.state,
-                                label: option.description.substring(0, 20) + '...'
+                                label: desc.length > 20 ? desc.substring(0, 20) + '...' : desc
                             });
                         }
                     });
