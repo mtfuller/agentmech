@@ -1,0 +1,33 @@
+name: "User Input Demo"
+description: "Demonstrates the input state for collecting user information"
+default_model: "gemma3:4b"
+start_state: "get_name"
+
+states:
+  get_name:
+    type: "input"
+    prompt: "What is your name?"
+    save_as: "name"
+    next: "get_location"
+  
+  get_location:
+    type: "input"
+    prompt: "Where are you from?"
+    default_value: "Earth"
+    save_as: "location"
+    next: "get_interest"
+  
+  get_interest:
+    type: "input"
+    prompt: "What topic are you interested in learning about?"
+    save_as: "topic"
+    next: "generate_response"
+  
+  generate_response:
+    type: "prompt"
+    prompt: "Hello {{name}} from {{location}}! Please write a brief, friendly explanation about {{topic}} that would be interesting and easy to understand."
+    save_as: "response"
+    next: "end"
+  
+  end:
+    type: "end"

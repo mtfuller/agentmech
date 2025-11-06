@@ -37,6 +37,7 @@ interface State {
   mcp_servers?: string[];
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
+  default_value?: string;  // default value for input state
 }
 
 interface Workflow {
@@ -282,13 +283,17 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', 'workflow_ref', 'transition', END_STATE];
+    const validTypes = ['prompt', 'choice', 'input', 'workflow_ref', 'transition', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
 
     if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
       throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
+    }
+
+    if (state.type === 'input' && !state.prompt) {
+      throw new Error(`Input state "${name}" must have a prompt field`);
     }
 
     if (state.type === 'choice' && !state.choices) {

@@ -39,6 +39,7 @@ interface State {
   mcp_servers?: string[];
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
+  default_value?: string;  // default value for input state
 }
 
 interface Workflow {
@@ -165,6 +166,8 @@ class WorkflowExecutor {
         return await this.executePromptState(stateName, state);
       case 'choice':
         return await this.executeChoiceState(stateName, state);
+      case 'input':
+        return await this.executeInputState(stateName, state);
       case 'transition':
         return await this.executeTransitionState(stateName, state);
       case END_STATE:
@@ -306,6 +309,43 @@ class WorkflowExecutor {
     console.log(`\nSelected: ${selectedChoice.label || selectedChoice.value}`);
     
     return selectedChoice.next || state.next || END_STATE;
+  }
+
+  /**
+   * Execute an input state (asks user for freeform text input)
+   * @param stateName - Name of the state
+   * @param state - State configuration
+   * @returns Next state name
+   */
+  async executeInputState(stateName: string, state: State): Promise<string> {
+    if (state.prompt) {
+      console.log(`\n${this.interpolateVariables(state.prompt)}`);
+    }
+    
+    let defaultHint = '';
+    if (state.default_value) {
+      const interpolatedDefault = this.interpolateVariables(state.default_value);
+      defaultHint = ` (default: ${interpolatedDefault})`;
+    }
+    
+    const answer = await this.askQuestion(`\nEnter your response${defaultHint}: `);
+    
+    // Use default value if no input provided
+    let userInput = answer.trim();
+    if (!userInput && state.default_value) {
+      userInput = this.interpolateVariables(state.default_value);
+      console.log(`Using default value: ${userInput}`);
+    }
+    
+    // Store input in context if variable is specified
+    if (state.save_as) {
+      this.context[state.save_as] = userInput;
+      this.tracer.traceContextUpdate(state.save_as, userInput);
+    }
+    
+    this.tracer.traceUserChoice(stateName, userInput);
+    
+    return state.next || END_STATE;
   }
 
   /**

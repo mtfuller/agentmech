@@ -39,6 +39,7 @@ interface State {
   mcp_servers?: string[];
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
+  default_value?: string;  // default value for input state
 }
 
 interface Workflow {
@@ -53,7 +54,7 @@ interface Workflow {
 }
 
 interface ExecutionEvent {
-  type: 'log' | 'prompt' | 'choice' | 'response' | 'error' | 'complete' | 'state_change';
+  type: 'log' | 'prompt' | 'choice' | 'input' | 'response' | 'error' | 'complete' | 'state_change';
   message?: string;
   data?: any;
 }
@@ -282,6 +283,8 @@ class WebWorkflowExecutor {
         return await this.executePromptState(stateName, state);
       case 'choice':
         return await this.executeChoiceState(stateName, state);
+      case 'input':
+        return await this.executeInputState(stateName, state);
       case 'transition':
         return await this.executeTransitionState(stateName, state);
       case END_STATE:
@@ -447,6 +450,42 @@ class WebWorkflowExecutor {
     });
 
     return selectedChoice.next || state.next || END_STATE;
+  }
+
+  /**
+   * Execute an input state (asks user for freeform text input)
+   */
+  private async executeInputState(stateName: string, state: State): Promise<string> {
+    if (state.prompt) {
+      this.sendEvent({
+        type: 'log',
+        message: this.interpolateVariables(state.prompt)
+      });
+    }
+
+    // Send input request event with optional default value
+    const defaultValue = state.default_value ? this.interpolateVariables(state.default_value) : undefined;
+    this.sendEvent({
+      type: 'input',
+      data: { defaultValue }
+    });
+
+    const userInput = await this.requestInput(state.prompt || 'Enter your response:');
+
+    // Use default value if no input provided
+    const finalInput = userInput.trim() || defaultValue || '';
+
+    // Store input in context if variable is specified
+    if (state.save_as) {
+      this.context[state.save_as] = finalInput;
+    }
+
+    this.sendEvent({
+      type: 'log',
+      message: `Input: ${finalInput}`
+    });
+
+    return state.next || END_STATE;
   }
 
   /**
