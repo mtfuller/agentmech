@@ -302,7 +302,7 @@ state_name:
   next: "default_next_state"  # Optional fallback
 ```
 
-#### 3. Input State
+#### 2. Input State
 Asks the user for freeform text input.
 
 ```yaml
@@ -314,9 +314,9 @@ state_name:
   next: "next_state_name"  # Next state to transition to
 ```
 
-The input state allows workflows to collect freeform text from users, as opposed to the choice state which presents a fixed set of options. The collected input can be saved to a context variable and used in subsequent states via variable interpolation (e.g., `{{variable_name}}`).
+The input state allows workflows to collect freeform text from users. The collected input can be saved to a context variable and used in subsequent states via variable interpolation (e.g., `{{variable_name}}`).
 
-#### 4. Workflow Reference State
+#### 3. Workflow Reference State
 References and includes another workflow as part of the current workflow.
 
 ```yaml
@@ -326,7 +326,7 @@ state_name:
   next: "next_state_name"  # State to go to after referenced workflow completes
 ```
 
-#### 5. End State
+#### 4. End State
 Terminates the workflow.
 
 ```yaml
@@ -490,20 +490,14 @@ states:
 name: "Story Generator"
 description: "Generate a custom story"
 default_model: "gemma3:4b"
-start_state: "choose_genre"
+start_state: "get_genre"
 
 states:
-  choose_genre:
-    type: "choice"
-    prompt: "Select a genre:"
+  get_genre:
+    type: "input"
+    prompt: "What genre would you like? (e.g., science fiction, fantasy)"
     save_as: "genre"
-    choices:
-      - label: "Science Fiction"
-        value: "science fiction"
-        next: "generate_story"
-      - label: "Fantasy"
-        value: "fantasy"
-        next: "generate_story"
+    next: "generate_story"
   
   generate_story:
     type: "prompt"
@@ -562,16 +556,10 @@ rag:
 
 states:
   ask_question:
-    type: "choice"
+    type: "input"
     prompt: "What would you like to know?"
     save_as: "question"
-    choices:
-      - label: "How do I install this tool?"
-        value: "How do I install and set up this tool?"
-        next: "answer_with_rag"
-      - label: "What are the features?"
-        value: "What are the main features?"
-        next: "answer_with_rag"
+    next: "answer_with_rag"
   
   answer_with_rag:
     type: "prompt"
@@ -600,12 +588,19 @@ rags:
 
 states:
   choose:
-    type: "choice"
-    choices:
-      - label: "Product Question"
-        next: "product_q"
-      - label: "Technical Question"
-        next: "tech_q"
+    type: "input"
+    prompt: "Would you like to ask a product or technical question?"
+    save_as: "question_type"
+    next: "route_question"
+  
+  route_question:
+    type: "prompt"
+    prompt: "Routing to appropriate knowledge base based on: {{question_type}}"
+    next_options:
+      - state: "product_q"
+        description: "Question is about products or features"
+      - state: "tech_q"
+        description: "Question is technical or implementation-related"
   
   product_q:
     type: "prompt"

@@ -303,21 +303,16 @@ my_prompt_state:
   next: "next_state"
 ```
 
-#### Choice State
-Presents options to the user:
+#### Input State
+Collects freeform text input from the user:
 
 ```yaml
-my_choice_state:
-  type: "choice"
-  prompt: "Choose an option:"  # optional
-  save_as: "user_choice"  # optional
-  choices:
-    - label: "First Option"
-      value: "option1"
-      next: "state_for_option1"
-    - label: "Second Option"
-      value: "option2"
-      next: "state_for_option2"
+my_input_state:
+  type: "input"
+  prompt: "What is your name?"  # Question to ask
+  save_as: "user_input"  # optional
+  default_value: "Anonymous"  # optional
+  next: "next_state"
 ```
 
 #### Workflow Reference State
@@ -345,14 +340,10 @@ Store data with `save_as` and reference it with `{{variable_name}}`:
 ```yaml
 states:
   ask_name:
-    type: "choice"
+    type: "input"
     prompt: "What's your name?"
     save_as: "user_name"
-    choices:
-      - label: "Alice"
-        next: "greet"
-      - label: "Bob"
-        next: "greet"
+    next: "greet"
   
   greet:
     type: "prompt"
@@ -518,17 +509,24 @@ states:
 
 ### State Transitions
 
-Create complex flows with conditional transitions:
+Create complex flows with conditional transitions using LLM-driven routing:
 
 ```yaml
 states:
   start:
-    type: "choice"
-    choices:
-      - label: "Path A"
-        next: "state_a"
-      - label: "Path B"
-        next: "state_b"
+    type: "input"
+    prompt: "Which path would you like to take? (A or B)"
+    save_as: "path_choice"
+    next: "route"
+  
+  route:
+    type: "prompt"
+    prompt: "User chose: {{path_choice}}"
+    next_options:
+      - state: "state_a"
+        description: "User chose path A"
+      - state: "state_b"
+        description: "User chose path B"
   
   state_a:
     type: "prompt"
@@ -663,7 +661,7 @@ npm start run /full/path/to/workflow.yaml
 - Invalid state `type`
 - State references non-existent `next` state
 - Prompt state missing `prompt` field (unless using `prompt_file`)
-- Choice state missing `choices` field
+- Input state missing `prompt` field
 - External prompt file not found (check path is relative to workflow file)
 - Referenced workflow file not found
 - RAG configured but directory missing
@@ -686,8 +684,9 @@ npm start run /full/path/to/workflow.yaml
 5. **Model Selection**: Different models have different strengths - experiment to find the best fit
 6. **RAG for Accuracy**: Use RAG when you need responses based on specific documentation or knowledge
 7. **Cache Embeddings**: Embeddings are cached in MessagePack format (~79% smaller than JSON) for fast reuse - commit to version control
-6. **Organize Prompts**: Use external prompt files for long or complex prompts
-7. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
+8. **Organize Prompts**: Use external prompt files for long or complex prompts
+9. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
+10. **LLM Routing**: Use `next_options` in prompt states for intelligent, context-aware state transitions
 
 ## Next Steps
 
@@ -695,5 +694,5 @@ npm start run /full/path/to/workflow.yaml
 - Experiment with different models
 - Chain multiple AI calls together
 - Build a knowledge base for RAG-powered workflows
-- Build complex decision trees with choice states
+- Use LLM-driven routing for adaptive workflows
 - Share your workflows with the community
