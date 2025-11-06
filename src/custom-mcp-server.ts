@@ -118,11 +118,11 @@ class CustomMcpServer {
           }
         }
       } catch (error: any) {
-        console.error(`Error loading tool from ${file}: ${error.message}`, { error: 'stderr' });
+        console.error(`Error loading tool from ${file}: ${error.message}`);
       }
     }
 
-    console.error(`Loaded ${this.tools.size} custom tools from ${this.toolsDirectory}`, { error: 'stderr' });
+    console.error(`Loaded ${this.tools.size} custom tools from ${this.toolsDirectory}`);
   }
 
   /**
@@ -239,7 +239,7 @@ class CustomMcpServer {
             const response = await this.handleRequest(request);
             process.stdout.write(JSON.stringify(response) + '\n');
           } catch (error: any) {
-            console.error(`Error processing request: ${error.message}`, { error: 'stderr' });
+            console.error(`Error processing request: ${error.message}`);
           }
         }
       }
@@ -249,7 +249,7 @@ class CustomMcpServer {
       process.exit(0);
     });
 
-    console.error('Custom MCP Server started', { error: 'stderr' });
+    console.error('Custom MCP Server started');
   }
 }
 
