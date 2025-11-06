@@ -221,6 +221,18 @@ function testRagStorage() {
   }
 }
 
+<<<<<<< HEAD
 // Run tests
 console.log('=== Running RAG Storage Format Tests ===\n');
 testRagStorage();
+=======
+module.exports = testRagStorage;
+
+// Run tests if this file is executed directly
+// This test is async and has special cleanup requirements, so it's designed
+// to be run standalone via: npm run test:rag-storage
+if (require.main === module) {
+  console.log('=== Running RAG Storage Format Tests ===\n');
+  testRagStorage();
+}
+>>>>>>> 6f4e8dc (Add clarifying comment to RAG storage test)
