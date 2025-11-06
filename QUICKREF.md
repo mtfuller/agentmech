@@ -35,10 +35,10 @@ mcp_servers:
 
 states:
   state_name:
-    type: "prompt" | "input" | "workflow_ref" | "end"
+    type: "prompt" | "input" | "workflow_ref"
     mcp_servers: ["server_name"]  # optional
     # ... configuration
-    next: "next_state" | "end"
+    next: "next_state" | "end"  # "end" is reserved - no need to define it
 ```
 
 ## State Types
@@ -94,12 +94,6 @@ my_state:
   next: "next_state"
 ```
 
-### End State
-```yaml
-end:
-  type: "end"
-```
-
 ## Variable Interpolation
 
 ```yaml
@@ -127,8 +121,6 @@ states:
     type: "prompt"
     prompt: "What is AI?"
     next: "end"
-  end:
-    type: "end"
 ```
 
 ### Input → Prompt → End
@@ -145,8 +137,6 @@ states:
     type: "prompt"
     prompt: "You chose {{user_choice}}"
     next: "end"
-  end:
-    type: "end"
 ```
 
 ### Loop Pattern
@@ -171,8 +161,6 @@ states:
         description: "User wants to continue"
       - state: "end"
         description: "User wants to stop"
-  end:
-    type: "end"
 ```
 
 ## Validation Rules
@@ -181,7 +169,7 @@ states:
 ✓ Must have `states` object
 ✓ Must have `start_state`
 ✓ Start state must exist in states
-✓ All state types must be valid: prompt, input, workflow_ref, or end
+✓ All state types must be valid: prompt, input, or workflow_ref
 ✓ Prompt states must have `prompt` field or `prompt_file` field
 ✓ Input states must have `prompt` field
 ✓ Next states must exist or be "end"
@@ -238,7 +226,7 @@ ollama pull <model-name>
 | Cannot connect to Ollama | Run `ollama serve` |
 | Model not found | Run `ollama pull <model>` |
 | Workflow file not found | Check file path |
-| Invalid state type | Use: prompt, input, workflow_ref, or end |
+| Invalid state type | Use: prompt, input, or workflow_ref |
 | Missing start_state | Add `start_state: "state_name"` |
 | State not found | Check state names match |
 | Prompt file not found | Check path is relative to workflow file |

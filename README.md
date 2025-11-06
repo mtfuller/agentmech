@@ -355,12 +355,16 @@ state_name:
   next: "next_state_name"  # State to go to after referenced workflow completes
 ```
 
-#### 4. End State
-Terminates the workflow.
+### Ending a Workflow
+
+To end a workflow, simply set `next: "end"` in any state. The "end" state is a reserved state name and does not need to be explicitly defined. When the workflow reaches "end", it will automatically terminate.
 
 ```yaml
-state_name:
-  type: "end"
+states:
+  final_step:
+    type: "prompt"
+    prompt: "This is the final step"
+    next: "end"  # Workflow will terminate here
 ```
 
 ### External File References
@@ -533,9 +537,6 @@ states:
     prompt: "Write a short {{genre}} story"
     save_as: "story"
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 ### MCP Integration Example
@@ -560,9 +561,6 @@ states:
     prompt: "Analyze the filesystem and store insights"
     mcp_servers: ["filesystem", "memory"]
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 ### RAG Integration Examples
@@ -596,9 +594,6 @@ states:
     use_rag: true  # Enable RAG context retrieval
     save_as: "answer"
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 #### Multiple Named RAG Example
@@ -642,9 +637,6 @@ states:
     prompt: "How to install?"
     use_rag: "technical_kb"  # Use different RAG
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 ### LLM-Driven State Selection Example
@@ -685,9 +677,6 @@ states:
     prompt: "Analyze the research findings and create a summary."
     save_as: "analysis"
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 In this example, the LLM analyzes the research focus response and autonomously decides whether to search the web first or create a research plan, making the workflow more adaptive and intelligent.
