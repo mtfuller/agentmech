@@ -426,6 +426,74 @@ states:
     next: "end"
 ```
 
+### Using RAG (Retrieval-Augmented Generation)
+
+RAG allows your workflows to retrieve relevant context from a knowledge base of documents. This enables more accurate and contextual responses.
+
+#### Setting Up RAG
+
+1. **Create a knowledge base directory** with your documents:
+
+```bash
+mkdir -p ./knowledge-base
+```
+
+2. **Add text files** to your knowledge base (supports .txt, .md, .json, .yaml, .yml, .js, .ts, .py, .html, .css):
+
+```bash
+echo "Your product documentation here..." > ./knowledge-base/docs.txt
+echo "Installation guide..." > ./knowledge-base/install.md
+```
+
+3. **Configure RAG in your workflow**:
+
+```yaml
+name: "RAG Example"
+default_model: "llama2"
+start_state: "ask"
+
+rag:
+  directory: "./knowledge-base"  # Directory with your documents
+  model: "llama2"                # Model for generating embeddings
+  embeddingsFile: "embeddings.json"  # Cache file for embeddings
+  chunkSize: 500                 # Size of text chunks (in characters)
+  topK: 3                        # Number of relevant chunks to retrieve
+
+states:
+  ask:
+    type: "prompt"
+    prompt: "What is your question?"
+    use_rag: true  # Enable RAG for this prompt
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+#### How RAG Works
+
+1. **First Run**: When you run a workflow with RAG enabled for the first time, it:
+   - Scans all text files in the specified directory
+   - Splits them into chunks
+   - Generates embeddings for each chunk using Ollama
+   - Saves embeddings to a JSON file for future use
+
+2. **Subsequent Runs**: Loads embeddings from the cache file (much faster)
+
+3. **During Execution**: When a prompt with `use_rag: true` is executed:
+   - Generates an embedding for the prompt
+   - Finds the most similar chunks from the knowledge base
+   - Appends relevant context to the prompt
+   - Sends the enhanced prompt to the model
+
+#### Example RAG Workflow
+
+```bash
+npm start run examples/rag-qa.yaml
+```
+
+This example demonstrates RAG with a pre-configured knowledge base about the AI Workflow CLI itself.
+
 ### Custom Ollama URL
 
 If Ollama is running on a different port or host:
@@ -597,6 +665,16 @@ npm start run /full/path/to/workflow.yaml
 - Choice state missing `choices` field
 - External prompt file not found (check path is relative to workflow file)
 - Referenced workflow file not found
+- RAG configured but directory missing
+- `use_rag: true` without RAG configuration
+
+### Issue: RAG embeddings taking too long
+
+**Solution:** 
+- Reduce the number of files in your knowledge base
+- Increase `chunkSize` to create fewer chunks
+- Use a smaller/faster model for embeddings
+- Once generated, embeddings are cached for fast reuse
 
 ## Tips
 
@@ -605,6 +683,8 @@ npm start run /full/path/to/workflow.yaml
 3. **Use Variables**: Store and reuse data between states with `save_as` and `{{variable}}`
 4. **Test Prompts**: Test your prompts in Ollama directly before adding them to workflows
 5. **Model Selection**: Different models have different strengths - experiment to find the best fit
+6. **RAG for Accuracy**: Use RAG when you need responses based on specific documentation or knowledge
+7. **Cache Embeddings**: The embeddings.json file speeds up subsequent runs - commit it to version control for your team
 6. **Organize Prompts**: Use external prompt files for long or complex prompts
 7. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
 
@@ -613,5 +693,6 @@ npm start run /full/path/to/workflow.yaml
 - Create your own custom workflows
 - Experiment with different models
 - Chain multiple AI calls together
+- Build a knowledge base for RAG-powered workflows
 - Build complex decision trees with choice states
 - Share your workflows with the community

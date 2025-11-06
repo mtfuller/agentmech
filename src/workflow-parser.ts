@@ -16,6 +16,14 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
+interface RagConfig {
+  directory: string;
+  model?: string;
+  embeddingsFile?: string;
+  chunkSize?: number;
+  topK?: number;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -27,6 +35,8 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
+  use_rag?: boolean | string;  // true for default, or name of rag config
+  rag?: RagConfig;  // inline RAG configuration
 }
 
 interface Workflow {
@@ -35,6 +45,8 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
+  rag?: RagConfig;  // Backward compatibility: default RAG config
+  rags?: Record<string, RagConfig>;  // Named RAG configurations
   states: Record<string, State>;
 }
 
@@ -187,6 +199,18 @@ class WorkflowParser {
       throw new Error(`Start state "${workflow.start_state}" not found in states`);
     }
 
+    // Validate RAG configuration if present
+    if (workflow.rag) {
+      this.validateRagConfig(workflow.rag);
+    }
+
+    // Validate named RAG configurations if present
+    if (workflow.rags) {
+      for (const [ragName, ragConfig] of Object.entries(workflow.rags)) {
+        this.validateRagConfig(ragConfig);
+      }
+    }
+
     // Validate MCP servers configuration if present
     if (workflow.mcp_servers) {
       this.validateMcpServers(workflow.mcp_servers);
@@ -194,7 +218,32 @@ class WorkflowParser {
 
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states, workflow.mcp_servers);
+      this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag, workflow.rags);
+    }
+  }
+
+  /**
+   * Validate RAG configuration
+   * @param ragConfig - RAG configuration
+   */
+  static validateRagConfig(ragConfig: RagConfig): void {
+    if (!ragConfig.directory) {
+      throw new Error('RAG configuration must have a directory');
+    }
+    if (typeof ragConfig.directory !== 'string') {
+      throw new Error('RAG directory must be a string');
+    }
+    if (ragConfig.model && typeof ragConfig.model !== 'string') {
+      throw new Error('RAG model must be a string');
+    }
+    if (ragConfig.embeddingsFile && typeof ragConfig.embeddingsFile !== 'string') {
+      throw new Error('RAG embeddingsFile must be a string');
+    }
+    if (ragConfig.chunkSize && (typeof ragConfig.chunkSize !== 'number' || ragConfig.chunkSize <= 0)) {
+      throw new Error('RAG chunkSize must be a positive number');
+    }
+    if (ragConfig.topK && (typeof ragConfig.topK !== 'number' || ragConfig.topK <= 0)) {
+      throw new Error('RAG topK must be a positive number');
     }
   }
 
@@ -225,8 +274,10 @@ class WorkflowParser {
    * @param state - State configuration
    * @param allStates - All states for reference validation
    * @param mcpServers - MCP servers available in workflow
+   * @param ragConfig - Default RAG configuration if present
+   * @param namedRags - Named RAG configurations if present
    */
-  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>): void {
+  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>, ragConfig?: RagConfig, namedRags?: Record<string, RagConfig>): void {
     if (!state.type) {
       throw new Error(`State "${name}" must have a type`);
     }
@@ -265,6 +316,40 @@ class WorkflowParser {
           throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
         }
       }
+    }
+
+    // Validate inline RAG configuration
+    if (state.rag) {
+      this.validateRagConfig(state.rag);
+      if (state.type !== 'prompt') {
+        throw new Error(`State "${name}" can only use RAG with prompt type states`);
+      }
+    }
+
+    // Validate RAG usage
+    if (state.use_rag !== undefined && state.use_rag !== false) {
+      if (state.type !== 'prompt') {
+        throw new Error(`State "${name}" can only use RAG with prompt type states`);
+      }
+
+      if (typeof state.use_rag === 'boolean') {
+        // use_rag: true - requires default rag config
+        if (state.use_rag && !ragConfig && !state.rag) {
+          throw new Error(`State "${name}" uses RAG but workflow has no rag configuration defined`);
+        }
+      } else if (typeof state.use_rag === 'string') {
+        // use_rag: "name" - references named rag config
+        if (!namedRags || !namedRags[state.use_rag]) {
+          throw new Error(`State "${name}" references non-existent RAG configuration "${state.use_rag}"`);
+        }
+      } else {
+        throw new Error(`State "${name}" use_rag must be a boolean or string`);
+      }
+    }
+
+    // Check for conflicting RAG configurations
+    if (state.rag && state.use_rag) {
+      throw new Error(`State "${name}" cannot have both inline 'rag' and 'use_rag' configurations`);
     }
 
     // Validate transitions

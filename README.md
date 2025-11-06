@@ -11,6 +11,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 🔄 **State Machine**: Control workflow execution with state transitions
 - 💬 **Interactive Choices**: Present users with choices that affect workflow direction
 - 🔗 **Context Variables**: Pass data between states using variable interpolation
+- 🧠 **RAG Support**: Retrieval-Augmented Generation for context-aware responses
 - ✅ **Validation**: Validate workflow files before execution
 - 🔍 **Observability**: Trace and log all workflow interactions with the `--trace` flag
 
@@ -168,8 +169,50 @@ A workflow file consists of:
 - **description**: Optional workflow description
 - **default_model**: Default Ollama model to use (e.g., "llama2", "mistral")
 - **mcp_servers**: Optional MCP server configurations
+- **rag**: Optional RAG (Retrieval-Augmented Generation) configuration
 - **start_state**: The initial state to begin execution
 - **states**: Object containing all workflow states
+
+### RAG Configuration
+
+You can enable Retrieval-Augmented Generation (RAG) to provide context from a knowledge base in three flexible ways:
+
+#### 1. Default RAG (Workflow-level)
+```yaml
+rag:
+  directory: "./knowledge-base"  # Directory containing documents
+  model: "llama2"                # Optional: Model for embeddings
+  embeddingsFile: "embeddings.json"  # Optional: Cache file
+  chunkSize: 500                 # Optional: Text chunk size (default: 1000)
+  topK: 3                        # Optional: Number of chunks to retrieve (default: 3)
+```
+
+States can then use `use_rag: true` to use this default configuration.
+
+#### 2. Named RAG Configurations
+```yaml
+rags:
+  product_kb:
+    directory: "./docs/products"
+  technical_kb:
+    directory: "./docs/technical"
+    chunkSize: 800
+    topK: 5
+```
+
+States can reference by name: `use_rag: "product_kb"`
+
+#### 3. Inline RAG (State-level)
+```yaml
+states:
+  my_state:
+    type: "prompt"
+    prompt: "Question here"
+    rag:
+      directory: "./specific-docs"
+      chunkSize: 400
+    next: "end"
+```
 
 ### MCP Server Configuration
 
@@ -196,9 +239,20 @@ state_name:
   model: "llama2"  # Optional, uses default_model if not specified
   save_as: "variable_name"  # Optional, saves response to context
   mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
+  use_rag: true  # Optional: true (default RAG) or "rag_name" (named RAG)
+  rag:  # Optional: inline RAG configuration
+    directory: "./docs"
+    chunkSize: 500
   next: "next_state_name"  # Next state to transition to
 ```
 
+RAG Options:
+- `use_rag: true` - Use default workflow-level RAG
+- `use_rag: "name"` - Use named RAG configuration
+- `rag: {...}` - Use inline RAG configuration
+- Omit all - No RAG context retrieval
+
+When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
 You can also load prompts from external files:
 
 ```yaml
@@ -364,6 +418,86 @@ states:
     type: "end"
 ```
 
+### RAG Integration Examples
+
+#### Simple RAG Example
+```yaml
+name: "RAG-Powered Q&A"
+description: "Answer questions using RAG to provide context from a knowledge base"
+default_model: "llama2"
+start_state: "ask_question"
+
+# Configure default RAG
+rag:
+  directory: "./examples/knowledge-base"
+  model: "llama2"
+  embeddingsFile: "embeddings.json"
+  chunkSize: 500
+  topK: 3
+
+states:
+  ask_question:
+    type: "choice"
+    prompt: "What would you like to know?"
+    save_as: "question"
+    choices:
+      - label: "How do I install this tool?"
+        value: "How do I install and set up this tool?"
+        next: "answer_with_rag"
+      - label: "What are the features?"
+        value: "What are the main features?"
+        next: "answer_with_rag"
+  
+  answer_with_rag:
+    type: "prompt"
+    prompt: "{{question}}"
+    use_rag: true  # Enable RAG context retrieval
+    save_as: "answer"
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+#### Multiple Named RAG Example
+```yaml
+name: "Multi-KB System"
+default_model: "llama2"
+start_state: "choose"
+
+# Multiple named RAG configurations
+rags:
+  product_kb:
+    directory: "./docs/products"
+  technical_kb:
+    directory: "./docs/technical"
+    chunkSize: 800
+
+states:
+  choose:
+    type: "choice"
+    choices:
+      - label: "Product Question"
+        next: "product_q"
+      - label: "Technical Question"
+        next: "tech_q"
+  
+  product_q:
+    type: "prompt"
+    prompt: "What are the features?"
+    use_rag: "product_kb"  # Use specific RAG
+    next: "end"
+  
+  tech_q:
+    type: "prompt"
+    prompt: "How to install?"
+    use_rag: "technical_kb"  # Use different RAG
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -373,6 +507,9 @@ The `examples/` directory contains sample workflows:
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
+- **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
+- **multi-rag-qa.yaml**: Multiple named RAG configurations
+- **inline-rag.yaml**: Inline state-level RAG configuration
 - **external-prompt-file.yaml**: Example using external markdown file for prompts
 - **greeting-workflow.yaml**: Simple reusable greeting workflow
 - **workflow-reference.yaml**: Example of referencing another workflow

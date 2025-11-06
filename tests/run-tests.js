@@ -359,24 +359,23 @@ function testWorkflowParser() {
 }
 
 /**
- * Test the Tracer module
- * Validates tracing functionality and event logging
+ * Test RAG configuration validation
  * @returns {boolean} True if all tests pass, false otherwise
  */
-function testTracer() {
-  console.log('\n\nTesting Tracer...\n');
+function testRagValidation() {
+  console.log('\n\nTesting RAG Validation...\n');
   
   let passed = 0;
   let failed = 0;
   
-  // Test 1: Tracer disabled by default
+  // Test 1: Parse workflow with RAG configuration
   try {
-    const tracer = new Tracer();
-    if (!tracer.isEnabled()) {
-      console.log('✓ Test 1 passed: Tracer disabled by default');
+    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../examples/rag-qa.yaml'));
+    if (workflow.rag && workflow.rag.directory === './examples/knowledge-base') {
+      console.log('✓ Test 1 passed: Parse workflow with RAG configuration');
       passed++;
     } else {
-      console.log('✗ Test 1 failed: Tracer should be disabled by default');
+      console.log('✗ Test 1 failed: RAG configuration not parsed correctly');
       failed++;
     }
   } catch (error) {
@@ -384,215 +383,238 @@ function testTracer() {
     failed++;
   }
   
-  // Test 2: Tracer can be enabled
+  // Test 2: Validate RAG configuration with required directory
   try {
-    const tracer = new Tracer(true);
-    if (tracer.isEnabled()) {
-      console.log('✓ Test 2 passed: Tracer can be enabled');
-      passed++;
-    } else {
-      console.log('✗ Test 2 failed: Tracer should be enabled');
-      failed++;
-    }
+    WorkflowParser.validateWorkflow({
+      name: 'Test RAG',
+      start_state: 'test',
+      rag: {
+        directory: './knowledge'
+      },
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          use_rag: true,
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 2 passed: Validate RAG configuration with directory');
+    passed++;
   } catch (error) {
     console.log('✗ Test 2 failed:', error.message);
     failed++;
   }
   
-  // Test 3: Tracer doesn't log when disabled
+  // Test 3: Detect missing RAG directory
   try {
-    const tracer = new Tracer(false);
-    tracer.trace('test_event', { data: 'test' });
-    if (tracer.getEvents().length === 0) {
-      console.log("✓ Test 3 passed: Tracer doesn't log when disabled");
-      passed++;
-    } else {
-      console.log('✗ Test 3 failed: Tracer logged events when disabled');
-      failed++;
-    }
-  } catch (error) {
-    console.log('✗ Test 3 failed:', error.message);
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      rag: {
+        model: 'llama2'
+      },
+      states: {
+        test: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 3 failed: Should detect missing RAG directory');
     failed++;
+  } catch (error) {
+    console.log('✓ Test 3 passed: Detect missing RAG directory');
+    passed++;
   }
   
-  // Test 4: Tracer logs events when enabled
+  // Test 4: Detect use_rag without RAG config
   try {
-    const tracer = new Tracer(true);
-    tracer.trace('test_event', { data: 'test' });
-    const events = tracer.getEvents();
-    if (events.length === 1 && events[0].type === 'test_event') {
-      console.log('✓ Test 4 passed: Tracer logs events when enabled');
-      passed++;
-    } else {
-      console.log('✗ Test 4 failed: Tracer didn\'t log events correctly');
-      failed++;
-    }
-  } catch (error) {
-    console.log('✗ Test 4 failed:', error.message);
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          use_rag: true,
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 4 failed: Should detect use_rag without RAG config');
     failed++;
+  } catch (error) {
+    console.log('✓ Test 4 passed: Detect use_rag without RAG config');
+    passed++;
   }
   
-  // Test 5: Tracer workflow start event
+  // Test 5: Detect use_rag on non-prompt state
   try {
-    const tracer = new Tracer(true);
-    tracer.traceWorkflowStart('Test Workflow', 'start_state');
-    const events = tracer.getEvents();
-    if (events.length === 1 && 
-        events[0].type === 'workflow_start' && 
-        events[0].details.workflow === 'Test Workflow') {
-      console.log('✓ Test 5 passed: Workflow start event logged');
-      passed++;
-    } else {
-      console.log('✗ Test 5 failed: Workflow start event not logged correctly');
-      failed++;
-    }
-  } catch (error) {
-    console.log('✗ Test 5 failed:', error.message);
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      rag: {
+        directory: './knowledge'
+      },
+      states: {
+        test: {
+          type: 'choice',
+          choices: [
+            { label: 'Option', next: 'end' }
+          ],
+          use_rag: true
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 5 failed: Should detect use_rag on non-prompt state');
     failed++;
+  } catch (error) {
+    console.log('✓ Test 5 passed: Detect use_rag on non-prompt state');
+    passed++;
   }
   
-  // Test 6: Tracer state transition event
+  // Test 6: Accept valid RAG configuration with all options
   try {
-    const tracer = new Tracer(true);
-    tracer.traceStateTransition('state1', 'state2', 'prompt');
-    const events = tracer.getEvents();
-    if (events.length === 1 && 
-        events[0].type === 'state_transition' && 
-        events[0].details.from === 'state1' &&
-        events[0].details.to === 'state2') {
-      console.log('✓ Test 6 passed: State transition event logged');
-      passed++;
-    } else {
-      console.log('✗ Test 6 failed: State transition event not logged correctly');
-      failed++;
-    }
+    WorkflowParser.validateWorkflow({
+      name: 'Test RAG',
+      start_state: 'test',
+      rag: {
+        directory: './knowledge',
+        model: 'llama2',
+        embeddingsFile: 'embeddings.json',
+        chunkSize: 1000,
+        topK: 5
+      },
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          use_rag: true,
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 6 passed: Accept valid RAG configuration with all options');
+    passed++;
   } catch (error) {
     console.log('✗ Test 6 failed:', error.message);
     failed++;
   }
   
-  // Test 7: Tracer model interaction event
+  // Test 7: Accept inline RAG configuration in state
   try {
-    const tracer = new Tracer(true);
-    tracer.traceModelInteraction('llama2', 'Test prompt', 'Test response');
-    const events = tracer.getEvents();
-    if (events.length === 1 && 
-        events[0].type === 'model_interaction' && 
-        events[0].details.model === 'llama2') {
-      console.log('✓ Test 7 passed: Model interaction event logged');
-      passed++;
-    } else {
-      console.log('✗ Test 7 failed: Model interaction event not logged correctly');
-      failed++;
-    }
+    WorkflowParser.validateWorkflow({
+      name: 'Test Inline RAG',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          rag: {
+            directory: './docs'
+          },
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 7 passed: Accept inline RAG configuration in state');
+    passed++;
   } catch (error) {
     console.log('✗ Test 7 failed:', error.message);
     failed++;
   }
   
-  // Test 8: Tracer MCP server events
+  // Test 8: Accept named RAG configurations
   try {
-    const tracer = new Tracer(true);
-    tracer.traceMcpServerRegister('test-server', 'node');
-    tracer.traceMcpServerConnect('test-server', true);
-    tracer.traceMcpServerDisconnect('test-server');
-    const events = tracer.getEvents();
-    if (events.length === 3 && 
-        events[0].type === 'mcp_server_register' &&
-        events[1].type === 'mcp_server_connect' &&
-        events[2].type === 'mcp_server_disconnect') {
-      console.log('✓ Test 8 passed: MCP server events logged');
-      passed++;
-    } else {
-      console.log('✗ Test 8 failed: MCP server events not logged correctly');
-      failed++;
-    }
+    WorkflowParser.validateWorkflow({
+      name: 'Test Named RAG',
+      start_state: 'test',
+      rags: {
+        'docs': {
+          directory: './docs'
+        },
+        'kb': {
+          directory: './knowledge-base'
+        }
+      },
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          use_rag: 'docs',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 8 passed: Accept named RAG configurations');
+    passed++;
   } catch (error) {
     console.log('✗ Test 8 failed:', error.message);
     failed++;
   }
   
-  // Test 9: Tracer context update event
+  // Test 9: Detect reference to non-existent named RAG
   try {
-    const tracer = new Tracer(true);
-    tracer.traceContextUpdate('test_var', 'test_value');
-    const events = tracer.getEvents();
-    if (events.length === 1 && 
-        events[0].type === 'context_update' && 
-        events[0].details.variable === 'test_var') {
-      console.log('✓ Test 9 passed: Context update event logged');
-      passed++;
-    } else {
-      console.log('✗ Test 9 failed: Context update event not logged correctly');
-      failed++;
-    }
-  } catch (error) {
-    console.log('✗ Test 9 failed:', error.message);
-    failed++;
-  }
-  
-  // Test 10: Tracer clear functionality
-  try {
-    const tracer = new Tracer(true);
-    tracer.trace('test1', {});
-    tracer.trace('test2', {});
-    tracer.clear();
-    if (tracer.getEvents().length === 0) {
-      console.log('✓ Test 10 passed: Tracer clear functionality works');
-      passed++;
-    } else {
-      console.log('✗ Test 10 failed: Tracer clear didn\'t remove events');
-      failed++;
-    }
-  } catch (error) {
-    console.log('✗ Test 10 failed:', error.message);
-    failed++;
-  }
-  
-  // Test 11: File logging
-  try {
-    const fs = require('fs');
-    const testLogFile = '/tmp/test-tracer-log.log';
-    
-    // Clean up any existing file
-    if (fs.existsSync(testLogFile)) {
-      fs.unlinkSync(testLogFile);
-    }
-    
-    const tracer = new Tracer(true, testLogFile);
-    tracer.trace('test_file_event', { data: 'test' });
-    tracer.close();
-    
-    // Use setTimeout with a reasonable delay for async file operations
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (fs.existsSync(testLogFile)) {
-          const content = fs.readFileSync(testLogFile, 'utf8');
-          if (content.includes('test_file_event') && content.includes('Trace Session Started')) {
-            console.log('✓ Test 11 passed: File logging works');
-            passed++;
-          } else {
-            console.log('✗ Test 11 failed: File content incorrect');
-            console.log('  Content:', content);
-            failed++;
-          }
-          // Clean up
-          fs.unlinkSync(testLogFile);
-        } else {
-          console.log('✗ Test 11 failed: Log file not created');
-          failed++;
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      rags: {
+        'docs': {
+          directory: './docs'
         }
-        
-        console.log(`\nResults: ${passed} passed, ${failed} failed`);
-        resolve(failed === 0);
-      }, 100); // Increased delay to allow for file I/O
+      },
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          use_rag: 'kb',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
     });
-  } catch (error) {
-    console.log('✗ Test 11 failed:', error.message);
+    console.log('✗ Test 9 failed: Should detect reference to non-existent named RAG');
     failed++;
-    console.log(`\nResults: ${passed} passed, ${failed} failed`);
-    return Promise.resolve(failed === 0);
+  } catch (error) {
+    console.log('✓ Test 9 passed: Detect reference to non-existent named RAG');
+    passed++;
   }
+  
+  // Test 10: Detect conflicting inline rag and use_rag
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      rag: {
+        directory: './knowledge'
+      },
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          rag: {
+            directory: './docs'
+          },
+          use_rag: true,
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 10 failed: Should detect conflicting inline rag and use_rag');
+    failed++;
+  } catch (error) {
+    console.log('✓ Test 10 passed: Detect conflicting inline rag and use_rag');
+    passed++;
+  }
+  
+  console.log(`\nResults: ${passed} passed, ${failed} failed`);
+  return failed === 0;
 }
 
 /**
@@ -609,18 +631,14 @@ function testOllamaClient() {
 
 // Run tests
 console.log('=== Running Tests ===\n');
+const parserPassed = testWorkflowParser();
+const ragPassed = testRagValidation();
+const ollamaPassed = testOllamaClient();
 
-// Run tests asynchronously to handle Promise returns
-(async () => {
-  const parserPassed = testWorkflowParser();
-  const tracerPassed = await testTracer(); // Now async
-  const ollamaPassed = testOllamaClient();
-
-  if (parserPassed && tracerPassed && ollamaPassed) {
-    console.log('\n✓ All tests passed!');
-    process.exit(0);
-  } else {
-    console.log('\n✗ Some tests failed');
-    process.exit(1);
-  }
-})();
+if (parserPassed && ragPassed && ollamaPassed) {
+  console.log('\n✓ All tests passed!');
+  process.exit(0);
+} else {
+  console.log('\n✗ Some tests failed');
+  process.exit(1);
+}

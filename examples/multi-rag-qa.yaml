@@ -1,0 +1,69 @@
+name: "Multi-RAG Q&A System"
+description: "Answer questions using multiple RAG configurations for different knowledge bases"
+default_model: "llama2"
+start_state: "choose_topic"
+
+# Named RAG configurations - each with its own knowledge base
+rags:
+  product_kb:
+    directory: "./examples/knowledge-base"
+    model: "llama2"
+    embeddingsFile: "product_embeddings.json"
+    chunkSize: 500
+    topK: 3
+  
+  technical_kb:
+    directory: "./examples/knowledge-base"
+    model: "llama2"
+    embeddingsFile: "technical_embeddings.json"
+    chunkSize: 800
+    topK: 5
+
+states:
+  choose_topic:
+    type: "choice"
+    prompt: "What would you like to know about?"
+    save_as: "topic"
+    choices:
+      - label: "Product Information (features, pricing)"
+        value: "product"
+        next: "product_question"
+      - label: "Technical Details (installation, use cases)"
+        value: "technical"
+        next: "technical_question"
+      - label: "General Question"
+        value: "general"
+        next: "general_question"
+  
+  product_question:
+    type: "prompt"
+    prompt: "Tell me about the features and pricing of AI Workflow CLI"
+    use_rag: "product_kb"  # Use named RAG configuration
+    save_as: "answer"
+    next: "ask_another"
+  
+  technical_question:
+    type: "prompt"
+    prompt: "How do I install AI Workflow CLI and what are common use cases?"
+    use_rag: "technical_kb"  # Use different named RAG configuration
+    save_as: "answer"
+    next: "ask_another"
+  
+  general_question:
+    type: "prompt"
+    prompt: "Provide a general overview of AI Workflow CLI"
+    # No RAG - just use the model's knowledge
+    save_as: "answer"
+    next: "ask_another"
+  
+  ask_another:
+    type: "choice"
+    prompt: "Would you like to ask another question?"
+    choices:
+      - label: "Yes"
+        next: "choose_topic"
+      - label: "No"
+        next: "end"
+  
+  end:
+    type: "end"

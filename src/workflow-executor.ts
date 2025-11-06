@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import OllamaClient = require('./ollama-client');
 import McpClient = require('./mcp-client');
+import RagService = require('./rag-service');
 import Tracer = require('./tracer');
 
 const END_STATE = 'end';
@@ -17,6 +18,14 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
+interface RagConfig {
+  directory: string;
+  model?: string;
+  embeddingsFile?: string;
+  chunkSize?: number;
+  topK?: number;
+}
+
 interface State {
   type: string;
   prompt?: string;
@@ -28,6 +37,8 @@ interface State {
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
+  use_rag?: boolean | string;  // true for default, or name of rag config
+  rag?: RagConfig;  // inline RAG configuration
 }
 
 interface Workflow {
@@ -36,6 +47,8 @@ interface Workflow {
   start_state: string;
   default_model?: string;
   mcp_servers?: Record<string, McpServerConfig>;
+  rag?: RagConfig;  // Backward compatibility: default RAG config
+  rags?: Record<string, RagConfig>;  // Named RAG configurations
   states: Record<string, State>;
 }
 
@@ -43,6 +56,8 @@ class WorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
+  private ragService?: RagService;
+  private namedRagServices: Map<string, RagService>;
   private context: Record<string, any>;
   private history: string[];
   private rl: readline.Interface;
@@ -54,6 +69,12 @@ class WorkflowExecutor {
     this.mcpClient = new McpClient(tracer);
     this.context = {};
     this.history = [];
+    this.namedRagServices = new Map();
+    
+    // Initialize default RAG service if configured
+    if (workflow.rag) {
+      this.ragService = new RagService(workflow.rag, ollamaUrl);
+    }
     this.tracer = tracer || new Tracer(false);
     
     this.rl = readline.createInterface({
@@ -81,6 +102,25 @@ class WorkflowExecutor {
         this.mcpClient.registerServer(serverName, config);
       }
       console.log(`Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)\n`);
+    }
+
+    // Initialize default RAG if configured
+    if (this.ragService) {
+      console.log('Initializing default RAG system...');
+      await this.ragService.initialize();
+      console.log('');
+    }
+
+    // Initialize named RAG services if configured
+    if (this.workflow.rags) {
+      console.log('Initializing named RAG systems...');
+      for (const [ragName, ragConfig] of Object.entries(this.workflow.rags)) {
+        const ragService = new RagService(ragConfig, 'http://localhost:11434');
+        await ragService.initialize();
+        this.namedRagServices.set(ragName, ragService);
+        console.log(`  ✓ Initialized RAG: ${ragName}`);
+      }
+      console.log('');
     }
 
     try {
@@ -153,8 +193,45 @@ class WorkflowExecutor {
    * @returns Next state name
    */
   async executePromptState(stateName: string, state: State): Promise<string> {
-    const prompt = this.interpolateVariables(state.prompt || '');
+    let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
+    
+    // Determine which RAG service to use
+    let ragServiceToUse: RagService | undefined = undefined;
+    
+    // Priority: inline rag > use_rag (named/default) 
+    if (state.rag) {
+      // Inline RAG configuration
+      console.log('\nInitializing inline RAG configuration...');
+      ragServiceToUse = new RagService(state.rag, 'http://localhost:11434');
+      await ragServiceToUse.initialize();
+    } else if (state.use_rag) {
+      if (typeof state.use_rag === 'string') {
+        // Named RAG reference
+        ragServiceToUse = this.namedRagServices.get(state.use_rag);
+        if (ragServiceToUse) {
+          console.log(`\nUsing RAG configuration: ${state.use_rag}`);
+        }
+      } else if (state.use_rag === true) {
+        // Default RAG
+        ragServiceToUse = this.ragService;
+        if (ragServiceToUse) {
+          console.log('\nUsing default RAG configuration');
+        }
+      }
+    }
+    
+    // Add RAG context if a service is available
+    if (ragServiceToUse) {
+      console.log('Retrieving relevant context from RAG...');
+      const relevantChunks = await ragServiceToUse.search(prompt);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks);
+      
+      if (ragContext) {
+        prompt = prompt + ragContext;
+        console.log('RAG context added to prompt');
+      }
+    }
     
     // Connect to MCP servers if specified for this state
     if (state.mcp_servers && state.mcp_servers.length > 0) {
