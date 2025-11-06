@@ -820,6 +820,8 @@ class WebServer {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow Execution - AI Workflow CLI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/lib/marked.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js" crossorigin="anonymous"></script>
     <style>
         * {
             margin: 0;
@@ -963,7 +965,6 @@ class WebServer {
             color: white;
             align-self: flex-start;
             max-width: 90%;
-            white-space: pre-wrap;
         }
         
         .message.error {
@@ -985,6 +986,94 @@ class WebServer {
             font-weight: 600;
             max-width: 100%;
             text-align: center;
+        }
+        
+        /* Markdown styles for response messages */
+        .message.response h1,
+        .message.response h2,
+        .message.response h3,
+        .message.response h4,
+        .message.response h5,
+        .message.response h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .message.response h1 { font-size: 1.5em; }
+        .message.response h2 { font-size: 1.3em; }
+        .message.response h3 { font-size: 1.1em; }
+        
+        .message.response p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .message.response ul,
+        .message.response ol {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .message.response li {
+            margin-bottom: 4px;
+        }
+        
+        .message.response code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message.response pre {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        
+        .message.response pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        .message.response blockquote {
+            border-left: 4px solid rgba(255, 255, 255, 0.5);
+            padding-left: 12px;
+            margin: 8px 0;
+            font-style: italic;
+        }
+        
+        .message.response a {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        .message.response hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            margin: 12px 0;
+        }
+        
+        .message.response table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        .message.response th,
+        .message.response td {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .message.response th {
+            background: rgba(0, 0, 0, 0.2);
+            font-weight: 600;
         }
         
         .input-container {
@@ -1080,6 +1169,12 @@ class WebServer {
         let sessionId = null;
         let eventSource = null;
         
+        // Configure marked for safe HTML rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+        
         // Get workflow info
         async function loadWorkflowInfo() {
             try {
@@ -1095,7 +1190,16 @@ class WebServer {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = \`message \${type}\`;
-            messageDiv.textContent = message;
+            
+            // Render markdown for response messages with sanitization
+            if (type === 'response') {
+                const rawHtml = marked.parse(message);
+                const cleanHtml = DOMPurify.sanitize(rawHtml);
+                messageDiv.innerHTML = cleanHtml;
+            } else {
+                messageDiv.textContent = message;
+            }
+            
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
