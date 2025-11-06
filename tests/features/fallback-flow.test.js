@@ -23,8 +23,7 @@ describe('Fallback Flow (Error Handling)', () => {
             prompt: 'Test',
             on_error: 'nonexistent_state',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -41,8 +40,7 @@ describe('Fallback Flow (Error Handling)', () => {
             type: 'prompt',
             prompt: 'Test',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -64,8 +62,7 @@ describe('Fallback Flow (Error Handling)', () => {
             type: 'prompt',
             prompt: 'Success',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -87,8 +84,7 @@ describe('Fallback Flow (Error Handling)', () => {
             type: 'prompt',
             prompt: 'Error handling',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();

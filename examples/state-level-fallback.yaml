@@ -23,5 +23,3 @@ states:
     prompt: "Operation completed successfully!"
     next: "end"
   
-  end:
-    type: "end"

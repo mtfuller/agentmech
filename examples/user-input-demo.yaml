@@ -29,5 +29,3 @@ states:
     save_as: "response"
     next: "end"
   
-  end:
-    type: "end"

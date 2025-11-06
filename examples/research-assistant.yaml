@@ -45,5 +45,3 @@ states:
       - state: "search_web"
         description: "The analysis reveals gaps that need more web research"
   
-  end:
-    type: "end"

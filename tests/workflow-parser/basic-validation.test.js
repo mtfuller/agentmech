@@ -17,7 +17,7 @@ describe('Basic Workflow Validation', () => {
     expect(() => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
-        states: { test: { type: 'end' } }
+        states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       });
     }).toThrow();
   });
@@ -37,7 +37,7 @@ describe('Basic Workflow Validation', () => {
       WorkflowParser.validateWorkflow({
         name: 'Test',
         start_state: 'test',
-        states: { test: { type: 'prompt', next: 'end' }, end: { type: 'end' } }
+        states: { test: { type: 'prompt', next: 'end' } }
       });
     }).toThrow();
   });
@@ -51,8 +51,32 @@ describe('Basic Workflow Validation', () => {
           test: {
             type: 'transition',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should reject explicit end state definition', () => {
+    expect(() => {
+      WorkflowParser.validateWorkflow({
+        name: 'Test',
+        start_state: 'test',
+        states: {
+          test: { type: 'prompt', prompt: 'test', next: 'end' },
+          end: { type: 'prompt', prompt: 'ending' }
+        }
+      });
+    }).toThrow('"end" is a reserved state name');
+  });
+
+  test('should allow next: "end" without defining end state', () => {
+    expect(() => {
+      WorkflowParser.validateWorkflow({
+        name: 'Test',
+        start_state: 'test',
+        states: {
+          test: { type: 'prompt', prompt: 'test', next: 'end' }
         }
       });
     }).not.toThrow();

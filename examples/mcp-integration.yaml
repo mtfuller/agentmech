@@ -43,5 +43,3 @@ states:
     save_as: "combined_result"
     next: "end"
   
-  end:
-    type: "end"

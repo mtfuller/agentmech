@@ -28,8 +28,7 @@ describe('External File Handling', () => {
           type: 'prompt',
           prompt_file: 'nonexistent-file.md',
           next: 'end'
-        },
-        end: { type: 'end' }
+        }
       }
     }));
     
@@ -56,8 +55,7 @@ describe('External File Handling', () => {
           type: 'workflow_ref',
           workflow_ref: 'tmp-test-circular-b.yaml',
           next: 'end'
-        },
-        end: { type: 'end' }
+        }
       }
     }));
     
@@ -70,8 +68,7 @@ describe('External File Handling', () => {
           type: 'workflow_ref',
           workflow_ref: 'tmp-test-circular-a.yaml',
           next: 'end'
-        },
-        end: { type: 'end' }
+        }
       }
     }));
     
@@ -96,8 +93,7 @@ describe('External File Handling', () => {
           prompt: 'inline prompt',
           prompt_file: 'prompts/story-prompt.md',
           next: 'end'
-        },
-        end: { type: 'end' }
+        }
       }
     }));
     

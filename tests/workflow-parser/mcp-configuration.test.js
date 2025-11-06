@@ -12,7 +12,7 @@ describe('MCP Server Configuration', () => {
           env: { PORT: '3000' }
         }
       },
-      states: { test: { type: 'end' } }
+      states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
     };
     expect(() => {
       WorkflowParser.validateWorkflow(workflow);
@@ -29,7 +29,7 @@ describe('MCP Server Configuration', () => {
             args: ['test.js']
           }
         },
-        states: { test: { type: 'end' } }
+        states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       });
     }).toThrow();
   });
@@ -48,8 +48,7 @@ describe('MCP Server Configuration', () => {
             prompt: 'Test',
             mcp_servers: ['nonexistent-server'],
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -69,8 +68,7 @@ describe('MCP Server Configuration', () => {
             prompt: 'Test',
             mcp_servers: ['server1'],
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();

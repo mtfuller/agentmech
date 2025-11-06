@@ -10,5 +10,3 @@ states:
     save_as: "greeting"
     next: "end"
   
-  end:
-    type: "end"

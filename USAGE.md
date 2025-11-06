@@ -265,17 +265,16 @@ start_state: "first_state"
 
 states:
   first_state:
-    type: "prompt"  # or "choice" or "end"
+    type: "prompt"  # or "choice" or "input"
     # ... state configuration
     next: "second_state"
   
   second_state:
     # ... more states
-    next: "end"
-  
-  end:
-    type: "end"
+    next: "end"  # "end" is a reserved state name - no need to define it
 ```
+
+**Note:** The `"end"` state is reserved and does not need to be explicitly defined. Simply set `next: "end"` to terminate the workflow.
 
 ### State Types Reference
 
@@ -325,12 +324,15 @@ my_workflow_ref:
   next: "continue_after"  # state to go to after referenced workflow completes
 ```
 
-#### End State
-Terminates the workflow:
+### Ending a Workflow
+
+To end a workflow, simply use `next: "end"` in any state. The `"end"` state is a reserved state name and does not need to be explicitly defined.
 
 ```yaml
-end:
-  type: "end"
+final_state:
+  type: "prompt"
+  prompt: "This is the last step"
+  next: "end"  # Workflow terminates here
 ```
 
 ### Using Variables
@@ -383,9 +385,6 @@ states:
     prompt: "Analyze files and remember key insights"
     mcp_servers: ["filesystem", "memory"]
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 #### Available MCP Servers
@@ -457,9 +456,6 @@ states:
     prompt: "What is your question?"
     use_rag: true  # Enable RAG for this prompt
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 #### How RAG Works
@@ -584,9 +580,6 @@ states:
     prompt: "Generate a friendly greeting"
     save_as: "greeting"
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 **main-workflow.yaml:**
@@ -605,9 +598,6 @@ states:
     type: "prompt"
     prompt: "Continue with main workflow..."
     next: "end"
-  
-  end:
-    type: "end"
 ```
 
 Benefits:

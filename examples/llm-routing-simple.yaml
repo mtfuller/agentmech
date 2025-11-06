@@ -27,5 +27,3 @@ states:
     save_as: "relaxation_suggestions"
     next: "end"
   
-  end:
-    type: "end"

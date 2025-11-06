@@ -10,5 +10,3 @@ states:
     save_as: "story"
     next: "end"
   
-  end:
-    type: "end"

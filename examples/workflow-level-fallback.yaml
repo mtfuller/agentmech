@@ -31,5 +31,3 @@ states:
     save_as: "error_recovery"
     next: "end"
   
-  end:
-    type: "end"

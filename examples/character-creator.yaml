@@ -22,5 +22,3 @@ states:
     save_as: "character"
     next: "end"
   
-  end:
-    type: "end"

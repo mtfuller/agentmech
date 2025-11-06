@@ -18,5 +18,3 @@ states:
     mcp_servers: ["test_server"]
     next: "end"
   
-  end:
-    type: "end"
