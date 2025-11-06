@@ -46,7 +46,7 @@ ollama serve
 
 2. **Pull a model** (if you haven't already):
 ```bash
-ollama pull llama2
+ollama pull gemma3:4b
 ```
 
 3. **Run an example workflow**:
@@ -167,7 +167,7 @@ A workflow file consists of:
 
 - **name**: Workflow name
 - **description**: Optional workflow description
-- **default_model**: Default Ollama model to use (e.g., "llama2", "mistral")
+- **default_model**: Default Ollama model to use (e.g., "gemma3:4b", "mistral")
 - **mcp_servers**: Optional MCP server configurations
 - **rag**: Optional RAG (Retrieval-Augmented Generation) configuration
 - **start_state**: The initial state to begin execution
@@ -181,7 +181,7 @@ You can enable Retrieval-Augmented Generation (RAG) to provide context from a kn
 ```yaml
 rag:
   directory: "./knowledge-base"  # Directory containing documents
-  model: "llama2"                # Optional: Model for embeddings
+  model: "gemma3:4b"                # Optional: Model for embeddings
   embeddingsFile: "embeddings.json"  # Optional: Cache file
   chunkSize: 500                 # Optional: Text chunk size (default: 1000)
   topK: 3                        # Optional: Number of chunks to retrieve (default: 3)
@@ -236,7 +236,7 @@ Sends a prompt to Ollama and stores the response.
 state_name:
   type: "prompt"
   prompt: "Your question or prompt here"
-  model: "llama2"  # Optional, uses default_model if not specified
+  model: "gemma3:4b"  # Optional, uses default_model if not specified
   save_as: "variable_name"  # Optional, saves response to context
   mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
   use_rag: true  # Optional: true (default RAG) or "rag_name" (named RAG)
@@ -259,7 +259,7 @@ You can also load prompts from external files:
 state_name:
   type: "prompt"
   prompt_file: "prompts/my-prompt.md"  # Load prompt from external file
-  model: "llama2"
+  model: "gemma3:4b"
   save_as: "variable_name"
   next: "next_state_name"
 ```
@@ -365,7 +365,7 @@ generate_response:
 ```yaml
 name: "Story Generator"
 description: "Generate a custom story"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "choose_genre"
 
 states:
@@ -396,7 +396,7 @@ states:
 ```yaml
 name: "MCP Integration Example"
 description: "A workflow demonstrating MCP server integration"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "analyze"
 
 mcp_servers:
@@ -424,13 +424,13 @@ states:
 ```yaml
 name: "RAG-Powered Q&A"
 description: "Answer questions using RAG to provide context from a knowledge base"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "ask_question"
 
 # Configure default RAG
 rag:
   directory: "./examples/knowledge-base"
-  model: "llama2"
+  model: "gemma3:4b"
   embeddingsFile: "embeddings.json"
   chunkSize: 500
   topK: 3
@@ -462,7 +462,7 @@ states:
 #### Multiple Named RAG Example
 ```yaml
 name: "Multi-KB System"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "choose"
 
 # Multiple named RAG configurations
@@ -572,7 +572,7 @@ ollama serve
 
 Pull the model first:
 ```bash
-ollama pull llama2
+ollama pull gemma3:4b
 # or
 ollama pull mistral
 ```

@@ -249,7 +249,7 @@ class WorkflowExecutor {
       // The infrastructure is in place for future integration with MCP servers via JSON-RPC over stdio.
     }
     
-    const model = state.model || this.workflow.default_model || 'llama2';
+    const model = state.model || this.workflow.default_model || 'gemma3:4b';
     console.log(`\nUsing model: ${model}`);
     console.log('Generating response...\n');
     

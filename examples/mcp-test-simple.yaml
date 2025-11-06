@@ -1,6 +1,6 @@
 name: "Simple MCP Test"
 description: "A minimal workflow to test MCP configuration parsing"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "test"
 
 # MCP server configuration (will not actually connect in test)

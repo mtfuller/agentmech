@@ -414,7 +414,7 @@ function testRagValidation() {
       name: 'Test',
       start_state: 'test',
       rag: {
-        model: 'llama2'
+        model: 'gemma3:4b'
       },
       states: {
         test: { type: 'end' }
@@ -482,7 +482,7 @@ function testRagValidation() {
       start_state: 'test',
       rag: {
         directory: './knowledge',
-        model: 'llama2',
+        model: 'gemma3:4b',
         embeddingsFile: 'embeddings.json',
         chunkSize: 1000,
         topK: 5

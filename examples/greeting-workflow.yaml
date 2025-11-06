@@ -1,6 +1,6 @@
 name: "Greeting Workflow"
 description: "A simple workflow that generates a friendly greeting"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "greet"
 
 states:

@@ -1,6 +1,6 @@
 name: "Complete Story Builder"
 description: "A comprehensive story creation workflow using external references"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "start_character_creation"
 
 states:

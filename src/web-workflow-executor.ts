@@ -387,7 +387,7 @@ class WebWorkflowExecutor {
       }
     }
 
-    const model = state.model || this.workflow.default_model || 'llama2';
+    const model = state.model || this.workflow.default_model || 'gemma3:4b';
     this.sendEvent({
       type: 'log',
       message: `Using model: ${model}`

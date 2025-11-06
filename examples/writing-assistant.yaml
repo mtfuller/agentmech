@@ -1,6 +1,6 @@
 name: "Creative Writing Assistant"
 description: "A workflow to help with creative writing tasks"
-default_model: "llama2"
+default_model: "gemma3:4b"
 
 start_state: "choose_task"
 

@@ -1,6 +1,6 @@
 name: "Simple Story Generator"
 description: "A simple workflow that generates a story based on user choices"
-default_model: "llama2"
+default_model: "gemma3:4b"
 
 start_state: "choose_genre"
 

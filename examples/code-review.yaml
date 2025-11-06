@@ -1,6 +1,6 @@
 name: "Code Review Assistant"
 description: "A workflow that helps review code with different strategies"
-default_model: "llama2"
+default_model: "gemma3:4b"
 
 start_state: "choose_review_type"
 

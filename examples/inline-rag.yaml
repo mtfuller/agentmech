@@ -1,6 +1,6 @@
 name: "Inline RAG Example"
 description: "Demonstrate inline RAG configuration within states"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "choose_source"
 
 states:

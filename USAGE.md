@@ -14,7 +14,7 @@ This guide demonstrates how to use the AI Workflow CLI tool with practical examp
 
 3. **Pull a Model**
    ```bash
-   ollama pull llama2
+   ollama pull gemma3:4b
    # or
    ollama pull mistral
    ```
@@ -60,7 +60,7 @@ Example output:
 Fetching available models...
 
 Available models:
-  - llama2:latest (3.83 GB)
+  - gemma3:4b:latest (3.83 GB)
   - mistral:latest (4.11 GB)
 ```
 
@@ -102,7 +102,7 @@ Ask Ollama a question and get an answer
 --- State: ask_question ---
 
 Prompt: What is artificial intelligence and how does it work?
-Using model: llama2
+Using model: gemma3:4b
 
 Generating response...
 
@@ -176,7 +176,7 @@ Selected: A distant planet
 --- State: generate_story ---
 
 Prompt: Write a short science fiction story set in a distant planet. Keep it under 200 words.
-Using model: llama2
+Using model: gemma3:4b
 
 Generating response...
 
@@ -230,7 +230,7 @@ Selected: Security Review
 --- State: security_review ---
 
 Prompt: Review the following code for security vulnerabilities...
-Using model: llama2
+Using model: gemma3:4b
 
 Generating response...
 
@@ -260,7 +260,7 @@ Create a YAML file with the following structure:
 ```yaml
 name: "Your Workflow Name"
 description: "Optional description"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "first_state"
 
 states:
@@ -286,7 +286,7 @@ Sends a prompt to Ollama:
 my_prompt_state:
   type: "prompt"
   prompt: "Your question here"
-  model: "llama2"  # optional, uses default_model if not set
+  model: "gemma3:4b"  # optional, uses default_model if not set
   save_as: "variable_name"  # optional, saves response for later use
   mcp_servers: ["server1"]  # optional, MCP servers to connect for this state
   next: "next_state"  # or "end"
@@ -298,7 +298,7 @@ You can also load prompts from external files:
 my_prompt_state:
   type: "prompt"
   prompt_file: "prompts/my-detailed-prompt.md"  # load from external file
-  model: "llama2"
+  model: "gemma3:4b"
   save_as: "variable_name"
   next: "next_state"
 ```
@@ -372,7 +372,7 @@ Define MCP servers in your workflow YAML:
 
 ```yaml
 name: "MCP Workflow"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "task"
 
 mcp_servers:
@@ -449,12 +449,12 @@ echo "Installation guide..." > ./knowledge-base/install.md
 
 ```yaml
 name: "RAG Example"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "ask"
 
 rag:
   directory: "./knowledge-base"  # Directory with your documents
-  model: "llama2"                # Model for generating embeddings
+  model: "gemma3:4b"                # Model for generating embeddings
   embeddingsFile: "embeddings.json"  # Cache file for embeddings
   chunkSize: 500                 # Size of text chunks (in characters)
   topK: 3                        # Number of relevant chunks to retrieve
@@ -576,7 +576,7 @@ Create modular, reusable workflows:
 **greeting-workflow.yaml:**
 ```yaml
 name: "Greeting Workflow"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "greet"
 
 states:
@@ -593,7 +593,7 @@ states:
 **main-workflow.yaml:**
 ```yaml
 name: "Main Workflow"
-default_model: "llama2"
+default_model: "gemma3:4b"
 start_state: "start_greeting"
 
 states:
@@ -643,7 +643,7 @@ ollama serve
 
 **Solution:** Pull the model first:
 ```bash
-ollama pull llama2
+ollama pull gemma3:4b
 ```
 
 ### Issue: "Workflow file not found"
