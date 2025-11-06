@@ -67,6 +67,7 @@ class WebWorkflowExecutor {
   private context: Record<string, any>;
   private history: string[];
   private sseResponse?: Response;
+  private sessionId?: string;
   private pendingInput?: { resolve: (value: string) => void; reject: (error: any) => void };
 
   constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434') {
@@ -86,12 +87,20 @@ class WebWorkflowExecutor {
   /**
    * Set SSE response for streaming events
    */
-  setSseResponse(res: Response): void {
+  setSseResponse(res: Response, sessionId: string): void {
     this.sseResponse = res;
+    this.sessionId = sessionId;
     this.sseResponse.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
+    });
+    
+    // Send session ID as the first event
+    this.sendEvent({
+      type: 'log',
+      message: 'Connected',
+      data: { sessionId }
     });
   }
 

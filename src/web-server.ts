@@ -74,16 +74,16 @@ class WebServer {
 
     // API: Start workflow execution with SSE
     this.app.get('/api/workflows/:fileName/execute', (req: Request, res: Response) => {
+      const filePath = path.join(this.options.workflowDir, req.params.fileName);
+      
+      // Security check: ensure file is within workflow directory
+      const resolvedPath = path.resolve(filePath);
+      const resolvedDir = path.resolve(this.options.workflowDir);
+      if (!resolvedPath.startsWith(resolvedDir)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
       try {
-        const filePath = path.join(this.options.workflowDir, req.params.fileName);
-        
-        // Security check: ensure file is within workflow directory
-        const resolvedPath = path.resolve(filePath);
-        const resolvedDir = path.resolve(this.options.workflowDir);
-        if (!resolvedPath.startsWith(resolvedDir)) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-        
         // Parse and create executor
         const workflow = WorkflowParser.parseFile(filePath);
         const sessionId = `${req.params.fileName}-${Date.now()}`;
@@ -92,8 +92,14 @@ class WebServer {
         // Store executor
         this.activeExecutions.set(sessionId, executor);
         
-        // Set SSE response
-        executor.setSseResponse(res);
+        // Set SSE response and send session ID
+        // Note: This must be called before any other response methods
+        executor.setSseResponse(res, sessionId);
+        
+        // Handle client disconnect
+        req.on('close', () => {
+          this.activeExecutions.delete(sessionId);
+        });
         
         // Start execution
         executor.execute().catch((error) => {
@@ -103,16 +109,11 @@ class WebServer {
           this.activeExecutions.delete(sessionId);
         });
         
-        // Store session ID in response headers for client reference
-        res.setHeader('X-Session-ID', sessionId);
-        
-        // Handle client disconnect
-        req.on('close', () => {
-          this.activeExecutions.delete(sessionId);
-        });
-        
       } catch (error: any) {
-        res.status(500).json({ error: error.message });
+        // Only send JSON error if headers haven't been sent yet
+        if (!res.headersSent) {
+          res.status(500).json({ error: error.message });
+        }
       }
     });
 
@@ -867,14 +868,18 @@ class WebServer {
             eventSource = new EventSource(\`/api/workflows/\${fileName}/execute\`);
             
             eventSource.onopen = (e) => {
-                sessionId = e.target.responseURL; // Try to get session ID
-                document.getElementById('status').textContent = 'Running...';
-                addMessage('system', 'Workflow execution started');
+                document.getElementById('status').textContent = 'Connecting...';
             };
             
             eventSource.onmessage = (e) => {
                 try {
                     const event = JSON.parse(e.data);
+                    
+                    // Capture session ID from the first event
+                    if (event.data && event.data.sessionId && !sessionId) {
+                        sessionId = event.data.sessionId;
+                        document.getElementById('status').textContent = 'Running...';
+                    }
                     
                     switch (event.type) {
                         case 'log':
