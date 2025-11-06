@@ -139,6 +139,28 @@ class WebServer {
         res.status(500).json({ error: error.message });
       }
     });
+
+    // API: Stop workflow execution
+    this.app.post('/api/workflows/:fileName/stop', (req: Request, res: Response) => {
+      try {
+        const { sessionId } = req.body;
+        
+        if (!sessionId) {
+          return res.status(400).json({ error: 'Missing sessionId' });
+        }
+        
+        const executor = this.activeExecutions.get(sessionId);
+        if (!executor) {
+          return res.status(404).json({ error: 'Execution session not found' });
+        }
+        
+        executor.stop();
+        res.json({ success: true });
+        
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
   }
 
   private getIndexHtml(): string {
@@ -834,6 +856,11 @@ class WebServer {
             align-items: center;
         }
         
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
         h1 {
             color: #667eea;
             font-size: 24px;
@@ -854,6 +881,31 @@ class WebServer {
         
         .back-btn:hover {
             background: #5568d3;
+        }
+        
+        .stop-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .stop-btn:hover {
+            background: #c82333;
+        }
+        
+        .stop-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .stop-btn.active {
+            display: inline-block;
         }
         
         .chat-container {
@@ -992,13 +1044,21 @@ class WebServer {
             background: #d4edda;
             color: #155724;
         }
+        
+        .status.stopped {
+            background: #fff3cd;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1 id="workflow-title">🚀 Workflow Execution</h1>
-            <a href="/" class="back-btn">← Back to Workflows</a>
+            <div class="header-actions">
+                <button id="stop-btn" class="stop-btn">⏹ Stop</button>
+                <a href="/" class="back-btn">← Back to Workflows</a>
+            </div>
         </header>
         
         <div class="chat-container">
@@ -1075,6 +1135,26 @@ class WebServer {
             }
         }
         
+        async function stopWorkflow() {
+            if (!sessionId) return;
+            
+            const stopBtn = document.getElementById('stop-btn');
+            stopBtn.disabled = true;
+            stopBtn.textContent = '⏹ Stopping...';
+            
+            try {
+                await fetch(\`/api/workflows/\${fileName}/stop\`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+            } catch (error) {
+                addMessage('error', 'Failed to stop workflow: ' + error.message);
+                stopBtn.disabled = false;
+                stopBtn.textContent = '⏹ Stop';
+            }
+        }
+        
         function connectToWorkflow() {
             eventSource = new EventSource(\`/api/workflows/\${fileName}/execute\`);
             
@@ -1090,6 +1170,8 @@ class WebServer {
                     if (event.data && event.data.sessionId && !sessionId && event.type === 'log' && event.message === 'Connected') {
                         sessionId = event.data.sessionId;
                         document.getElementById('status').textContent = 'Running...';
+                        // Show stop button
+                        document.getElementById('stop-btn').classList.add('active');
                     }
                     
                     switch (event.type) {
@@ -1111,10 +1193,19 @@ class WebServer {
                         case 'error':
                             addMessage('error', event.message);
                             break;
+                        case 'stopped':
+                            addMessage('system', event.message);
+                            document.getElementById('status').textContent = 'Workflow stopped by user';
+                            document.getElementById('status').classList.add('stopped');
+                            document.getElementById('stop-btn').classList.remove('active');
+                            hideInputField();
+                            eventSource.close();
+                            break;
                         case 'complete':
                             addMessage('system', event.message);
                             document.getElementById('status').textContent = 'Workflow completed successfully';
                             document.getElementById('status').classList.add('complete');
+                            document.getElementById('stop-btn').classList.remove('active');
                             hideInputField();
                             eventSource.close();
                             break;
@@ -1127,9 +1218,15 @@ class WebServer {
             eventSource.onerror = (e) => {
                 addMessage('error', 'Connection error. Please try again.');
                 document.getElementById('status').textContent = 'Connection lost';
+                document.getElementById('stop-btn').classList.remove('active');
                 eventSource.close();
             };
         }
+        
+        // Setup stop button
+        document.getElementById('stop-btn').onclick = () => {
+            stopWorkflow();
+        };
         
         // Setup send button
         document.getElementById('send-btn').onclick = () => {

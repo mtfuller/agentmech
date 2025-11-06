@@ -66,6 +66,7 @@ class WorkflowExecutor {
   private history: string[];
   private rl: readline.Interface;
   private tracer: Tracer;
+  private stopRequested: boolean;
 
   constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer) {
     this.workflow = workflow;
@@ -74,6 +75,7 @@ class WorkflowExecutor {
     this.context = {};
     this.history = [];
     this.namedRagServices = new Map();
+    this.stopRequested = false;
     
     // Initialize default RAG service if configured
     if (workflow.rag) {
@@ -85,6 +87,17 @@ class WorkflowExecutor {
       input: process.stdin,
       output: process.stdout
     });
+  }
+
+  /**
+   * Request graceful stop of workflow execution
+   */
+  stop(): void {
+    if (!this.stopRequested) {
+      this.stopRequested = true;
+      console.log('\n\n🛑 Stop requested. Workflow will stop after the current state completes...');
+      this.tracer.traceContextUpdate('stop_requested', 'true');
+    }
   }
 
   /**
@@ -130,7 +143,7 @@ class WorkflowExecutor {
     try {
       let currentState: string | null = this.workflow.start_state;
       
-      while (currentState && currentState !== END_STATE) {
+      while (currentState && currentState !== END_STATE && !this.stopRequested) {
         const state: State = this.workflow.states[currentState];
         console.log(`\n--- State: ${currentState} ---`);
         
@@ -166,8 +179,13 @@ class WorkflowExecutor {
         }
       }
       
-      console.log('\n=== Workflow Completed ===\n');
-      this.tracer.traceWorkflowComplete();
+      if (this.stopRequested) {
+        console.log('\n=== Workflow Stopped by User ===\n');
+        this.tracer.traceContextUpdate('workflow_stopped', 'true');
+      } else {
+        console.log('\n=== Workflow Completed ===\n');
+        this.tracer.traceWorkflowComplete();
+      }
     } finally {
       // Clean up MCP connections
       await this.mcpClient.disconnectAll();
