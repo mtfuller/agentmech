@@ -1160,8 +1160,8 @@ async function runAllTests() {
   const fallbackPassed = testFallbackFlow();
   
   // Run workflow tester tests
-  const { runAllTests: runWorkflowTesterTests } = require('./test-workflow-tester');
-  const testerPassed = await runWorkflowTesterTests();
+  const workflowTesterModule = require('./test-workflow-tester');
+  const testerPassed = await workflowTesterModule.runAllTests();
 
   if (parserPassed && ragPassed && ollamaPassed && nextOptionsPassed && fallbackPassed && testerPassed) {
     console.log('\n✓ All tests passed!');
