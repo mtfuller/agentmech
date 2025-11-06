@@ -10,13 +10,23 @@ The RAG feature allows workflows to retrieve relevant context from a knowledge b
    - Scanned and loaded
    - Split into manageable chunks
    - Converted into embeddings (vector representations)
-   - Cached in a JSON file for fast reuse
+   - Cached in a MessagePack binary file for fast reuse (or optionally JSON)
 
 2. **Query Processing**: When a prompt with RAG enabled runs:
    - The prompt is converted to an embedding
    - Similar chunks are retrieved using cosine similarity
    - Top K most relevant chunks are appended to the prompt
    - The enhanced prompt is sent to the AI model
+
+## Storage Format
+
+**NEW:** Embeddings are now stored in efficient MessagePack binary format by default, providing:
+- **~79% smaller file size** compared to JSON
+- **Faster loading and saving** of embeddings
+- **Backward compatible** with existing JSON embeddings files
+- **Automatic migration** from JSON to MessagePack
+
+You can still use JSON format if needed by setting `storageFormat: "json"` in your configuration.
 
 ## Configuration Options
 
@@ -28,11 +38,12 @@ Best for: Single knowledge base used across multiple states
 
 ```yaml
 rag:
-  directory: "./knowledge-base"     # Required: Directory with documents
-  model: "gemma3:4b"                   # Optional: Model for embeddings
-  embeddingsFile: "embeddings.json" # Optional: Cache file name
-  chunkSize: 500                    # Optional: Characters per chunk
-  topK: 3                           # Optional: Number of chunks to retrieve
+  directory: "./knowledge-base"          # Required: Directory with documents
+  model: "gemma3:4b"                     # Optional: Model for embeddings
+  embeddingsFile: "embeddings.msgpack"   # Optional: Cache file name (default: embeddings.msgpack)
+  storageFormat: "msgpack"               # Optional: "msgpack" (default) or "json"
+  chunkSize: 500                         # Optional: Characters per chunk
+  topK: 3                                # Optional: Number of chunks to retrieve
 ```
 
 States use it with: `use_rag: true`
@@ -155,16 +166,50 @@ Use embedding-capable models:
 
 - First run: Generates embeddings (slower)
 - Subsequent runs: Loads from cache (faster)
-- Commit `embeddings.json` to share with team
+- Default format: MessagePack binary (`.msgpack`)
+- Commit embeddings to share with team
 - Regenerate when documents change
+
+### 6. Storage Format Options
+
+**MessagePack (Default - Recommended)**:
+- ~79% smaller file size than JSON
+- Faster loading and saving
+- Binary format (`.msgpack` extension)
+- Best for most use cases
+
+**JSON (Legacy)**:
+- Human-readable format
+- Larger file size
+- Use `storageFormat: "json"` to enable
+- For debugging or specific requirements
+
+### 7. Migrating from JSON to MessagePack
+
+Existing JSON embeddings are automatically migrated:
+1. System detects legacy `embeddings.json` file
+2. Loads existing embeddings
+3. Saves to new `embeddings.msgpack` format
+4. Original JSON file is preserved
+5. Delete old JSON file after verifying migration
+
+Manual migration:
+```yaml
+# Simply change your config to use msgpack
+rag:
+  directory: "./knowledge-base"
+  storageFormat: "msgpack"  # Add this line
+  embeddingsFile: "embeddings.msgpack"  # And update filename
+```
 
 ## Performance Tips
 
 1. **Keep knowledge base focused**: Only include relevant documents
 2. **Set file size limits**: Large files are automatically skipped (10MB limit)
 3. **Use appropriate chunk sizes**: Balance between context and precision
-4. **Cache embeddings**: Commit embeddings.json to version control
-5. **Monitor embedding generation**: Watch console output for progress
+4. **Use MessagePack format**: Default format provides ~79% size reduction
+5. **Cache embeddings**: Commit embeddings file to version control
+6. **Monitor embedding generation**: Watch console output for progress
 
 ## Limitations
 

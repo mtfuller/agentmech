@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { encode, decode } from '@msgpack/msgpack';
 import OllamaClient = require('./ollama-client');
 
 interface DocumentChunk {
@@ -15,6 +16,7 @@ interface RagConfig {
   embeddingsFile?: string;
   chunkSize?: number;
   topK?: number;
+  storageFormat?: 'json' | 'msgpack'; // Storage format for embeddings
 }
 
 interface EmbeddingsStore {
@@ -31,9 +33,10 @@ class RagService {
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
     this.config = {
       model: config.model || 'gemma3:4b',
-      embeddingsFile: config.embeddingsFile || 'embeddings.json',
+      embeddingsFile: config.embeddingsFile || 'embeddings.msgpack',
       chunkSize: config.chunkSize || 1000,
       topK: config.topK || 3,
+      storageFormat: config.storageFormat || 'msgpack', // Default to msgpack
       ...config
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
@@ -50,9 +53,25 @@ class RagService {
       console.log(`Loading existing embeddings from ${embeddingsPath}`);
       await this.loadEmbeddings(embeddingsPath);
     } else {
-      console.log(`Creating new embeddings from ${this.config.directory}`);
-      await this.createEmbeddings();
-      await this.saveEmbeddings(embeddingsPath);
+      // Check for legacy JSON file if using msgpack format
+      if (this.config.storageFormat === 'msgpack') {
+        const legacyJsonPath = path.join(this.config.directory, 'embeddings.json');
+        if (fs.existsSync(legacyJsonPath)) {
+          console.log(`Found legacy JSON embeddings at ${legacyJsonPath}`);
+          console.log(`Migrating to MessagePack format at ${embeddingsPath}`);
+          await this.loadEmbeddings(legacyJsonPath);
+          await this.saveEmbeddings(embeddingsPath);
+          console.log(`Migration complete. You can delete ${legacyJsonPath} if desired.`);
+        } else {
+          console.log(`Creating new embeddings from ${this.config.directory}`);
+          await this.createEmbeddings();
+          await this.saveEmbeddings(embeddingsPath);
+        }
+      } else {
+        console.log(`Creating new embeddings from ${this.config.directory}`);
+        await this.createEmbeddings();
+        await this.saveEmbeddings(embeddingsPath);
+      }
     }
     
     console.log(`RAG initialized with ${this.chunks.length} chunks`);
@@ -63,8 +82,23 @@ class RagService {
    */
   private async loadEmbeddings(filePath: string): Promise<void> {
     try {
-      const data = fs.readFileSync(filePath, 'utf8');
-      const store: EmbeddingsStore = JSON.parse(data);
+      // Auto-detect format based on file extension or content
+      const fileExt = path.extname(filePath).toLowerCase();
+      const isMsgpack = fileExt === '.msgpack' || fileExt === '.mp';
+      
+      let store: EmbeddingsStore;
+      
+      if (isMsgpack) {
+        // Load MessagePack format
+        const buffer = fs.readFileSync(filePath);
+        store = decode(buffer) as EmbeddingsStore;
+        console.log(`Loaded embeddings from MessagePack format`);
+      } else {
+        // Try JSON format (legacy or explicitly .json)
+        const data = fs.readFileSync(filePath, 'utf8');
+        store = JSON.parse(data);
+        console.log(`Loaded embeddings from JSON format`);
+      }
       
       // Validate embeddings store structure
       if (!store.chunks || !Array.isArray(store.chunks)) {
@@ -94,8 +128,21 @@ class RagService {
         config: this.config,
         createdAt: new Date().toISOString()
       };
-      fs.writeFileSync(filePath, JSON.stringify(store, null, 2));
-      console.log(`Embeddings saved to ${filePath}`);
+      
+      // Determine format from file extension or config
+      const fileExt = path.extname(filePath).toLowerCase();
+      const isMsgpack = fileExt === '.msgpack' || fileExt === '.mp' || this.config.storageFormat === 'msgpack';
+      
+      if (isMsgpack) {
+        // Save as MessagePack format (binary)
+        const buffer = encode(store);
+        fs.writeFileSync(filePath, buffer);
+        console.log(`Embeddings saved to ${filePath} (MessagePack format, ${buffer.length} bytes)`);
+      } else {
+        // Save as JSON format (legacy)
+        fs.writeFileSync(filePath, JSON.stringify(store, null, 2));
+        console.log(`Embeddings saved to ${filePath} (JSON format)`);
+      }
     } catch (error: any) {
       throw new Error(`Failed to save embeddings: ${error.message}`);
     }
