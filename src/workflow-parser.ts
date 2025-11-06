@@ -1,5 +1,6 @@
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
+import * as path from 'path';
 
 const END_STATE = 'end';
 
@@ -26,6 +27,8 @@ interface RagConfig {
 interface State {
   type: string;
   prompt?: string;
+  prompt_file?: string;
+  workflow_ref?: string;
   choices?: Choice[];
   next?: string;
   model?: string;
@@ -51,12 +54,28 @@ class WorkflowParser {
   /**
    * Parse a workflow YAML file
    * @param filePath - Path to the YAML file
+   * @param visitedFiles - Set of already visited files to detect cycles
    * @returns Parsed workflow object
    */
-  static parseFile(filePath: string): Workflow {
+  static parseFile(filePath: string, visitedFiles: Set<string> = new Set()): Workflow {
     try {
+      // Resolve to absolute path for cycle detection
+      const absolutePath = path.resolve(filePath);
+      
+      // Check for circular references
+      if (visitedFiles.has(absolutePath)) {
+        throw new Error(`Circular workflow reference detected: ${absolutePath}`);
+      }
+      
+      // Add current file to visited set
+      const newVisitedFiles = new Set(visitedFiles);
+      newVisitedFiles.add(absolutePath);
+      
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const workflow = yaml.load(fileContent) as Workflow;
+      
+      // Resolve external file references
+      this.resolveExternalReferences(workflow, filePath, newVisitedFiles);
       
       this.validateWorkflow(workflow);
       
@@ -66,6 +85,91 @@ class WorkflowParser {
         throw new Error(`Workflow file not found: ${filePath}`);
       }
       throw new Error(`Failed to parse workflow: ${error.message}`);
+    }
+  }
+
+  /**
+   * Resolve external file references in the workflow
+   * @param workflow - The workflow object
+   * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
+   * @param visitedFiles - Set of already visited files to detect cycles
+   */
+  static resolveExternalReferences(workflow: Workflow, workflowFilePath: string, visitedFiles: Set<string> = new Set()): void {
+    const workflowDir = path.dirname(workflowFilePath);
+    
+    for (const [stateName, state] of Object.entries(workflow.states)) {
+      // Resolve prompt_file reference
+      if (state.prompt_file) {
+        // Check for conflicting prompt definitions
+        if (state.prompt) {
+          throw new Error(`State "${stateName}" has both prompt and prompt_file fields. Use only one.`);
+        }
+        
+        const promptFilePath = path.resolve(workflowDir, state.prompt_file);
+        try {
+          state.prompt = fs.readFileSync(promptFilePath, 'utf8');
+          // Keep prompt_file for reference but prompt now contains the content
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            throw new Error(`Prompt file not found for state "${stateName}": ${promptFilePath}`);
+          }
+          throw new Error(`Failed to read prompt file for state "${stateName}": ${error.message}`);
+        }
+      }
+      
+      // Resolve workflow_ref reference
+      if (state.workflow_ref) {
+        // Validate workflow_ref state before transformation
+        if (state.type !== 'workflow_ref') {
+          throw new Error(`State "${stateName}" has workflow_ref field but type is "${state.type}" instead of "workflow_ref"`);
+        }
+        
+        const referencedWorkflowPath = path.resolve(workflowDir, state.workflow_ref);
+        try {
+          const referencedWorkflow = this.parseFile(referencedWorkflowPath, visitedFiles);
+          
+          // Import all states from the referenced workflow
+          const statePrefix = stateName + '_ref_';
+          for (const [refStateName, refState] of Object.entries(referencedWorkflow.states)) {
+            const newStateName = statePrefix + refStateName;
+            workflow.states[newStateName] = { ...refState };
+            
+            // Update next references to point to prefixed states
+            if (workflow.states[newStateName].next && workflow.states[newStateName].next !== END_STATE) {
+              workflow.states[newStateName].next = statePrefix + workflow.states[newStateName].next;
+            }
+            
+            // Update choice next references
+            if (workflow.states[newStateName].choices) {
+              workflow.states[newStateName].choices = workflow.states[newStateName].choices!.map(choice => ({
+                ...choice,
+                next: choice.next && choice.next !== END_STATE ? statePrefix + choice.next : choice.next
+              }));
+            }
+          }
+          
+          // Replace the workflow_ref state with a transition to the referenced workflow's start state
+          const referencedStartState = statePrefix + referencedWorkflow.start_state;
+          state.type = 'transition';
+          state.next = referencedStartState;
+          delete state.workflow_ref;
+          
+          // Also copy over default_model and mcp_servers if not already present
+          if (referencedWorkflow.default_model && !workflow.default_model) {
+            workflow.default_model = referencedWorkflow.default_model;
+          }
+          if (referencedWorkflow.mcp_servers) {
+            workflow.mcp_servers = workflow.mcp_servers || {};
+            for (const [serverName, config] of Object.entries(referencedWorkflow.mcp_servers)) {
+              if (!workflow.mcp_servers[serverName]) {
+                workflow.mcp_servers[serverName] = config;
+              }
+            }
+          }
+        } catch (error: any) {
+          throw new Error(`Failed to load referenced workflow for state "${stateName}": ${error.message}`);
+        }
+      }
     }
   }
 
@@ -178,17 +282,25 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', END_STATE];
+    const validTypes = ['prompt', 'choice', 'workflow_ref', 'transition', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
 
-    if (state.type === 'prompt' && !state.prompt) {
-      throw new Error(`Prompt state "${name}" must have a prompt field`);
+    if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
+      throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
     }
 
     if (state.type === 'choice' && !state.choices) {
       throw new Error(`Choice state "${name}" must have a choices field`);
+    }
+    
+    if (state.type === 'workflow_ref' && !state.workflow_ref) {
+      throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
+    }
+    
+    if (state.type === 'transition' && !state.next) {
+      throw new Error(`Transition state "${name}" must have a next field`);
     }
 
     // Validate MCP server references

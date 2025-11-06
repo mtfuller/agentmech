@@ -13,6 +13,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - 🔗 **Context Variables**: Pass data between states using variable interpolation
 - 🧠 **RAG Support**: Retrieval-Augmented Generation for context-aware responses
 - ✅ **Validation**: Validate workflow files before execution
+- 🔍 **Observability**: Trace and log all workflow interactions with the `--trace` flag
 
 ## Prerequisites
 
@@ -94,13 +95,46 @@ ai-workflow run <workflow-file> [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -t, --trace             Enable tracing/observability for workflow execution
+  -l, --log-file <path>   Path to file for logging trace events
 ```
 
 Example:
 ```bash
 ai-workflow run examples/story-generator.yaml
 ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
+ai-workflow run my-workflow.yaml --trace
+ai-workflow run my-workflow.yaml --trace --log-file trace.log
 ```
+
+#### Observability and Tracing
+
+Use the `--trace` flag to enable detailed logging of workflow execution:
+
+```bash
+ai-workflow run examples/simple-qa.yaml --trace
+```
+
+To save trace events to a file in addition to console output, use the `--log-file` option:
+
+```bash
+ai-workflow run examples/simple-qa.yaml --trace --log-file workflow-trace.log
+```
+
+Note: If you specify `--log-file` without `--trace`, tracing will be automatically enabled.
+
+When tracing is enabled, the CLI logs all interactions including:
+- Workflow start and completion events
+- State transitions and execution
+- Model interactions with Ollama (prompts and responses)
+- MCP server connections and operations
+- Context variable updates
+- User choices and selections
+- Errors and their context
+
+Trace logs include timestamps and are written in a structured format. When using `--log-file`, each workflow execution session is clearly marked with session start/end markers, and new runs append to the existing file for continuous logging.
+
+This feature is useful for debugging workflows, understanding execution flow, monitoring AI interactions, and maintaining audit trails.
 
 ### Validate a Workflow
 
@@ -219,6 +253,16 @@ RAG Options:
 - Omit all - No RAG context retrieval
 
 When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
+You can also load prompts from external files:
+
+```yaml
+state_name:
+  type: "prompt"
+  prompt_file: "prompts/my-prompt.md"  # Load prompt from external file
+  model: "llama2"
+  save_as: "variable_name"
+  next: "next_state_name"
+```
 
 #### 2. Choice State
 Presents options to the user and transitions based on selection.
@@ -238,13 +282,71 @@ state_name:
   next: "default_next_state"  # Optional fallback
 ```
 
-#### 3. End State
+#### 3. Workflow Reference State
+References and includes another workflow as part of the current workflow.
+
+```yaml
+state_name:
+  type: "workflow_ref"
+  workflow_ref: "path/to/other-workflow.yaml"  # Path to workflow file
+  next: "next_state_name"  # State to go to after referenced workflow completes
+```
+
+#### 4. End State
 Terminates the workflow.
 
 ```yaml
 state_name:
   type: "end"
 ```
+
+### External File References
+
+#### Prompt Files
+Instead of embedding long prompts directly in your workflow YAML, you can reference external files (typically markdown files):
+
+```yaml
+states:
+  generate_content:
+    type: "prompt"
+    prompt_file: "prompts/detailed-prompt.md"
+    save_as: "content"
+    next: "end"
+```
+
+The path is relative to the workflow YAML file location. This makes it easier to:
+- Maintain and edit long prompts
+- Reuse prompts across workflows
+- Version control prompts separately
+- Write prompts in markdown with formatting
+
+#### Workflow References
+You can reference and include entire workflows from other YAML files:
+
+```yaml
+states:
+  run_sub_workflow:
+    type: "workflow_ref"
+    workflow_ref: "sub-workflows/greeting.yaml"
+    next: "continue_main_flow"
+  
+  continue_main_flow:
+    type: "prompt"
+    prompt: "Continue with main workflow..."
+    next: "end"
+```
+
+When a workflow is referenced:
+- All states from the referenced workflow are imported
+- State names are prefixed to avoid conflicts
+- The referenced workflow's MCP servers are merged into the main workflow
+- The workflow transitions to the referenced workflow's start state
+
+This allows you to:
+- Build modular, reusable workflow components
+- Compose complex workflows from simpler ones
+- Share common workflow patterns across projects
+- Maintain cleaner, more organized workflow files
 
 ### Variable Interpolation
 
@@ -408,6 +510,9 @@ The `examples/` directory contains sample workflows:
 - **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
 - **multi-rag-qa.yaml**: Multiple named RAG configurations
 - **inline-rag.yaml**: Inline state-level RAG configuration
+- **external-prompt-file.yaml**: Example using external markdown file for prompts
+- **greeting-workflow.yaml**: Simple reusable greeting workflow
+- **workflow-reference.yaml**: Example of referencing another workflow
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 

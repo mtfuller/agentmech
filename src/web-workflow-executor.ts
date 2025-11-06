@@ -29,6 +29,8 @@ interface RagConfig {
 interface State {
   type: string;
   prompt?: string;
+  prompt_file?: string;
+  workflow_ref?: string;
   choices?: Choice[];
   next?: string;
   model?: string;
@@ -280,11 +282,22 @@ class WebWorkflowExecutor {
         return await this.executePromptState(stateName, state);
       case 'choice':
         return await this.executeChoiceState(stateName, state);
+      case 'transition':
+        return await this.executeTransitionState(stateName, state);
       case END_STATE:
         return END_STATE;
       default:
         throw new Error(`Unknown state type: ${state.type}`);
     }
+  }
+
+  /**
+   * Execute a transition state (simply transitions to the next state)
+   */
+  private async executeTransitionState(stateName: string, state: State): Promise<string> {
+    // Transition states are used internally for workflow references
+    // They don't display anything, just move to the next state
+    return state.next || END_STATE;
   }
 
   /**

@@ -2,6 +2,7 @@ import * as readline from 'readline';
 import OllamaClient = require('./ollama-client');
 import McpClient = require('./mcp-client');
 import RagService = require('./rag-service');
+import Tracer = require('./tracer');
 
 const END_STATE = 'end';
 
@@ -28,6 +29,8 @@ interface RagConfig {
 interface State {
   type: string;
   prompt?: string;
+  prompt_file?: string;
+  workflow_ref?: string;
   choices?: Choice[];
   next?: string;
   model?: string;
@@ -58,11 +61,12 @@ class WorkflowExecutor {
   private context: Record<string, any>;
   private history: string[];
   private rl: readline.Interface;
+  private tracer: Tracer;
 
-  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434') {
+  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer) {
     this.workflow = workflow;
-    this.ollamaClient = new OllamaClient(ollamaUrl);
-    this.mcpClient = new McpClient();
+    this.ollamaClient = new OllamaClient(ollamaUrl, tracer);
+    this.mcpClient = new McpClient(tracer);
     this.context = {};
     this.history = [];
     this.namedRagServices = new Map();
@@ -71,6 +75,7 @@ class WorkflowExecutor {
     if (workflow.rag) {
       this.ragService = new RagService(workflow.rag, ollamaUrl);
     }
+    this.tracer = tracer || new Tracer(false);
     
     this.rl = readline.createInterface({
       input: process.stdin,
@@ -87,6 +92,8 @@ class WorkflowExecutor {
     if (this.workflow.description) {
       console.log(`${this.workflow.description}\n`);
     }
+
+    this.tracer.traceWorkflowStart(this.workflow.name, this.workflow.start_state);
 
     // Initialize MCP servers if configured
     if (this.workflow.mcp_servers) {
@@ -125,14 +132,20 @@ class WorkflowExecutor {
         
         try {
           this.history.push(currentState);
-          currentState = await this.executeState(currentState, state);
+          this.tracer.traceStateExecutionStart(currentState, state.type);
+          const nextState = await this.executeState(currentState, state);
+          this.tracer.traceStateExecutionComplete(currentState, state.type);
+          this.tracer.traceStateTransition(currentState, nextState || END_STATE, state.type);
+          currentState = nextState;
         } catch (error: any) {
           console.error(`\nError in state "${currentState}": ${error.message}`);
+          this.tracer.traceError('state_execution_error', error.message, { state: currentState });
           throw error;
         }
       }
       
       console.log('\n=== Workflow Completed ===\n');
+      this.tracer.traceWorkflowComplete();
     } finally {
       // Clean up MCP connections
       await this.mcpClient.disconnectAll();
@@ -152,11 +165,25 @@ class WorkflowExecutor {
         return await this.executePromptState(stateName, state);
       case 'choice':
         return await this.executeChoiceState(stateName, state);
+      case 'transition':
+        return await this.executeTransitionState(stateName, state);
       case END_STATE:
         return END_STATE;
       default:
         throw new Error(`Unknown state type: ${state.type}`);
     }
+  }
+
+  /**
+   * Execute a transition state (simply transitions to the next state)
+   * @param stateName - Name of the state
+   * @param state - State configuration
+   * @returns Next state name
+   */
+  async executeTransitionState(stateName: string, state: State): Promise<string> {
+    // Transition states are used internally for workflow references
+    // They don't display anything, just move to the next state
+    return state.next || END_STATE;
   }
 
   /**
@@ -233,6 +260,7 @@ class WorkflowExecutor {
       // Store response in context if variable is specified
       if (state.save_as) {
         this.context[state.save_as] = response;
+        this.tracer.traceContextUpdate(state.save_as, response);
       }
       
       return state.next || END_STATE;
@@ -270,7 +298,10 @@ class WorkflowExecutor {
     // Store choice in context if variable is specified
     if (state.save_as) {
       this.context[state.save_as] = selectedChoice.value || selectedChoice.label;
+      this.tracer.traceContextUpdate(state.save_as, selectedChoice.value || selectedChoice.label);
     }
+    
+    this.tracer.traceUserChoice(stateName, selectedChoice.value || selectedChoice.label || '');
     
     console.log(`\nSelected: ${selectedChoice.label || selectedChoice.value}`);
     
