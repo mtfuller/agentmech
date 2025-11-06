@@ -54,6 +54,15 @@ my_state:
   next: "next_state"
 ```
 
+Or load from external file:
+```yaml
+my_state:
+  type: "prompt"
+  prompt_file: "prompts/my-prompt.md"
+  save_as: "variable_name"
+  next: "next_state"
+```
+
 ### Choice State
 ```yaml
 my_state:
@@ -67,6 +76,14 @@ my_state:
     - label: "Option 2"
       value: "opt2"
       next: "state_2"
+```
+
+### Workflow Reference State
+```yaml
+my_state:
+  type: "workflow_ref"
+  workflow_ref: "path/to/other-workflow.yaml"
+  next: "next_state"
 ```
 
 ### End State
@@ -157,13 +174,14 @@ states:
 ✓ Must have `states` object
 ✓ Must have `start_state`
 ✓ Start state must exist in states
-✓ All state types must be valid: prompt, choice, or end
-✓ Prompt states must have `prompt` field
+✓ All state types must be valid: prompt, choice, workflow_ref, or end
+✓ Prompt states must have `prompt` field or `prompt_file` field
 ✓ Choice states must have `choices` array
 ✓ Next states must exist or be "end"
 ✓ Each choice must have `label` or `value`
 ✓ MCP servers (if configured) must have `command`
 ✓ State MCP server references must exist in workflow config
+✓ External files (prompt_file, workflow_ref) must exist
 
 ## MCP Servers
 
@@ -204,6 +222,8 @@ ollama pull <model-name>
 6. Add descriptions to workflows
 7. Name states descriptively
 8. Use MCP servers for extended capabilities
+9. Use external prompt files for long prompts
+10. Build modular workflows with workflow references
 
 ## Troubleshooting
 
@@ -212,6 +232,8 @@ ollama pull <model-name>
 | Cannot connect to Ollama | Run `ollama serve` |
 | Model not found | Run `ollama pull <model>` |
 | Workflow file not found | Check file path |
-| Invalid state type | Use: prompt, choice, or end |
+| Invalid state type | Use: prompt, choice, workflow_ref, or end |
 | Missing start_state | Add `start_state: "state_name"` |
 | State not found | Check state names match |
+| Prompt file not found | Check path is relative to workflow file |
+| Referenced workflow not found | Check workflow_ref path |

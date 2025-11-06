@@ -1,0 +1,44 @@
+name: "Character Creator Workflow"
+description: "Creates a detailed character for a story"
+default_model: "llama2"
+start_state: "choose_genre"
+
+states:
+  choose_genre:
+    type: "choice"
+    prompt: "What genre is your story?"
+    save_as: "genre"
+    choices:
+      - label: "Science Fiction"
+        value: "science fiction"
+        next: "choose_role"
+      - label: "Fantasy"
+        value: "fantasy"
+        next: "choose_role"
+      - label: "Mystery"
+        value: "mystery"
+        next: "choose_role"
+  
+  choose_role:
+    type: "choice"
+    prompt: "What role should this character play?"
+    save_as: "role"
+    choices:
+      - label: "Protagonist/Hero"
+        value: "protagonist"
+        next: "create_character"
+      - label: "Antagonist/Villain"
+        value: "antagonist"
+        next: "create_character"
+      - label: "Supporting Character"
+        value: "supporting character"
+        next: "create_character"
+  
+  create_character:
+    type: "prompt"
+    prompt_file: "prompts/character-description.md"
+    save_as: "character"
+    next: "end"
+  
+  end:
+    type: "end"
