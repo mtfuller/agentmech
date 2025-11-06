@@ -798,7 +798,8 @@ class WebServer {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workflow Execution - AI Workflow CLI</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/lib/marked.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/lib/marked.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js" crossorigin="anonymous"></script>
     <style>
         * {
             margin: 0;
@@ -1108,6 +1109,12 @@ class WebServer {
         let sessionId = null;
         let eventSource = null;
         
+        // Configure marked for safe HTML rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+        
         // Get workflow info
         async function loadWorkflowInfo() {
             try {
@@ -1124,9 +1131,11 @@ class WebServer {
             const messageDiv = document.createElement('div');
             messageDiv.className = \`message \${type}\`;
             
-            // Render markdown for response messages
+            // Render markdown for response messages with sanitization
             if (type === 'response') {
-                messageDiv.innerHTML = marked.parse(message);
+                const rawHtml = marked.parse(message);
+                const cleanHtml = DOMPurify.sanitize(rawHtml);
+                messageDiv.innerHTML = cleanHtml;
             } else {
                 messageDiv.textContent = message;
             }
