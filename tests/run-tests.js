@@ -856,6 +856,59 @@ function testNextOptionsValidation() {
     failed++;
   }
   
+  // Test 9: Detect empty state string in next_options
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          next_options: [
+            { state: '', description: 'Empty state' },
+            { state: 'end', description: 'Finish' }
+          ]
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 9 failed: Should detect empty state string in next_options');
+    failed++;
+  } catch (error) {
+    console.log('✓ Test 9 passed: Detect empty state string in next_options');
+    passed++;
+  }
+  
+  // Test 10: Detect empty description string in next_options
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'prompt',
+          prompt: 'Test',
+          next_options: [
+            { state: 'state1', description: '' },
+            { state: 'end', description: 'Finish' }
+          ]
+        },
+        state1: {
+          type: 'prompt',
+          prompt: 'State 1',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 10 failed: Should detect empty description string in next_options');
+    failed++;
+  } catch (error) {
+    console.log('✓ Test 10 passed: Detect empty description string in next_options');
+    passed++;
+  }
+  
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   return failed === 0;
 }

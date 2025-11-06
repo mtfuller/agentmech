@@ -329,9 +329,18 @@ class WorkflowExecutor {
   async selectNextState(nextOptions: NextOption[], previousResponse: string, model: string): Promise<string> {
     console.log('\n--- LLM selecting next state ---');
     
+    // Sanitize and limit the previous response to prevent token overflow and injection
+    const maxResponseLength = 500;
+    const sanitizedResponse = previousResponse
+      .substring(0, maxResponseLength)
+      .replace(/[^\w\s\-.,!?]/g, ' ')  // Remove special characters
+      .trim();
+    
+    const truncatedMessage = previousResponse.length > maxResponseLength ? ' [truncated]' : '';
+    
     // Build a prompt for the LLM to select the next state
     let selectionPrompt = `Based on the previous response, select the most appropriate next step from the following options:\n\n`;
-    selectionPrompt += `Previous response: "${previousResponse}"\n\n`;
+    selectionPrompt += `Previous response: "${sanitizedResponse}${truncatedMessage}"\n\n`;
     selectionPrompt += `Available options:\n`;
     
     nextOptions.forEach((option, index) => {
@@ -345,11 +354,20 @@ class WorkflowExecutor {
     
     try {
       const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
-      const selectedIndex = parseInt(selectionResponse.trim()) - 1;
       
-      if (selectedIndex < 0 || selectedIndex >= nextOptions.length || isNaN(selectedIndex)) {
-        console.warn(`LLM returned invalid selection: "${selectionResponse}". Defaulting to first option.`);
-        this.tracer.traceError('invalid_llm_selection', `Invalid selection: ${selectionResponse}`, { defaulting: nextOptions[0].state });
+      // Extract the first number found in the response (more robust parsing)
+      const numberMatch = selectionResponse.match(/\d+/);
+      if (!numberMatch) {
+        console.warn(`LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`);
+        this.tracer.traceError('invalid_llm_selection', `No number found: ${selectionResponse}`, { defaulting: nextOptions[0].state });
+        return nextOptions[0].state;
+      }
+      
+      const selectedIndex = parseInt(numberMatch[0]) - 1;
+      
+      if (selectedIndex < 0 || selectedIndex >= nextOptions.length) {
+        console.warn(`LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`);
+        this.tracer.traceError('invalid_llm_selection', `Out of range: ${selectionResponse}`, { defaulting: nextOptions[0].state });
         return nextOptions[0].state;
       }
       

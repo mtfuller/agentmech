@@ -367,11 +367,11 @@ class WorkflowParser {
         throw new Error(`State "${name}" next_options must have at least 2 options`);
       }
       for (const option of state.next_options) {
-        if (!option.state) {
-          throw new Error(`State "${name}" next_options must have a 'state' field`);
+        if (!option.state || typeof option.state !== 'string' || option.state.trim() === '') {
+          throw new Error(`State "${name}" next_options must have a non-empty 'state' field`);
         }
-        if (!option.description) {
-          throw new Error(`State "${name}" next_options must have a 'description' field`);
+        if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
+          throw new Error(`State "${name}" next_options must have a non-empty 'description' field`);
         }
         if (!allStates[option.state] && option.state !== END_STATE) {
           throw new Error(`State "${name}" next_options references non-existent state "${option.state}"`);

@@ -469,9 +469,18 @@ class WebWorkflowExecutor {
       message: '--- LLM selecting next state ---'
     });
     
+    // Sanitize and limit the previous response to prevent token overflow and injection
+    const maxResponseLength = 500;
+    const sanitizedResponse = previousResponse
+      .substring(0, maxResponseLength)
+      .replace(/[^\w\s\-.,!?]/g, ' ')  // Remove special characters
+      .trim();
+    
+    const truncatedMessage = previousResponse.length > maxResponseLength ? ' [truncated]' : '';
+    
     // Build a prompt for the LLM to select the next state
     let selectionPrompt = `Based on the previous response, select the most appropriate next step from the following options:\n\n`;
-    selectionPrompt += `Previous response: "${previousResponse}"\n\n`;
+    selectionPrompt += `Previous response: "${sanitizedResponse}${truncatedMessage}"\n\n`;
     selectionPrompt += `Available options:\n`;
     
     nextOptions.forEach((option, index) => {
@@ -487,12 +496,23 @@ class WebWorkflowExecutor {
     
     try {
       const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
-      const selectedIndex = parseInt(selectionResponse.trim()) - 1;
       
-      if (selectedIndex < 0 || selectedIndex >= nextOptions.length || isNaN(selectedIndex)) {
+      // Extract the first number found in the response (more robust parsing)
+      const numberMatch = selectionResponse.match(/\d+/);
+      if (!numberMatch) {
         this.sendEvent({
           type: 'log',
-          message: `LLM returned invalid selection: "${selectionResponse}". Defaulting to first option.`
+          message: `LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`
+        });
+        return nextOptions[0].state;
+      }
+      
+      const selectedIndex = parseInt(numberMatch[0]) - 1;
+      
+      if (selectedIndex < 0 || selectedIndex >= nextOptions.length) {
+        this.sendEvent({
+          type: 'log',
+          message: `LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`
         });
         return nextOptions[0].state;
       }
