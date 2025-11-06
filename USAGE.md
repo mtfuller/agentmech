@@ -27,6 +27,26 @@ This guide demonstrates how to use the AI Workflow CLI tool with practical examp
 
 ## Basic Commands
 
+### Start Web UI
+
+Launch a web interface to browse and manage workflows:
+
+```bash
+npm start serve
+# or with a custom directory
+npm start serve ./my-workflows
+# or with a custom port
+npm start serve examples -- --port 8080
+```
+
+The web UI provides:
+- Browse all available workflows in a directory
+- View detailed workflow information
+- Validate workflows automatically
+- Beautiful, responsive interface
+
+Open your browser to `http://localhost:3000` (or the port you specified).
+
 ### Check Available Models
 
 Before running workflows, check what models are available:
