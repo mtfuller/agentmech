@@ -1,0 +1,89 @@
+name: "Data Processing Assistant"
+description: "An advanced workflow demonstrating custom JavaScript tools for data processing"
+default_model: "gemma3:4b"
+start_state: "get_task"
+
+# Configure custom MCP server with JavaScript tools
+mcp_servers:
+  custom_tools:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
+
+states:
+  get_task:
+    type: "input"
+    prompt: "What data processing task would you like to perform? (calculate, transform, analyze)"
+    save_as: "task_type"
+    next: "choose_operation"
+  
+  choose_operation:
+    type: "prompt"
+    prompt: |
+      The user wants to perform: {{task_type}}
+      
+      I have access to the following custom tools:
+      - calculator: arithmetic operations (add, subtract, multiply, divide)
+      - text-transform: text operations (uppercase, lowercase, reverse, word_count, char_count)
+      - date-time: date/time utilities (current, parse, format, timestamp)
+      - json-util: JSON operations (parse, stringify, validate, extract)
+      
+      Based on the user's request, suggest which tool would be most appropriate and provide an example of how to use it.
+    mcp_servers: ["custom_tools"]
+    save_as: "tool_suggestion"
+    next: "get_input_data"
+  
+  get_input_data:
+    type: "input"
+    prompt: |
+      Tool suggestion: {{tool_suggestion}}
+      
+      Please provide the input data for this operation:
+    save_as: "input_data"
+    next: "process_data"
+  
+  process_data:
+    type: "prompt"
+    prompt: |
+      User's task: {{task_type}}
+      Tool suggestion: {{tool_suggestion}}
+      Input data: {{input_data}}
+      
+      Please use the appropriate custom tool to process this data and provide the result.
+      For example:
+      - For calculations: use calculator tool with operation, a, and b parameters
+      - For text processing: use text-transform tool with operation and text parameters
+      - For dates: use date-time tool with operation parameter
+      - For JSON: use json-util tool with operation and input parameters
+    mcp_servers: ["custom_tools"]
+    save_as: "processed_result"
+    next: "explain_result"
+  
+  explain_result:
+    type: "prompt"
+    prompt: |
+      The processing result is: {{processed_result}}
+      
+      Please explain this result to the user in a friendly way, describing what operation was performed and what the output means.
+    save_as: "explanation"
+    next: "ask_continue"
+  
+  ask_continue:
+    type: "input"
+    prompt: |
+      {{explanation}}
+      
+      Would you like to perform another operation? (yes/no)
+    save_as: "continue_choice"
+    next: "check_continue"
+  
+  check_continue:
+    type: "prompt"
+    prompt: "User said: {{continue_choice}}. Should we continue with another operation or end?"
+    next_options:
+      - state: "get_task"
+        description: "User wants to continue with another operation"
+      - state: "end"
+        description: "User wants to stop or said no"
+  
+  end:
+    type: "end"

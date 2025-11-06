@@ -1,0 +1,35 @@
+name: "Custom Tools Demo"
+description: "Demonstrates using custom JavaScript tools in a workflow"
+default_model: "gemma3:4b"
+start_state: "choose_operation"
+
+# Configure custom MCP server with JavaScript tools
+mcp_servers:
+  custom_tools:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
+
+states:
+  choose_operation:
+    type: "input"
+    prompt: "What would you like to do? (calculate, transform_text, date_time)"
+    save_as: "operation_choice"
+    next: "perform_calculation"
+  
+  perform_calculation:
+    type: "prompt"
+    prompt: |
+      I have access to custom tools: calculator, text-transform, and date-time.
+      
+      User wants to: {{operation_choice}}
+      
+      Please provide an example of using one of these tools based on what the user requested.
+      For calculator: add two numbers
+      For text-transform: convert some text to uppercase
+      For date-time: get the current date and time
+    mcp_servers: ["custom_tools"]
+    save_as: "result"
+    next: "end"
+  
+  end:
+    type: "end"

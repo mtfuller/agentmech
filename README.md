@@ -258,6 +258,46 @@ mcp_servers:
       MCP_LOG_LEVEL: "info"
 ```
 
+#### Custom JavaScript Tools
+
+You can create your own custom tools as JavaScript functions and use them in workflows:
+
+```yaml
+mcp_servers:
+  custom_tools:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "path/to/tools-directory"]
+```
+
+Then create JavaScript files in the tools directory:
+
+```javascript
+// calculator.js
+function calculator(args) {
+  const { operation, a, b } = args;
+  switch (operation) {
+    case 'add': return { result: a + b };
+    case 'multiply': return { result: a * b };
+    // ... more operations
+  }
+}
+
+calculator.description = 'Performs arithmetic operations';
+calculator.inputSchema = {
+  type: 'object',
+  properties: {
+    operation: { type: 'string', enum: ['add', 'multiply'] },
+    a: { type: 'number' },
+    b: { type: 'number' },
+  },
+  required: ['operation', 'a', 'b'],
+};
+
+module.exports = calculator;
+```
+
+See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for detailed documentation on creating custom tools.
+
 ### State Types
 
 #### 1. Prompt State
@@ -811,6 +851,7 @@ The `examples/` directory contains sample workflows:
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
+- **custom-tools-demo.yaml**: Demonstrates using custom JavaScript tools in workflows
 - **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
 - **multi-rag-qa.yaml**: Multiple named RAG configurations
 - **inline-rag.yaml**: Inline state-level RAG configuration
@@ -822,6 +863,14 @@ The `examples/` directory contains sample workflows:
 - **mixed-fallback.yaml**: Shows both state-level and workflow-level fallback priorities
 - **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
 - **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
+
+### Custom Tools Examples
+
+The `examples/custom-tools/` directory contains example JavaScript tool implementations:
+
+- **calculator.js**: Basic arithmetic operations
+- **text-transform.js**: Text manipulation utilities
+- **date-time.js**: Date and time utilities
 
 ### Test Scenario Files
 
