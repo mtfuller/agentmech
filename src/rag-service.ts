@@ -19,6 +19,11 @@ interface RagConfig {
   storageFormat?: 'json' | 'msgpack'; // Storage format for embeddings
 }
 
+// Constants for embeddings storage
+const DEFAULT_JSON_EMBEDDINGS_FILE = 'embeddings.json';
+const DEFAULT_MSGPACK_EMBEDDINGS_FILE = 'embeddings.msgpack';
+const MSGPACK_EXTENSIONS = ['.msgpack', '.mp']; // .mp is a common short extension for MessagePack
+
 interface EmbeddingsStore {
   chunks: DocumentChunk[];
   config: RagConfig;
@@ -33,7 +38,7 @@ class RagService {
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
     this.config = {
       model: config.model || 'gemma3:4b',
-      embeddingsFile: config.embeddingsFile || 'embeddings.msgpack',
+      embeddingsFile: config.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE,
       chunkSize: config.chunkSize || 1000,
       topK: config.topK || 3,
       storageFormat: config.storageFormat || 'msgpack', // Default to msgpack
@@ -55,7 +60,7 @@ class RagService {
     } else {
       // Check for legacy JSON file if using msgpack format
       if (this.config.storageFormat === 'msgpack') {
-        const legacyJsonPath = path.join(this.config.directory, 'embeddings.json');
+        const legacyJsonPath = path.join(this.config.directory, DEFAULT_JSON_EMBEDDINGS_FILE);
         if (fs.existsSync(legacyJsonPath)) {
           console.log(`Found legacy JSON embeddings at ${legacyJsonPath}`);
           console.log(`Migrating to MessagePack format at ${embeddingsPath}`);
@@ -82,9 +87,9 @@ class RagService {
    */
   private async loadEmbeddings(filePath: string): Promise<void> {
     try {
-      // Auto-detect format based on file extension or content
+      // Auto-detect format based on file extension
       const fileExt = path.extname(filePath).toLowerCase();
-      const isMsgpack = fileExt === '.msgpack' || fileExt === '.mp';
+      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt);
       
       let store: EmbeddingsStore;
       
@@ -131,7 +136,7 @@ class RagService {
       
       // Determine format from file extension or config
       const fileExt = path.extname(filePath).toLowerCase();
-      const isMsgpack = fileExt === '.msgpack' || fileExt === '.mp' || this.config.storageFormat === 'msgpack';
+      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt) || this.config.storageFormat === 'msgpack';
       
       if (isMsgpack) {
         // Save as MessagePack format (binary)

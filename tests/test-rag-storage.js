@@ -5,7 +5,6 @@ const path = require('path');
 /**
  * Test RAG storage format functionality
  * Validates MessagePack format, JSON backward compatibility, and migration
- * @returns {boolean} True if all tests pass, false otherwise
  */
 function testRagStorage() {
   console.log('Testing RAG Storage Formats...\n');
