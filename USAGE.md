@@ -453,11 +453,12 @@ default_model: "gemma3:4b"
 start_state: "ask"
 
 rag:
-  directory: "./knowledge-base"  # Directory with your documents
-  model: "gemma3:4b"                # Model for generating embeddings
-  embeddingsFile: "embeddings.json"  # Cache file for embeddings
-  chunkSize: 500                 # Size of text chunks (in characters)
-  topK: 3                        # Number of relevant chunks to retrieve
+  directory: "./knowledge-base"         # Directory with your documents
+  model: "gemma3:4b"                    # Model for generating embeddings
+  embeddingsFile: "embeddings.msgpack"  # Cache file for embeddings (default format)
+  storageFormat: "msgpack"              # Storage format: "msgpack" (default) or "json"
+  chunkSize: 500                        # Size of text chunks (in characters)
+  topK: 3                               # Number of relevant chunks to retrieve
 
 states:
   ask:
@@ -684,7 +685,7 @@ npm start run /full/path/to/workflow.yaml
 4. **Test Prompts**: Test your prompts in Ollama directly before adding them to workflows
 5. **Model Selection**: Different models have different strengths - experiment to find the best fit
 6. **RAG for Accuracy**: Use RAG when you need responses based on specific documentation or knowledge
-7. **Cache Embeddings**: The embeddings.json file speeds up subsequent runs - commit it to version control for your team
+7. **Cache Embeddings**: Embeddings are cached in MessagePack format (~79% smaller than JSON) for fast reuse - commit to version control
 6. **Organize Prompts**: Use external prompt files for long or complex prompts
 7. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
 

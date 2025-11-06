@@ -181,11 +181,12 @@ You can enable Retrieval-Augmented Generation (RAG) to provide context from a kn
 #### 1. Default RAG (Workflow-level)
 ```yaml
 rag:
-  directory: "./knowledge-base"  # Directory containing documents
-  model: "gemma3:4b"                # Optional: Model for embeddings
-  embeddingsFile: "embeddings.json"  # Optional: Cache file
-  chunkSize: 500                 # Optional: Text chunk size (default: 1000)
-  topK: 3                        # Optional: Number of chunks to retrieve (default: 3)
+  directory: "./knowledge-base"           # Directory containing documents
+  model: "gemma3:4b"                      # Optional: Model for embeddings
+  embeddingsFile: "embeddings.msgpack"    # Optional: Cache file (default: embeddings.msgpack)
+  storageFormat: "msgpack"                # Optional: "msgpack" (default) or "json"
+  chunkSize: 500                          # Optional: Text chunk size (default: 1000)
+  topK: 3                                 # Optional: Number of chunks to retrieve (default: 3)
 ```
 
 States can then use `use_rag: true` to use this default configuration.
@@ -540,7 +541,8 @@ start_state: "ask_question"
 rag:
   directory: "./examples/knowledge-base"
   model: "gemma3:4b"
-  embeddingsFile: "embeddings.json"
+  embeddingsFile: "embeddings.msgpack"
+  storageFormat: "msgpack"
   chunkSize: 500
   topK: 3
 
