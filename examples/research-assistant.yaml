@@ -1,0 +1,49 @@
+name: "Research Assistant with LLM-Driven Routing"
+description: "A research assistant that uses the LLM to intelligently decide the next step"
+default_model: "gemma3:4b"
+
+start_state: "research_topic"
+
+states:
+  research_topic:
+    type: "prompt"
+    prompt: "I need to research the topic of artificial intelligence in healthcare. What should I focus on?"
+    save_as: "research_focus"
+    next_options:
+      - state: "search_web"
+        description: "The research requires current information from the web"
+      - state: "plan_research"
+        description: "The research requires a structured research plan first"
+  
+  search_web:
+    type: "prompt"
+    prompt: "Based on your focus: {{research_focus}}, search for the latest information on AI in healthcare. Summarize the key findings."
+    save_as: "web_findings"
+    next_options:
+      - state: "analyze_findings"
+        description: "There is enough information to analyze the findings"
+      - state: "plan_research"
+        description: "More structured planning is needed before continuing"
+  
+  plan_research:
+    type: "prompt"
+    prompt: "Create a detailed research plan for investigating AI in healthcare. Focus on: {{research_focus}}"
+    save_as: "research_plan"
+    next_options:
+      - state: "search_web"
+        description: "The plan indicates we need to gather more current web information"
+      - state: "analyze_findings"
+        description: "The plan suggests we can move directly to analysis with existing information"
+  
+  analyze_findings:
+    type: "prompt"
+    prompt: "Analyze the research findings and create a comprehensive summary. Research focus: {{research_focus}}. Web findings: {{web_findings}}. Research plan: {{research_plan}}"
+    save_as: "analysis"
+    next_options:
+      - state: "end"
+        description: "The analysis is complete and comprehensive"
+      - state: "search_web"
+        description: "The analysis reveals gaps that need more web research"
+  
+  end:
+    type: "end"
