@@ -59,7 +59,20 @@ program
       
       // Execute the workflow
       const executor = new WorkflowExecutor(workflow, options.ollamaUrl, tracer);
+      
+      // Handle graceful shutdown on Ctrl+C
+      const handleStop = () => {
+        executor.stop();
+      };
+      
+      process.on('SIGINT', handleStop);
+      process.on('SIGTERM', handleStop);
+      
       await executor.execute();
+      
+      // Remove signal handlers
+      process.removeListener('SIGINT', handleStop);
+      process.removeListener('SIGTERM', handleStop);
       
       // Close the tracer to flush file stream
       tracer.close();

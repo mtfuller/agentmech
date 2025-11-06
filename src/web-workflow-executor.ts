@@ -57,7 +57,7 @@ interface Workflow {
 }
 
 interface ExecutionEvent {
-  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change';
+  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped';
   message?: string;
   data?: any;
 }
@@ -73,6 +73,7 @@ class WebWorkflowExecutor {
   private sseResponse?: Response;
   private sessionId?: string;
   private pendingInput?: { resolve: (value: string) => void; reject: (error: any) => void };
+  private stopRequested: boolean;
 
   constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434') {
     this.workflow = workflow;
@@ -81,10 +82,30 @@ class WebWorkflowExecutor {
     this.context = {};
     this.history = [];
     this.namedRagServices = new Map();
+    this.stopRequested = false;
     
     // Initialize default RAG service if configured
     if (workflow.rag) {
       this.ragService = new RagService(workflow.rag, ollamaUrl);
+    }
+  }
+
+  /**
+   * Request graceful stop of workflow execution
+   */
+  stop(): void {
+    if (!this.stopRequested) {
+      this.stopRequested = true;
+      this.sendEvent({
+        type: 'log',
+        message: '🛑 Stop requested. Workflow will stop after the current state completes...'
+      });
+      
+      // Cancel any pending input
+      if (this.pendingInput) {
+        this.pendingInput.reject(new Error('Workflow stopped by user'));
+        this.pendingInput = undefined;
+      }
     }
   }
 
@@ -214,7 +235,7 @@ class WebWorkflowExecutor {
 
       let currentState: string | null = this.workflow.start_state;
 
-      while (currentState && currentState !== END_STATE) {
+      while (currentState && currentState !== END_STATE && !this.stopRequested) {
         const state: State = this.workflow.states[currentState];
         
         this.sendEvent({
@@ -257,10 +278,17 @@ class WebWorkflowExecutor {
         }
       }
 
-      this.sendEvent({
-        type: 'complete',
-        message: 'Workflow Completed'
-      });
+      if (this.stopRequested) {
+        this.sendEvent({
+          type: 'stopped',
+          message: 'Workflow Stopped by User'
+        });
+      } else {
+        this.sendEvent({
+          type: 'complete',
+          message: 'Workflow Completed'
+        });
+      }
     } catch (error: any) {
       this.sendEvent({
         type: 'error',
