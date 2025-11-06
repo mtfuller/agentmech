@@ -10,6 +10,11 @@ interface Choice {
   next?: string;
 }
 
+interface NextOption {
+  state: string;
+  description: string;
+}
+
 interface McpServerConfig {
   command: string;
   args?: string[];
@@ -31,6 +36,7 @@ interface State {
   workflow_ref?: string;
   choices?: Choice[];
   next?: string;
+  next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
@@ -350,6 +356,35 @@ class WorkflowParser {
     // Check for conflicting RAG configurations
     if (state.rag && state.use_rag) {
       throw new Error(`State "${name}" cannot have both inline 'rag' and 'use_rag' configurations`);
+    }
+
+    // Validate next_options (LLM-driven state selection)
+    if (state.next_options) {
+      if (!Array.isArray(state.next_options)) {
+        throw new Error(`State "${name}" next_options must be an array`);
+      }
+      if (state.next_options.length < 2) {
+        throw new Error(`State "${name}" next_options must have at least 2 options`);
+      }
+      for (const option of state.next_options) {
+        if (!option.state || typeof option.state !== 'string' || option.state.trim() === '') {
+          throw new Error(`State "${name}" next_options must have a non-empty 'state' field`);
+        }
+        if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
+          throw new Error(`State "${name}" next_options must have a non-empty 'description' field`);
+        }
+        if (!allStates[option.state] && option.state !== END_STATE) {
+          throw new Error(`State "${name}" next_options references non-existent state "${option.state}"`);
+        }
+      }
+      // Check for conflicting next and next_options
+      if (state.next) {
+        throw new Error(`State "${name}" cannot have both 'next' and 'next_options' fields`);
+      }
+      // next_options can only be used with prompt states (where LLM makes the decision)
+      if (state.type !== 'prompt') {
+        throw new Error(`State "${name}" can only use next_options with prompt type states`);
+      }
     }
 
     // Validate transitions

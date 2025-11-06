@@ -1,0 +1,31 @@
+name: "Simple LLM-Driven Routing Example"
+description: "A simple example showing LLM-based state transitions"
+default_model: "gemma3:4b"
+
+start_state: "analyze_user_mood"
+
+states:
+  analyze_user_mood:
+    type: "prompt"
+    prompt: "The user says: 'I'm feeling tired today and could use some motivation.' What should we do next?"
+    save_as: "mood_analysis"
+    next_options:
+      - state: "provide_motivation"
+        description: "The user needs motivational content"
+      - state: "suggest_relaxation"
+        description: "The user needs relaxation suggestions"
+  
+  provide_motivation:
+    type: "prompt"
+    prompt: "Based on your analysis: {{mood_analysis}}, provide an inspiring and motivational message to the user."
+    save_as: "motivational_message"
+    next: "end"
+  
+  suggest_relaxation:
+    type: "prompt"
+    prompt: "Based on your analysis: {{mood_analysis}}, suggest some relaxation techniques or activities."
+    save_as: "relaxation_suggestions"
+    next: "end"
+  
+  end:
+    type: "end"

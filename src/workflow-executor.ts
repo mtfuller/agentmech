@@ -12,6 +12,11 @@ interface Choice {
   next?: string;
 }
 
+interface NextOption {
+  state: string;
+  description: string;
+}
+
 interface McpServerConfig {
   command: string;
   args?: string[];
@@ -33,6 +38,7 @@ interface State {
   workflow_ref?: string;
   choices?: Choice[];
   next?: string;
+  next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
@@ -263,6 +269,11 @@ class WorkflowExecutor {
         this.tracer.traceContextUpdate(state.save_as, response);
       }
       
+      // Handle LLM-driven state selection if next_options is defined
+      if (state.next_options && state.next_options.length > 0) {
+        return await this.selectNextState(state.next_options, response, model);
+      }
+      
       return state.next || END_STATE;
     } catch (error: any) {
       throw new Error(`Failed to generate response: ${error.message}`);
@@ -306,6 +317,70 @@ class WorkflowExecutor {
     console.log(`\nSelected: ${selectedChoice.label || selectedChoice.value}`);
     
     return selectedChoice.next || state.next || END_STATE;
+  }
+
+  /**
+   * Let the LLM select the next state from available options
+   * @param nextOptions - Array of possible next states with descriptions
+   * @param previousResponse - The response from the previous prompt (for context)
+   * @param model - Model to use for selection
+   * @returns Next state name
+   */
+  async selectNextState(nextOptions: NextOption[], previousResponse: string, model: string): Promise<string> {
+    console.log('\n--- LLM selecting next state ---');
+    
+    // Sanitize and limit the previous response to prevent token overflow and injection
+    const maxResponseLength = 500;
+    const sanitizedResponse = previousResponse
+      .substring(0, maxResponseLength)
+      .replace(/[^\w\s\-.,!?]/g, ' ')  // Remove special characters
+      .trim();
+    
+    const truncatedMessage = previousResponse.length > maxResponseLength ? ' [truncated]' : '';
+    
+    // Build a prompt for the LLM to select the next state
+    let selectionPrompt = `Based on the previous response, select the most appropriate next step from the following options:\n\n`;
+    selectionPrompt += `Previous response: "${sanitizedResponse}${truncatedMessage}"\n\n`;
+    selectionPrompt += `Available options:\n`;
+    
+    nextOptions.forEach((option, index) => {
+      selectionPrompt += `${index + 1}. ${option.state}: ${option.description}\n`;
+    });
+    
+    selectionPrompt += `\nRespond with ONLY the number (1-${nextOptions.length}) of the most appropriate next step. Do not include any explanation, just the number.`;
+    
+    console.log('Asking LLM to select next state...');
+    this.tracer.traceContextUpdate('llm_selection_prompt', selectionPrompt);
+    
+    try {
+      const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
+      
+      // Extract the first number found in the response (more robust parsing)
+      const numberMatch = selectionResponse.match(/\d+/);
+      if (!numberMatch) {
+        console.warn(`LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`);
+        this.tracer.traceError('invalid_llm_selection', `No number found: ${selectionResponse}`, { defaulting: nextOptions[0].state });
+        return nextOptions[0].state;
+      }
+      
+      const selectedIndex = parseInt(numberMatch[0]) - 1;
+      
+      if (selectedIndex < 0 || selectedIndex >= nextOptions.length) {
+        console.warn(`LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`);
+        this.tracer.traceError('invalid_llm_selection', `Out of range: ${selectionResponse}`, { defaulting: nextOptions[0].state });
+        return nextOptions[0].state;
+      }
+      
+      const selectedOption = nextOptions[selectedIndex];
+      console.log(`✓ LLM selected: ${selectedOption.state} - ${selectedOption.description}\n`);
+      this.tracer.traceContextUpdate('llm_selected_state', selectedOption.state);
+      
+      return selectedOption.state;
+    } catch (error: any) {
+      console.error(`Error during LLM state selection: ${error.message}. Defaulting to first option.`);
+      this.tracer.traceError('llm_selection_error', error.message, { defaulting: nextOptions[0].state });
+      return nextOptions[0].state;
+    }
   }
 
   /**
