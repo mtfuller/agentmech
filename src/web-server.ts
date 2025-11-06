@@ -831,10 +831,13 @@ class WebServer {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        function showInputField(prompt) {
+        function showInputField(prompt, defaultValue) {
             const inputContainer = document.getElementById('input-container');
             const inputField = document.getElementById('input-field');
             inputField.placeholder = prompt || 'Type your response...';
+            if (defaultValue) {
+                inputField.value = defaultValue;
+            }
             inputContainer.classList.add('active');
             inputField.focus();
         }
@@ -891,6 +894,9 @@ class WebServer {
                             break;
                         case 'choice':
                             addChoices(event.data.choices);
+                            break;
+                        case 'input':
+                            showInputField('Enter your response', event.data.defaultValue);
                             break;
                         case 'error':
                             addMessage('error', event.message);
