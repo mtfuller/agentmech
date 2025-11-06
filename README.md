@@ -244,6 +244,12 @@ state_name:
     directory: "./docs"
     chunkSize: 500
   next: "next_state_name"  # Next state to transition to
+  # OR use LLM-driven state selection:
+  next_options:  # Optional: let the LLM choose the next state
+    - state: "state_option_1"
+      description: "Description of when to choose this state"
+    - state: "state_option_2"
+      description: "Description of when to choose this state"
 ```
 
 RAG Options:
@@ -251,6 +257,16 @@ RAG Options:
 - `use_rag: "name"` - Use named RAG configuration
 - `rag: {...}` - Use inline RAG configuration
 - Omit all - No RAG context retrieval
+
+**LLM-Driven State Selection:**
+
+Instead of specifying a single `next` state, you can use `next_options` to provide multiple possible next states. The LLM will analyze the prompt response and intelligently select the most appropriate next state based on the descriptions you provide. This is useful for creating adaptive workflows that can dynamically adjust based on context.
+
+Requirements:
+- `next_options` must have at least 2 options
+- Each option must have a `state` (the state name) and `description` (when to choose this state)
+- Cannot be used together with `next` field
+- Only available for `prompt` type states
 
 When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
 You can also load prompts from external files:
@@ -498,6 +514,51 @@ states:
     type: "end"
 ```
 
+### LLM-Driven State Selection Example
+
+Use `next_options` to let the LLM intelligently choose the next state based on context:
+
+```yaml
+name: "Research Assistant"
+description: "LLM decides the best research path"
+default_model: "gemma3:4b"
+start_state: "research_topic"
+
+states:
+  research_topic:
+    type: "prompt"
+    prompt: "I need to research artificial intelligence in healthcare. What should I focus on?"
+    save_as: "research_focus"
+    next_options:
+      - state: "search_web"
+        description: "The research requires current information from the web"
+      - state: "plan_research"
+        description: "The research requires a structured research plan first"
+  
+  search_web:
+    type: "prompt"
+    prompt: "Search for the latest information on AI in healthcare. Focus: {{research_focus}}"
+    save_as: "web_findings"
+    next: "analyze_findings"
+  
+  plan_research:
+    type: "prompt"
+    prompt: "Create a detailed research plan. Focus: {{research_focus}}"
+    save_as: "research_plan"
+    next: "analyze_findings"
+  
+  analyze_findings:
+    type: "prompt"
+    prompt: "Analyze the research findings and create a summary."
+    save_as: "analysis"
+    next: "end"
+  
+  end:
+    type: "end"
+```
+
+In this example, the LLM analyzes the research focus response and autonomously decides whether to search the web first or create a research plan, making the workflow more adaptive and intelligent.
+
 ## Example Workflows
 
 The `examples/` directory contains sample workflows:
@@ -513,6 +574,8 @@ The `examples/` directory contains sample workflows:
 - **external-prompt-file.yaml**: Example using external markdown file for prompts
 - **greeting-workflow.yaml**: Simple reusable greeting workflow
 - **workflow-reference.yaml**: Example of referencing another workflow
+- **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
+- **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 

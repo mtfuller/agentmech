@@ -12,6 +12,11 @@ interface Choice {
   next?: string;
 }
 
+interface NextOption {
+  state: string;
+  description: string;
+}
+
 interface McpServerConfig {
   command: string;
   args?: string[];
@@ -33,6 +38,7 @@ interface State {
   workflow_ref?: string;
   choices?: Choice[];
   next?: string;
+  next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
@@ -412,6 +418,11 @@ class WebWorkflowExecutor {
         this.context[state.save_as] = response;
       }
 
+      // Handle LLM-driven state selection if next_options is defined
+      if (state.next_options && state.next_options.length > 0) {
+        return await this.selectNextState(state.next_options, response, model);
+      }
+
       return state.next || END_STATE;
     } catch (error: any) {
       throw new Error(`Failed to generate response: ${error.message}`);
@@ -447,6 +458,59 @@ class WebWorkflowExecutor {
     });
 
     return selectedChoice.next || state.next || END_STATE;
+  }
+
+  /**
+   * Let the LLM select the next state from available options
+   */
+  private async selectNextState(nextOptions: NextOption[], previousResponse: string, model: string): Promise<string> {
+    this.sendEvent({
+      type: 'log',
+      message: '--- LLM selecting next state ---'
+    });
+    
+    // Build a prompt for the LLM to select the next state
+    let selectionPrompt = `Based on the previous response, select the most appropriate next step from the following options:\n\n`;
+    selectionPrompt += `Previous response: "${previousResponse}"\n\n`;
+    selectionPrompt += `Available options:\n`;
+    
+    nextOptions.forEach((option, index) => {
+      selectionPrompt += `${index + 1}. ${option.state}: ${option.description}\n`;
+    });
+    
+    selectionPrompt += `\nRespond with ONLY the number (1-${nextOptions.length}) of the most appropriate next step. Do not include any explanation, just the number.`;
+    
+    this.sendEvent({
+      type: 'log',
+      message: 'Asking LLM to select next state...'
+    });
+    
+    try {
+      const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
+      const selectedIndex = parseInt(selectionResponse.trim()) - 1;
+      
+      if (selectedIndex < 0 || selectedIndex >= nextOptions.length || isNaN(selectedIndex)) {
+        this.sendEvent({
+          type: 'log',
+          message: `LLM returned invalid selection: "${selectionResponse}". Defaulting to first option.`
+        });
+        return nextOptions[0].state;
+      }
+      
+      const selectedOption = nextOptions[selectedIndex];
+      this.sendEvent({
+        type: 'log',
+        message: `✓ LLM selected: ${selectedOption.state} - ${selectedOption.description}`
+      });
+      
+      return selectedOption.state;
+    } catch (error: any) {
+      this.sendEvent({
+        type: 'log',
+        message: `Error during LLM state selection: ${error.message}. Defaulting to first option.`
+      });
+      return nextOptions[0].state;
+    }
   }
 
   /**
