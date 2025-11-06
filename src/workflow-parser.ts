@@ -4,11 +4,7 @@ import * as path from 'path';
 
 const END_STATE = 'end';
 
-interface Choice {
-  label?: string;
-  value?: string;
-  next?: string;
-}
+
 
 interface NextOption {
   state: string;
@@ -34,7 +30,6 @@ interface State {
   prompt?: string;
   prompt_file?: string;
   workflow_ref?: string;
-  choices?: Choice[];
   next?: string;
   next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
@@ -148,13 +143,7 @@ class WorkflowParser {
               workflow.states[newStateName].next = statePrefix + workflow.states[newStateName].next;
             }
             
-            // Update choice next references
-            if (workflow.states[newStateName].choices) {
-              workflow.states[newStateName].choices = workflow.states[newStateName].choices!.map(choice => ({
-                ...choice,
-                next: choice.next && choice.next !== END_STATE ? statePrefix + choice.next : choice.next
-              }));
-            }
+
           }
           
           // Replace the workflow_ref state with a transition to the referenced workflow's start state
@@ -298,7 +287,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'choice', 'input', 'workflow_ref', 'transition', END_STATE];
+    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition', END_STATE];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
@@ -311,9 +300,7 @@ class WorkflowParser {
       throw new Error(`Input state "${name}" must have a prompt field`);
     }
 
-    if (state.type === 'choice' && !state.choices) {
-      throw new Error(`Choice state "${name}" must have a choices field`);
-    }
+
     
     if (state.type === 'workflow_ref' && !state.workflow_ref) {
       throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
@@ -413,14 +400,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" references non-existent next state "${state.next}"`);
     }
 
-    // Validate choice transitions
-    if (state.type === 'choice' && state.choices) {
-      for (const choice of state.choices) {
-        if (choice.next && !allStates[choice.next] && choice.next !== END_STATE) {
-          throw new Error(`Choice in state "${name}" references non-existent next state "${choice.next}"`);
-        }
-      }
-    }
+
   }
 }
 

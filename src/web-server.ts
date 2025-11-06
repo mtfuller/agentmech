@@ -687,30 +687,6 @@ class WebServer {
             text-align: center;
         }
         
-        .choices {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            max-width: 400px;
-            align-self: flex-start;
-        }
-        
-        .choice-btn {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            text-align: left;
-            transition: background 0.3s ease;
-        }
-        
-        .choice-btn:hover {
-            background: #5568d3;
-        }
-        
         .input-container {
             border-top: 2px solid #e0e0e0;
             padding: 15px 20px;
@@ -816,23 +792,6 @@ class WebServer {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
         
-        function addChoices(choices) {
-            const messagesContainer = document.getElementById('chat-messages');
-            const choicesDiv = document.createElement('div');
-            choicesDiv.className = 'choices';
-            
-            choices.forEach((choice, index) => {
-                const btn = document.createElement('button');
-                btn.className = 'choice-btn';
-                btn.textContent = \`\${index + 1}. \${choice.label || choice.value}\`;
-                btn.onclick = () => sendInput(index.toString());
-                choicesDiv.appendChild(btn);
-            });
-            
-            messagesContainer.appendChild(choicesDiv);
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-        
         function showInputField(prompt, defaultValue) {
             const inputContainer = document.getElementById('input-container');
             const inputField = document.getElementById('input-field');
@@ -897,9 +856,6 @@ class WebServer {
                             break;
                         case 'prompt':
                             showInputField(event.message);
-                            break;
-                        case 'choice':
-                            addChoices(event.data.choices);
                             break;
                         case 'input':
                             showInputField('Enter your response', event.data.defaultValue);

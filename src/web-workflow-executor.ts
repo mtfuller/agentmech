@@ -6,11 +6,7 @@ import { Response } from 'express';
 const END_STATE = 'end';
 const INPUT_TIMEOUT_MS = 300000; // 5 minutes
 
-interface Choice {
-  label?: string;
-  value?: string;
-  next?: string;
-}
+
 
 interface NextOption {
   state: string;
@@ -36,7 +32,6 @@ interface State {
   prompt?: string;
   prompt_file?: string;
   workflow_ref?: string;
-  choices?: Choice[];
   next?: string;
   next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
@@ -62,7 +57,7 @@ interface Workflow {
 }
 
 interface ExecutionEvent {
-  type: 'log' | 'prompt' | 'choice' | 'input' | 'response' | 'error' | 'complete' | 'state_change';
+  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change';
   message?: string;
   data?: any;
 }
@@ -153,37 +148,7 @@ class WebWorkflowExecutor {
     });
   }
 
-  /**
-   * Request choice from the user
-   */
-  private async requestChoice(choices: Choice[]): Promise<number> {
-    return new Promise((resolve, reject) => {
-      this.sendEvent({
-        type: 'choice',
-        data: { choices }
-      });
-      
-      this.pendingInput = {
-        resolve: (value: string) => {
-          const choiceIndex = parseInt(value, 10);
-          if (isNaN(choiceIndex) || choiceIndex < 0 || choiceIndex >= choices.length) {
-            reject(new Error('Invalid choice'));
-          } else {
-            resolve(choiceIndex);
-          }
-        },
-        reject
-      };
-      
-      // Set timeout
-      setTimeout(() => {
-        if (this.pendingInput) {
-          this.pendingInput.reject(new Error('Choice timeout'));
-          this.pendingInput = undefined;
-        }
-      }, INPUT_TIMEOUT_MS);
-    });
-  }
+
 
   /**
    * Execute the workflow
@@ -320,8 +285,6 @@ class WebWorkflowExecutor {
     switch (state.type) {
       case 'prompt':
         return await this.executePromptState(stateName, state);
-      case 'choice':
-        return await this.executeChoiceState(stateName, state);
       case 'input':
         return await this.executeInputState(stateName, state);
       case 'transition':
@@ -465,36 +428,7 @@ class WebWorkflowExecutor {
     }
   }
 
-  /**
-   * Execute a choice state (presents options to user)
-   */
-  private async executeChoiceState(stateName: string, state: State): Promise<string> {
-    if (state.prompt) {
-      this.sendEvent({
-        type: 'log',
-        message: this.interpolateVariables(state.prompt)
-      });
-    }
 
-    if (!state.choices || state.choices.length === 0) {
-      throw new Error('Choice state has no choices');
-    }
-
-    const choiceIndex = await this.requestChoice(state.choices);
-    const selectedChoice = state.choices[choiceIndex];
-
-    // Store choice in context if variable is specified
-    if (state.save_as) {
-      this.context[state.save_as] = selectedChoice.value || selectedChoice.label;
-    }
-
-    this.sendEvent({
-      type: 'log',
-      message: `Selected: ${selectedChoice.label || selectedChoice.value}`
-    });
-
-    return selectedChoice.next || state.next || END_STATE;
-  }
 
   /**
    * Execute an input state (asks user for freeform text input)

@@ -525,10 +525,8 @@ function testRagValidation() {
       },
       states: {
         test: {
-          type: 'choice',
-          choices: [
-            { label: 'Option', next: 'end' }
-          ],
+          type: 'input',
+          prompt: 'Enter something',
           use_rag: true
         },
         end: { type: 'end' }
@@ -869,10 +867,8 @@ function testNextOptionsValidation() {
       start_state: 'test',
       states: {
         test: {
-          type: 'choice',
-          choices: [
-            { label: 'Option', next: 'end' }
-          ],
+          type: 'input',
+          prompt: 'Enter something',
           next_options: [
             { state: 'state1', description: 'Option 1' },
             { state: 'end', description: 'Option 2' }
