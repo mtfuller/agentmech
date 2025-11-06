@@ -14,35 +14,10 @@ rag:
 
 states:
   ask_question:
-    type: "choice"
-    prompt: "What would you like to know about AI Workflow CLI?"
+    type: "input"
+    prompt: "What would you like to know about AI Workflow CLI? (Enter your question)"
     save_as: "question_choice"
-    choices:
-      - label: "What is AI Workflow CLI and what are its features?"
-        value: "What is AI Workflow CLI and what are its main features?"
-        next: "answer_with_rag"
-      - label: "How do I install AI Workflow CLI?"
-        value: "How do I install and set up AI Workflow CLI?"
-        next: "answer_with_rag"
-      - label: "What can I use AI Workflow CLI for?"
-        value: "What are the common use cases for AI Workflow CLI?"
-        next: "answer_with_rag"
-      - label: "Ask a custom question"
-        value: "custom"
-        next: "custom_question"
-  
-  custom_question:
-    type: "prompt"
-    prompt: "Please enter your question (this is simulated - the workflow will use a predefined question):"
-    save_as: "custom_q"
-    next: "answer_custom"
-  
-  answer_custom:
-    type: "prompt"
-    prompt: "Tell me about the pricing and system requirements for AI Workflow CLI"
-    use_rag: true
-    save_as: "answer"
-    next: "ask_another"
+    next: "answer_with_rag"
   
   answer_with_rag:
     type: "prompt"
@@ -52,13 +27,10 @@ states:
     next: "ask_another"
   
   ask_another:
-    type: "choice"
-    prompt: "Would you like to ask another question?"
-    choices:
-      - label: "Yes"
-        next: "ask_question"
-      - label: "No"
-        next: "end"
+    type: "input"
+    prompt: "Would you like to ask another question? (yes/no)"
+    save_as: "continue_answer"
+    next: "end"
   
   end:
     type: "end"

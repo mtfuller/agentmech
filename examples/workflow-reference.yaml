@@ -10,15 +10,10 @@ states:
     next: "ask_continue"
   
   ask_continue:
-    type: "choice"
-    prompt: "Would you like another greeting?"
-    choices:
-      - label: "Yes, please"
-        value: "yes"
-        next: "start_greeting"
-      - label: "No, thank you"
-        value: "no"
-        next: "end"
+    type: "input"
+    prompt: "Would you like another greeting? (yes/no)"
+    save_as: "continue_answer"
+    next: "end"
   
   end:
     type: "end"

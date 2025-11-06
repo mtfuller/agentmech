@@ -1,45 +1,21 @@
 name: "Simple Story Generator"
-description: "A simple workflow that generates a story based on user choices"
+description: "A simple workflow that generates a story based on user input"
 default_model: "gemma3:4b"
 
 start_state: "choose_genre"
 
 states:
   choose_genre:
-    type: "choice"
-    prompt: "What genre of story would you like?"
+    type: "input"
+    prompt: "What genre of story would you like? (science fiction, fantasy, mystery, romance)"
     save_as: "genre"
-    choices:
-      - label: "Science Fiction"
-        value: "science fiction"
-        next: "choose_setting"
-      - label: "Fantasy"
-        value: "fantasy"
-        next: "choose_setting"
-      - label: "Mystery"
-        value: "mystery"
-        next: "choose_setting"
-      - label: "Romance"
-        value: "romance"
-        next: "choose_setting"
+    next: "choose_setting"
   
   choose_setting:
-    type: "choice"
-    prompt: "Where should the story take place?"
+    type: "input"
+    prompt: "Where should the story take place? (distant planet, medieval castle, modern city, enchanted forest)"
     save_as: "setting"
-    choices:
-      - label: "A distant planet"
-        value: "distant planet"
-        next: "generate_story"
-      - label: "Medieval castle"
-        value: "medieval castle"
-        next: "generate_story"
-      - label: "Modern city"
-        value: "modern city"
-        next: "generate_story"
-      - label: "Enchanted forest"
-        value: "enchanted forest"
-        next: "generate_story"
+    next: "generate_story"
   
   generate_story:
     type: "prompt"
@@ -48,20 +24,9 @@ states:
     next: "ask_continue"
   
   ask_continue:
-    type: "choice"
-    prompt: "Would you like to continue the story?"
-    choices:
-      - label: "Yes, continue the story"
-        value: "yes"
-        next: "continue_story"
-      - label: "No, end here"
-        value: "no"
-        next: "end"
-  
-  continue_story:
-    type: "prompt"
-    prompt: "Continue this story with an exciting plot twist: {{story}}"
-    save_as: "continued_story"
+    type: "input"
+    prompt: "Would you like to continue the story? (yes/no)"
+    save_as: "continue_answer"
     next: "end"
   
   end:

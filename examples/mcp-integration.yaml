@@ -17,19 +17,10 @@ mcp_servers:
 
 states:
   choose_task:
-    type: "choice"
-    prompt: "What would you like to do with MCP servers?"
+    type: "input"
+    prompt: "What would you like to do with MCP servers? (filesystem, memory, both)"
     save_as: "task_choice"
-    choices:
-      - label: "Use filesystem tools"
-        value: "filesystem"
-        next: "filesystem_task"
-      - label: "Use memory tools"
-        value: "memory"
-        next: "memory_task"
-      - label: "Use both"
-        value: "both"
-        next: "combined_task"
+    next: "filesystem_task"
   
   filesystem_task:
     type: "prompt"
