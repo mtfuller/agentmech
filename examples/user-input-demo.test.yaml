@@ -1,0 +1,65 @@
+workflow: user-input-demo.yaml
+
+scenarios:
+  - name: "Complete User Input Flow"
+    description: "Test workflow with all user inputs provided"
+    inputs:
+      - state: get_name
+        input: "Alice"
+      - state: get_location
+        input: "Tokyo"
+      - state: get_interest
+        input: "quantum computing"
+    mocks:
+      - state: generate_response
+        response: "Hello Alice from Tokyo! Quantum computing is a revolutionary field that uses quantum mechanics to solve complex problems. Unlike classical computers that use bits (0 or 1), quantum computers use qubits that can exist in multiple states simultaneously, enabling them to perform certain calculations exponentially faster."
+    assertions:
+      - type: variable_set
+        target: name
+      - type: equals
+        target: name
+        value: "Alice"
+      - type: variable_set
+        target: location
+      - type: equals
+        target: location
+        value: "Tokyo"
+      - type: variable_set
+        target: topic
+      - type: equals
+        target: topic
+        value: "quantum computing"
+      - type: contains
+        target: output
+        value: "Hello Alice from Tokyo"
+      - type: contains
+        target: response
+        value: "quantum"
+      - type: regex
+        target: response
+        pattern: "[Qq]uantum computing"
+
+  - name: "Personalized Response Validation"
+    description: "Verify that personalized response includes user data"
+    inputs:
+      - state: get_name
+        input: "Bob"
+      - state: get_location
+        input: "Mars Colony"
+      - state: get_interest
+        input: "artificial intelligence"
+    mocks:
+      - state: generate_response
+        response: "Hello Bob from Mars Colony! Artificial intelligence is the field of creating intelligent machines that can learn, reason, and solve problems like humans do. It's transforming how we live and work in exciting ways."
+    assertions:
+      - type: contains
+        target: response
+        value: "Bob"
+      - type: contains
+        target: response
+        value: "Mars Colony"
+      - type: contains
+        target: response
+        value: "Artificial intelligence"
+      - type: variable_set
+        target: response

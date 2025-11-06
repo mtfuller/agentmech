@@ -1,0 +1,30 @@
+workflow: simple-qa.yaml
+
+scenarios:
+  - name: "Basic Q&A Test"
+    description: "Test that the workflow responds to a question about AI"
+    mocks:
+      - state: ask_question
+        response: "Artificial intelligence (AI) is the simulation of human intelligence by machines, particularly computer systems. It works through algorithms, machine learning, and data processing."
+    assertions:
+      - type: contains
+        target: output
+        value: "Artificial intelligence"
+      - type: contains
+        target: output
+        value: "machine learning"
+      - type: variable_set
+        target: answer
+
+  - name: "Response Length Test"
+    description: "Test that the response is not empty"
+    mocks:
+      - state: ask_question
+        response: "AI is a field of computer science."
+    assertions:
+      - type: contains
+        target: answer
+        value: "AI"
+      - type: regex
+        target: answer
+        pattern: "^.{10,}$"

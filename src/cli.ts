@@ -3,6 +3,7 @@
 import { Command } from 'commander';
 import WorkflowParser = require('./workflow-parser');
 import WorkflowExecutor = require('./workflow-executor');
+import WorkflowTester = require('./workflow-tester');
 import OllamaClient = require('./ollama-client');
 import Tracer = require('./tracer');
 import WebServer = require('./web-server');
@@ -85,6 +86,46 @@ program
       
     } catch (error: any) {
       console.error(`\n✗ Validation failed: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('test')
+  .description('Run test scenarios for a workflow')
+  .argument('<test-file>', 'Path to test YAML file')
+  .option('-r, --report <path>', 'Save test report to file')
+  .action(async (testFile: string, options: { report?: string }) => {
+    try {
+      const testPath = path.resolve(testFile);
+      console.log(`Loading test suite from: ${testPath}`);
+      
+      if (!fs.existsSync(testPath)) {
+        console.error(`\nError: Test file not found: ${testPath}`);
+        process.exit(1);
+      }
+      
+      const tester = new WorkflowTester(testPath);
+      const result = await tester.runTests();
+      
+      // Generate and display report
+      const report = tester.generateReport(result);
+      console.log(report);
+      
+      // Save report to file if requested
+      if (options.report) {
+        const reportPath = path.resolve(options.report);
+        fs.writeFileSync(reportPath, report);
+        console.log(`Report saved to: ${reportPath}`);
+      }
+      
+      // Exit with error code if tests failed
+      if (result.totalFailed > 0) {
+        process.exit(1);
+      }
+      
+    } catch (error: any) {
+      console.error(`\nError: ${error.message}`);
       process.exit(1);
     }
   });

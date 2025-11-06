@@ -1,0 +1,67 @@
+workflow: story-generator.yaml
+
+scenarios:
+  - name: "Generate Science Fiction Story"
+    description: "Test workflow with science fiction choice and complete the story"
+    inputs:
+      - state: choose_genre
+        input: 1  # Select "Science Fiction"
+      - state: choose_setting
+        input: 1  # Select "A distant planet"
+      - state: ask_continue
+        input: 2  # Select "No, end here"
+    mocks:
+      - state: generate_story
+        response: "In the year 2157, humanity had colonized Mars. Dr. Elena Chen stood on the red planet's surface, looking up at Earth, now just a pale blue dot in the vast expanse of space."
+    assertions:
+      - type: contains
+        target: output
+        value: "Science Fiction"
+      - type: variable_set
+        target: genre
+      - type: equals
+        target: genre
+        value: "science fiction"
+      - type: variable_set
+        target: setting
+      - type: equals
+        target: setting
+        value: "distant planet"
+      - type: contains
+        target: story
+        value: "2157"
+      - type: variable_set
+        target: story
+
+  - name: "Generate Fantasy Story with Continuation"
+    description: "Test workflow with fantasy choice and story continuation"
+    inputs:
+      - state: choose_genre
+        input: 2  # Select "Fantasy"
+      - state: choose_setting
+        input: 4  # Select "Enchanted forest"
+      - state: ask_continue
+        input: 1  # Select "Yes, continue the story"
+    mocks:
+      - state: generate_story
+        response: "The ancient dragon Zephyrion awakened from his thousand-year slumber in the enchanted forest. His scales shimmered with magic as he stretched his massive wings."
+      - state: continue_story
+        response: "But as Zephyrion prepared to take flight, a mysterious portal opened before him, revealing a world that shouldn't exist. The prophecy had finally come to pass."
+    assertions:
+      - type: contains
+        target: output
+        value: "Fantasy"
+      - type: equals
+        target: genre
+        value: "fantasy"
+      - type: equals
+        target: setting
+        value: "enchanted forest"
+      - type: contains
+        target: story
+        value: "dragon"
+      - type: variable_set
+        target: continued_story
+      - type: contains
+        target: continued_story
+        value: "portal"
