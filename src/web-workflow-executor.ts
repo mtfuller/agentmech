@@ -39,6 +39,7 @@ interface State {
   mcp_servers?: string[];
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
+  on_error?: string;  // Fallback state to transition to on error (state-level)
 }
 
 interface Workflow {
@@ -49,6 +50,7 @@ interface Workflow {
   mcp_servers?: Record<string, McpServerConfig>;
   rag?: RagConfig;  // Backward compatibility: default RAG config
   rags?: Record<string, RagConfig>;  // Named RAG configurations
+  on_error?: string;  // Fallback state to transition to on error (workflow-level)
   states: Record<string, State>;
 }
 
@@ -232,7 +234,7 @@ class WebWorkflowExecutor {
       let currentState: string | null = this.workflow.start_state;
 
       while (currentState && currentState !== END_STATE) {
-        const state = this.workflow.states[currentState];
+        const state: State = this.workflow.states[currentState];
         
         this.sendEvent({
           type: 'state_change',
@@ -248,6 +250,28 @@ class WebWorkflowExecutor {
             type: 'error',
             message: `Error in state "${currentState}": ${error.message}`
           });
+          
+          // Check for state-level fallback first
+          if (state.on_error) {
+            this.sendEvent({
+              type: 'log',
+              message: `Transitioning to fallback state (state-level): ${state.on_error}`
+            });
+            currentState = state.on_error;
+            continue; // Continue the workflow with the fallback state
+          }
+          
+          // Check for workflow-level fallback
+          if (this.workflow.on_error) {
+            this.sendEvent({
+              type: 'log',
+              message: `Transitioning to fallback state (workflow-level): ${this.workflow.on_error}`
+            });
+            currentState = this.workflow.on_error;
+            continue; // Continue the workflow with the fallback state
+          }
+          
+          // No fallback configured, re-throw the error
           throw error;
         }
       }

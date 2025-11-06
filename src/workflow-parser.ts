@@ -37,6 +37,7 @@ interface State {
   mcp_servers?: string[];
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
+  on_error?: string;  // Fallback state to transition to on error (state-level)
 }
 
 interface Workflow {
@@ -47,6 +48,7 @@ interface Workflow {
   mcp_servers?: Record<string, McpServerConfig>;
   rag?: RagConfig;  // Backward compatibility: default RAG config
   rags?: Record<string, RagConfig>;  // Named RAG configurations
+  on_error?: string;  // Fallback state to transition to on error (workflow-level)
   states: Record<string, State>;
 }
 
@@ -216,6 +218,13 @@ class WorkflowParser {
       this.validateMcpServers(workflow.mcp_servers);
     }
 
+    // Validate workflow-level fallback state if present
+    if (workflow.on_error) {
+      if (!workflow.states[workflow.on_error] && workflow.on_error !== END_STATE) {
+        throw new Error(`Workflow on_error references non-existent state "${workflow.on_error}"`);
+      }
+    }
+
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
       this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag, workflow.rags);
@@ -350,6 +359,13 @@ class WorkflowParser {
     // Check for conflicting RAG configurations
     if (state.rag && state.use_rag) {
       throw new Error(`State "${name}" cannot have both inline 'rag' and 'use_rag' configurations`);
+    }
+
+    // Validate state-level fallback state if present
+    if (state.on_error) {
+      if (!allStates[state.on_error] && state.on_error !== END_STATE) {
+        throw new Error(`State "${name}" on_error references non-existent state "${state.on_error}"`);
+      }
     }
 
     // Validate transitions
