@@ -1,0 +1,58 @@
+# Test Scenarios for User Input Demo Workflow
+
+workflow: user-input-demo.yaml
+
+test_scenarios:
+  - name: "Complete User Flow"
+    description: "Test complete workflow with user inputs and AI response"
+    inputs:
+      - state: "get_name"
+        value: "Alice"
+      - state: "get_location"
+        value: "San Francisco"
+      - state: "get_interest"
+        value: "machine learning"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "equals"
+        target: "name"
+        value: "Alice"
+        description: "Name should be saved correctly"
+      - type: "equals"
+        target: "location"
+        value: "San Francisco"
+        description: "Location should be saved correctly"
+      - type: "equals"
+        target: "topic"
+        value: "machine learning"
+        description: "Topic should be saved correctly"
+      - type: "contains"
+        target: "response"
+        value: "machine learning"
+        description: "Response should mention the topic"
+      - type: "contains"
+        target: "response"
+        value: "Alice"
+        description: "Response should personalize with the user's name"
+
+  - name: "Default Value Test"
+    description: "Test that default value is used when no location is provided"
+    inputs:
+      - state: "get_name"
+        value: "Bob"
+      - state: "get_location"
+        value: ""
+      - state: "get_interest"
+        value: "astronomy"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "equals"
+        target: "location"
+        value: "Earth"
+        description: "Should use default location value"
+      - type: "contains"
+        target: "response"
+        value: "astronomy"

@@ -1,0 +1,15 @@
+# Test Scenarios for Simple Q&A Workflow
+
+workflow: simple-qa.yaml
+
+test_scenarios:
+  - name: "Basic Q&A Response"
+    description: "Test that the workflow generates a response about artificial intelligence"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "contains"
+        target: "answer"
+        value: "artificial intelligence"
+        description: "Response should mention artificial intelligence"
