@@ -6,19 +6,10 @@ start_state: "choose_review_type"
 
 states:
   choose_review_type:
-    type: "choice"
-    prompt: "What type of code review would you like?"
+    type: "input"
+    prompt: "What type of code review would you like? (security, performance, best_practices)"
     save_as: "review_type"
-    choices:
-      - label: "Security Review"
-        value: "security"
-        next: "security_review"
-      - label: "Performance Review"
-        value: "performance"
-        next: "performance_review"
-      - label: "Best Practices Review"
-        value: "best_practices"
-        next: "best_practices_review"
+    next: "security_review"
   
   security_review:
     type: "prompt"
@@ -39,15 +30,10 @@ states:
     next: "ask_another"
   
   ask_another:
-    type: "choice"
-    prompt: "Would you like to perform another review?"
-    choices:
-      - label: "Yes"
-        value: "yes"
-        next: "choose_review_type"
-      - label: "No"
-        value: "no"
-        next: "end"
+    type: "input"
+    prompt: "Would you like to perform another review? (yes/no)"
+    save_as: "continue_answer"
+    next: "end"
   
   end:
     type: "end"

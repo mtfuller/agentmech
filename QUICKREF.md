@@ -35,7 +35,7 @@ mcp_servers:
 
 states:
   state_name:
-    type: "prompt" | "choice" | "end"
+    type: "prompt" | "input" | "workflow_ref" | "end"
     mcp_servers: ["server_name"]  # optional
     # ... configuration
     next: "next_state" | "end"
@@ -76,19 +76,14 @@ my_state:
   next: "next_state"
 ```
 
-### Choice State
+### Input State
 ```yaml
 my_state:
-  type: "choice"
-  prompt: "Choose an option:"  # optional
-  save_as: "choice_var"        # optional
-  choices:
-    - label: "Option 1"
-      value: "opt1"
-      next: "state_1"
-    - label: "Option 2"
-      value: "opt2"
-      next: "state_2"
+  type: "input"
+  prompt: "What is your name?"  # Question to ask
+  save_as: "input_var"          # optional
+  default_value: "Default"      # optional
+  next: "next_state"
 ```
 
 ### Workflow Reference State
@@ -110,11 +105,10 @@ end:
 ```yaml
 # Store a value
 ask_name:
-  type: "choice"
+  type: "input"
+  prompt: "What is your name?"
   save_as: "name"
-  choices:
-    - label: "Alice"
-    - label: "Bob"
+  next: "greet"
 
 # Use the value
 greet:
@@ -137,25 +131,19 @@ states:
     type: "end"
 ```
 
-### Choice → Prompt → End
+### Input → Prompt → End
 ```yaml
-name: "Choice Flow"
-start_state: "choose"
+name: "Input Flow"
+start_state: "get_input"
 states:
-  choose:
-    type: "choice"
-    choices:
-      - label: "Option A"
-        next: "do_a"
-      - label: "Option B"
-        next: "do_b"
-  do_a:
+  get_input:
+    type: "input"
+    prompt: "Enter your choice (A or B):"
+    save_as: "user_choice"
+    next: "process"
+  process:
     type: "prompt"
-    prompt: "You chose A"
-    next: "end"
-  do_b:
-    type: "prompt"
-    prompt: "You chose B"
+    prompt: "You chose {{user_choice}}"
     next: "end"
   end:
     type: "end"
@@ -171,12 +159,18 @@ states:
     prompt: "Do something"
     next: "ask_continue"
   ask_continue:
-    type: "choice"
-    choices:
-      - label: "Again"
-        next: "action"  # Loop back
-      - label: "Stop"
-        next: "end"
+    type: "input"
+    prompt: "Continue? (yes/no)"
+    save_as: "continue"
+    next: "check_continue"
+  check_continue:
+    type: "prompt"
+    prompt: "User wants to continue: {{continue}}"
+    next_options:
+      - state: "action"
+        description: "User wants to continue"
+      - state: "end"
+        description: "User wants to stop"
   end:
     type: "end"
 ```
@@ -187,11 +181,10 @@ states:
 ✓ Must have `states` object
 ✓ Must have `start_state`
 ✓ Start state must exist in states
-✓ All state types must be valid: prompt, choice, workflow_ref, or end
+✓ All state types must be valid: prompt, input, workflow_ref, or end
 ✓ Prompt states must have `prompt` field or `prompt_file` field
-✓ Choice states must have `choices` array
+✓ Input states must have `prompt` field
 ✓ Next states must exist or be "end"
-✓ Each choice must have `label` or `value`
 ✓ MCP servers (if configured) must have `command`
 ✓ State MCP server references must exist in workflow config
 ✓ External files (prompt_file, workflow_ref) must exist
@@ -245,7 +238,7 @@ ollama pull <model-name>
 | Cannot connect to Ollama | Run `ollama serve` |
 | Model not found | Run `ollama pull <model>` |
 | Workflow file not found | Check file path |
-| Invalid state type | Use: prompt, choice, workflow_ref, or end |
+| Invalid state type | Use: prompt, input, workflow_ref, or end |
 | Missing start_state | Add `start_state: "state_name"` |
 | State not found | Check state names match |
 | Prompt file not found | Check path is relative to workflow file |

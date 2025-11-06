@@ -23,19 +23,10 @@ rags:
 
 states:
   choose_topic:
-    type: "choice"
-    prompt: "What would you like to know about?"
+    type: "input"
+    prompt: "What would you like to know about? (product, technical, general)"
     save_as: "topic"
-    choices:
-      - label: "Product Information (features, pricing)"
-        value: "product"
-        next: "product_question"
-      - label: "Technical Details (installation, use cases)"
-        value: "technical"
-        next: "technical_question"
-      - label: "General Question"
-        value: "general"
-        next: "general_question"
+    next: "product_question"
   
   product_question:
     type: "prompt"
@@ -59,13 +50,10 @@ states:
     next: "ask_another"
   
   ask_another:
-    type: "choice"
-    prompt: "Would you like to ask another question?"
-    choices:
-      - label: "Yes"
-        next: "choose_topic"
-      - label: "No"
-        next: "end"
+    type: "input"
+    prompt: "Would you like to ask another question? (yes/no)"
+    save_as: "continue_answer"
+    next: "end"
   
   end:
     type: "end"

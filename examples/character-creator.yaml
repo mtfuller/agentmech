@@ -5,34 +5,16 @@ start_state: "choose_genre"
 
 states:
   choose_genre:
-    type: "choice"
-    prompt: "What genre is your story?"
+    type: "input"
+    prompt: "What genre is your story? (science fiction, fantasy, mystery)"
     save_as: "genre"
-    choices:
-      - label: "Science Fiction"
-        value: "science fiction"
-        next: "choose_role"
-      - label: "Fantasy"
-        value: "fantasy"
-        next: "choose_role"
-      - label: "Mystery"
-        value: "mystery"
-        next: "choose_role"
+    next: "choose_role"
   
   choose_role:
-    type: "choice"
-    prompt: "What role should this character play?"
+    type: "input"
+    prompt: "What role should this character play? (protagonist, antagonist, supporting character)"
     save_as: "role"
-    choices:
-      - label: "Protagonist/Hero"
-        value: "protagonist"
-        next: "create_character"
-      - label: "Antagonist/Villain"
-        value: "antagonist"
-        next: "create_character"
-      - label: "Supporting Character"
-        value: "supporting character"
-        next: "create_character"
+    next: "create_character"
   
   create_character:
     type: "prompt"

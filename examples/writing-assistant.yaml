@@ -6,22 +6,10 @@ start_state: "choose_task"
 
 states:
   choose_task:
-    type: "choice"
-    prompt: "What would you like help with?"
+    type: "input"
+    prompt: "What would you like help with? (story_idea, character, dialogue, improve)"
     save_as: "task_type"
-    choices:
-      - label: "Generate a story idea"
-        value: "story_idea"
-        next: "generate_idea"
-      - label: "Create character descriptions"
-        value: "character"
-        next: "create_character"
-      - label: "Write dialogue"
-        value: "dialogue"
-        next: "write_dialogue"
-      - label: "Improve a paragraph"
-        value: "improve"
-        next: "improve_text"
+    next: "generate_idea"
   
   generate_idea:
     type: "prompt"
@@ -48,15 +36,10 @@ states:
     next: "ask_continue"
   
   ask_continue:
-    type: "choice"
-    prompt: "What would you like to do next?"
-    choices:
-      - label: "Try another writing task"
-        value: "continue"
-        next: "choose_task"
-      - label: "Exit"
-        value: "exit"
-        next: "end"
+    type: "input"
+    prompt: "What would you like to do next? (continue/exit)"
+    save_as: "next_action"
+    next: "end"
   
   end:
     type: "end"

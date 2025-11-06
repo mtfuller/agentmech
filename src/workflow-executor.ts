@@ -6,11 +6,7 @@ import Tracer = require('./tracer');
 
 const END_STATE = 'end';
 
-interface Choice {
-  label?: string;
-  value?: string;
-  next?: string;
-}
+
 
 interface NextOption {
   state: string;
@@ -36,7 +32,6 @@ interface State {
   prompt?: string;
   prompt_file?: string;
   workflow_ref?: string;
-  choices?: Choice[];
   next?: string;
   next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
@@ -190,8 +185,6 @@ class WorkflowExecutor {
     switch (state.type) {
       case 'prompt':
         return await this.executePromptState(stateName, state);
-      case 'choice':
-        return await this.executeChoiceState(stateName, state);
       case 'input':
         return await this.executeInputState(stateName, state);
       case 'transition':
@@ -303,44 +296,7 @@ class WorkflowExecutor {
     }
   }
 
-  /**
-   * Execute a choice state (presents options to user)
-   * @param stateName - Name of the state
-   * @param state - State configuration
-   * @returns Next state name
-   */
-  async executeChoiceState(stateName: string, state: State): Promise<string> {
-    if (state.prompt) {
-      console.log(`\n${this.interpolateVariables(state.prompt)}`);
-    }
-    
-    console.log('\nChoices:');
-    state.choices?.forEach((choice, index) => {
-      console.log(`  ${index + 1}. ${choice.label || choice.value}`);
-    });
-    
-    const answer = await this.askQuestion('\nSelect an option (enter number): ');
-    const choiceIndex = parseInt(answer) - 1;
-    
-    if (!state.choices || choiceIndex < 0 || choiceIndex >= state.choices.length) {
-      console.log('Invalid choice, please try again.');
-      return stateName; // Stay in current state
-    }
-    
-    const selectedChoice = state.choices[choiceIndex];
-    
-    // Store choice in context if variable is specified
-    if (state.save_as) {
-      this.context[state.save_as] = selectedChoice.value || selectedChoice.label;
-      this.tracer.traceContextUpdate(state.save_as, selectedChoice.value || selectedChoice.label);
-    }
-    
-    this.tracer.traceUserChoice(stateName, selectedChoice.value || selectedChoice.label || '');
-    
-    console.log(`\nSelected: ${selectedChoice.label || selectedChoice.value}`);
-    
-    return selectedChoice.next || state.next || END_STATE;
-  }
+
 
   /**
    * Execute an input state (asks user for freeform text input)

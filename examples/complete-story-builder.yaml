@@ -16,15 +16,10 @@ states:
     next: "ask_another"
   
   ask_another:
-    type: "choice"
-    prompt: "What would you like to do?"
-    choices:
-      - label: "Create another character"
-        value: "another"
-        next: "start_character_creation"
-      - label: "Finish"
-        value: "finish"
-        next: "end"
+    type: "input"
+    prompt: "What would you like to do? (another/finish)"
+    save_as: "next_action"
+    next: "end"
   
   end:
     type: "end"
