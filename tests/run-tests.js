@@ -354,6 +354,72 @@ function testWorkflowParser() {
     failed++;
   }
   
+  // Test 16: Accept valid input state
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test Input',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'input',
+          prompt: 'What is your name?',
+          save_as: 'name',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 16 passed: Accept valid input state');
+    passed++;
+  } catch (error) {
+    console.log('✗ Test 16 failed:', error.message);
+    failed++;
+  }
+  
+  // Test 17: Detect missing prompt in input state
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'input',
+          save_as: 'value',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✗ Test 17 failed: Should detect missing prompt in input state');
+    failed++;
+  } catch (error) {
+    console.log('✓ Test 17 passed: Detect missing prompt in input state');
+    passed++;
+  }
+  
+  // Test 18: Accept input state with default value
+  try {
+    WorkflowParser.validateWorkflow({
+      name: 'Test Input with Default',
+      start_state: 'test',
+      states: {
+        test: {
+          type: 'input',
+          prompt: 'Enter your location:',
+          default_value: 'Earth',
+          save_as: 'location',
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    });
+    console.log('✓ Test 18 passed: Accept input state with default value');
+    passed++;
+  } catch (error) {
+    console.log('✗ Test 18 failed:', error.message);
+    failed++;
+  }
+  
   console.log(`\nResults: ${passed} passed, ${failed} failed`);
   return failed === 0;
 }
