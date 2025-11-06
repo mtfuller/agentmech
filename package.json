@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/cli.js",
-    "test": "npm run build && node tests/run-tests.js",
+    "test": "npm run build && node tests/test-runner.js",
+    "test:rag-storage": "npm run build && node tests/rag/storage.test.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
