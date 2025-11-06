@@ -24,8 +24,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'Plan research',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -43,8 +42,7 @@ describe('Next Options (LLM State Selection)', () => {
             next_options: [
               { state: 'end', description: 'Go to end' }
             ]
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -63,8 +61,7 @@ describe('Next Options (LLM State Selection)', () => {
               { description: 'Option 1' },
               { state: 'end', description: 'Option 2' }
             ]
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -88,8 +85,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -113,8 +109,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -139,8 +134,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -166,8 +160,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -191,8 +184,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -211,8 +203,7 @@ describe('Next Options (LLM State Selection)', () => {
               { state: '', description: 'Empty state' },
               { state: 'end', description: 'Finish' }
             ]
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -236,8 +227,7 @@ describe('Next Options (LLM State Selection)', () => {
             type: 'prompt',
             prompt: 'State 1',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();

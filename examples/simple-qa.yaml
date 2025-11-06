@@ -10,6 +10,3 @@ states:
     prompt: "What is artificial intelligence and how does it work?"
     save_as: "answer"
     next: "end"
-  
-  end:
-    type: "end"

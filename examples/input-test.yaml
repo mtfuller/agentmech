@@ -17,5 +17,3 @@ states:
     default_value: "unknown"
     next: "end"
   
-  end:
-    type: "end"

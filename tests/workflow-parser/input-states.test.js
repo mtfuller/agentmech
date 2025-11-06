@@ -12,8 +12,7 @@ describe('Input State Validation', () => {
             prompt: 'What is your name?',
             save_as: 'name',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -29,8 +28,7 @@ describe('Input State Validation', () => {
             type: 'input',
             save_as: 'value',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -48,8 +46,7 @@ describe('Input State Validation', () => {
             default_value: 'Earth',
             save_as: 'location',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();

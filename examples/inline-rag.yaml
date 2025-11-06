@@ -34,5 +34,3 @@ states:
     save_as: "answer"
     next: "end"
   
-  end:
-    type: "end"

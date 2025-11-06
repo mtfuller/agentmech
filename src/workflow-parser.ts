@@ -197,6 +197,11 @@ class WorkflowParser {
       throw new Error(`Start state "${workflow.start_state}" not found in states`);
     }
 
+    // Validate that "end" is not explicitly defined (it's a reserved state)
+    if (workflow.states[END_STATE]) {
+      throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);
+    }
+
     // Validate RAG configuration if present
     if (workflow.rag) {
       this.validateRagConfig(workflow.rag);
@@ -287,7 +292,7 @@ class WorkflowParser {
       throw new Error(`State "${name}" must have a type`);
     }
 
-    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition', END_STATE];
+    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition'];
     if (!validTypes.includes(state.type)) {
       throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }

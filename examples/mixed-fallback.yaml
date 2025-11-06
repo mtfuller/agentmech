@@ -39,5 +39,3 @@ states:
     save_as: "global_recovery"
     next: "end"
   
-  end:
-    type: "end"

@@ -29,5 +29,3 @@ states:
     save_as: "continue_answer"
     next: "end"
   
-  end:
-    type: "end"

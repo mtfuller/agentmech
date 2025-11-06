@@ -22,8 +22,7 @@ describe('RAG Configuration Validation', () => {
             prompt: 'Test',
             use_rag: true,
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -55,8 +54,7 @@ describe('RAG Configuration Validation', () => {
             prompt: 'Test',
             use_rag: true,
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -77,8 +75,7 @@ describe('RAG Configuration Validation', () => {
               { label: 'Option', next: 'end' }
             ],
             use_rag: true
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -102,8 +99,7 @@ describe('RAG Configuration Validation', () => {
             prompt: 'Test',
             use_rag: true,
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -122,8 +118,7 @@ describe('RAG Configuration Validation', () => {
               directory: './docs'
             },
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -148,8 +143,7 @@ describe('RAG Configuration Validation', () => {
             prompt: 'Test',
             use_rag: 'docs',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).not.toThrow();
@@ -171,8 +165,7 @@ describe('RAG Configuration Validation', () => {
             prompt: 'Test',
             use_rag: 'kb',
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();
@@ -195,8 +188,7 @@ describe('RAG Configuration Validation', () => {
             },
             use_rag: true,
             next: 'end'
-          },
-          end: { type: 'end' }
+          }
         }
       });
     }).toThrow();

@@ -21,5 +21,3 @@ states:
     save_as: "next_action"
     next: "end"
   
-  end:
-    type: "end"
