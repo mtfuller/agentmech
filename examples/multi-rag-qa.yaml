@@ -8,14 +8,16 @@ rags:
   product_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "product_embeddings.json"
+    embeddingsFile: "product_embeddings.msgpack"
+    storageFormat: "msgpack"
     chunkSize: 500
     topK: 3
   
   technical_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "technical_embeddings.json"
+    embeddingsFile: "technical_embeddings.msgpack"
+    storageFormat: "msgpack"
     chunkSize: 800
     topK: 5
 

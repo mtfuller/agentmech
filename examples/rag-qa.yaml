@@ -7,7 +7,8 @@ start_state: "ask_question"
 rag:
   directory: "./examples/knowledge-base"
   model: "gemma3:4b"
-  embeddingsFile: "embeddings.json"
+  embeddingsFile: "embeddings.msgpack"
+  storageFormat: "msgpack"
   chunkSize: 500
   topK: 3
 

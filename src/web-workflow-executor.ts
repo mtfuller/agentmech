@@ -12,6 +12,11 @@ interface Choice {
   next?: string;
 }
 
+interface NextOption {
+  state: string;
+  description: string;
+}
+
 interface McpServerConfig {
   command: string;
   args?: string[];
@@ -33,6 +38,7 @@ interface State {
   workflow_ref?: string;
   choices?: Choice[];
   next?: string;
+  next_options?: NextOption[];  // LLM-driven state selection
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
@@ -40,6 +46,7 @@ interface State {
   use_rag?: boolean | string;  // true for default, or name of rag config
   rag?: RagConfig;  // inline RAG configuration
   default_value?: string;  // default value for input state
+  on_error?: string;  // Fallback state to transition to on error (state-level)
 }
 
 interface Workflow {
@@ -50,6 +57,7 @@ interface Workflow {
   mcp_servers?: Record<string, McpServerConfig>;
   rag?: RagConfig;  // Backward compatibility: default RAG config
   rags?: Record<string, RagConfig>;  // Named RAG configurations
+  on_error?: string;  // Fallback state to transition to on error (workflow-level)
   states: Record<string, State>;
 }
 
@@ -68,6 +76,7 @@ class WebWorkflowExecutor {
   private context: Record<string, any>;
   private history: string[];
   private sseResponse?: Response;
+  private sessionId?: string;
   private pendingInput?: { resolve: (value: string) => void; reject: (error: any) => void };
 
   constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434') {
@@ -87,12 +96,20 @@ class WebWorkflowExecutor {
   /**
    * Set SSE response for streaming events
    */
-  setSseResponse(res: Response): void {
+  setSseResponse(res: Response, sessionId: string): void {
     this.sseResponse = res;
+    this.sessionId = sessionId;
     this.sseResponse.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive'
+    });
+    
+    // Send session ID as the first event
+    this.sendEvent({
+      type: 'log',
+      message: 'Connected',
+      data: { sessionId }
     });
   }
 
@@ -233,7 +250,7 @@ class WebWorkflowExecutor {
       let currentState: string | null = this.workflow.start_state;
 
       while (currentState && currentState !== END_STATE) {
-        const state = this.workflow.states[currentState];
+        const state: State = this.workflow.states[currentState];
         
         this.sendEvent({
           type: 'state_change',
@@ -249,6 +266,28 @@ class WebWorkflowExecutor {
             type: 'error',
             message: `Error in state "${currentState}": ${error.message}`
           });
+          
+          // Check for state-level fallback first
+          if (state.on_error) {
+            this.sendEvent({
+              type: 'log',
+              message: `Transitioning to fallback state (state-level): ${state.on_error}`
+            });
+            currentState = state.on_error;
+            continue; // Continue the workflow with the fallback state
+          }
+          
+          // Check for workflow-level fallback
+          if (this.workflow.on_error) {
+            this.sendEvent({
+              type: 'log',
+              message: `Transitioning to fallback state (workflow-level): ${this.workflow.on_error}`
+            });
+            currentState = this.workflow.on_error;
+            continue; // Continue the workflow with the fallback state
+          }
+          
+          // No fallback configured, re-throw the error
           throw error;
         }
       }
@@ -415,6 +454,11 @@ class WebWorkflowExecutor {
         this.context[state.save_as] = response;
       }
 
+      // Handle LLM-driven state selection if next_options is defined
+      if (state.next_options && state.next_options.length > 0) {
+        return await this.selectNextState(state.next_options, response, model);
+      }
+
       return state.next || END_STATE;
     } catch (error: any) {
       throw new Error(`Failed to generate response: ${error.message}`);
@@ -504,6 +548,79 @@ class WebWorkflowExecutor {
     });
 
     return state.next || END_STATE;
+  }
+  
+  /**
+   * Let the LLM select the next state from available options
+   */
+  private async selectNextState(nextOptions: NextOption[], previousResponse: string, model: string): Promise<string> {
+    this.sendEvent({
+      type: 'log',
+      message: '--- LLM selecting next state ---'
+    });
+    
+    // Sanitize and limit the previous response to prevent token overflow and injection
+    const maxResponseLength = 500;
+    const sanitizedResponse = previousResponse
+      .substring(0, maxResponseLength)
+      .replace(/[^\w\s\-.,!?]/g, ' ')  // Remove special characters
+      .trim();
+    
+    const truncatedMessage = previousResponse.length > maxResponseLength ? ' [truncated]' : '';
+    
+    // Build a prompt for the LLM to select the next state
+    let selectionPrompt = `Based on the previous response, select the most appropriate next step from the following options:\n\n`;
+    selectionPrompt += `Previous response: "${sanitizedResponse}${truncatedMessage}"\n\n`;
+    selectionPrompt += `Available options:\n`;
+    
+    nextOptions.forEach((option, index) => {
+      selectionPrompt += `${index + 1}. ${option.state}: ${option.description}\n`;
+    });
+    
+    selectionPrompt += `\nRespond with ONLY the number (1-${nextOptions.length}) of the most appropriate next step. Do not include any explanation, just the number.`;
+    
+    this.sendEvent({
+      type: 'log',
+      message: 'Asking LLM to select next state...'
+    });
+    
+    try {
+      const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
+      
+      // Extract the first number found in the response (more robust parsing)
+      const numberMatch = selectionResponse.match(/\d+/);
+      if (!numberMatch) {
+        this.sendEvent({
+          type: 'log',
+          message: `LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`
+        });
+        return nextOptions[0].state;
+      }
+      
+      const selectedIndex = parseInt(numberMatch[0]) - 1;
+      
+      if (selectedIndex < 0 || selectedIndex >= nextOptions.length) {
+        this.sendEvent({
+          type: 'log',
+          message: `LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`
+        });
+        return nextOptions[0].state;
+      }
+      
+      const selectedOption = nextOptions[selectedIndex];
+      this.sendEvent({
+        type: 'log',
+        message: `✓ LLM selected: ${selectedOption.state} - ${selectedOption.description}`
+      });
+      
+      return selectedOption.state;
+    } catch (error: any) {
+      this.sendEvent({
+        type: 'log',
+        message: `Error during LLM state selection: ${error.message}. Defaulting to first option.`
+      });
+      return nextOptions[0].state;
+    }
   }
 
   /**

@@ -35,7 +35,8 @@ states:
       directory: "./examples/knowledge-base"
       chunkSize: 1000
       topK: 5
-      embeddingsFile: "custom_embeddings.json"
+      embeddingsFile: "custom_embeddings.msgpack"
+      storageFormat: "msgpack"
     save_as: "answer"
     next: "end"
   

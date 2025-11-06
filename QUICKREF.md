@@ -54,6 +54,19 @@ my_state:
   next: "next_state"
 ```
 
+Or with LLM-driven routing (let AI choose next state):
+```yaml
+my_state:
+  type: "prompt"
+  prompt: "Your question here"
+  save_as: "variable_name"
+  next_options:                # LLM chooses best path
+    - state: "option_1"
+      description: "When condition A is met"
+    - state: "option_2"
+      description: "When condition B is met"
+```
+
 Or load from external file:
 ```yaml
 my_state:
