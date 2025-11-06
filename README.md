@@ -170,6 +170,7 @@ A workflow file consists of:
 - **default_model**: Default Ollama model to use (e.g., "gemma3:4b", "mistral")
 - **mcp_servers**: Optional MCP server configurations
 - **rag**: Optional RAG (Retrieval-Augmented Generation) configuration
+- **on_error**: Optional workflow-level fallback state for error handling
 - **start_state**: The initial state to begin execution
 - **states**: Object containing all workflow states
 
@@ -243,6 +244,7 @@ state_name:
   rag:  # Optional: inline RAG configuration
     directory: "./docs"
     chunkSize: 500
+  on_error: "error_handler"  # Optional: fallback state on error
   next: "next_state_name"  # Next state to transition to
 ```
 
@@ -272,6 +274,7 @@ state_name:
   type: "choice"
   prompt: "Choose an option:"  # Optional
   save_as: "variable_name"  # Optional, saves choice to context
+  on_error: "error_handler"  # Optional: fallback state on error
   choices:
     - label: "Option 1"
       value: "option1"
@@ -358,6 +361,96 @@ generate_response:
   prompt: "Write a {{genre}} story about {{topic}}"
   save_as: "story"
   next: "display_result"
+```
+
+### Error Handling with Fallback Flow
+
+You can specify fallback states to handle errors gracefully at both the state level and workflow level. When an error occurs during workflow execution, the workflow will transition to the specified fallback state instead of terminating.
+
+#### State-Level Fallback
+
+Define an `on_error` field in a state to specify a fallback state for that specific state:
+
+```yaml
+states:
+  risky_operation:
+    type: "prompt"
+    prompt: "This might fail"
+    model: "some-model"
+    on_error: "error_handler"  # State-level fallback
+    next: "success_state"
+  
+  error_handler:
+    type: "prompt"
+    prompt: "Recovering from error..."
+    next: "end"
+  
+  success_state:
+    type: "prompt"
+    prompt: "Operation succeeded!"
+    next: "end"
+```
+
+#### Workflow-Level Fallback
+
+Define an `on_error` field at the workflow level to apply a default fallback to all states without their own `on_error`:
+
+```yaml
+name: "Resilient Workflow"
+default_model: "gemma3:4b"
+on_error: "global_error_handler"  # Workflow-level fallback
+start_state: "step_one"
+
+states:
+  step_one:
+    type: "prompt"
+    prompt: "First step"
+    next: "step_two"
+  
+  step_two:
+    type: "prompt"
+    prompt: "Second step"
+    next: "end"
+  
+  global_error_handler:
+    type: "prompt"
+    prompt: "An error occurred, but the workflow recovered"
+    next: "end"
+```
+
+#### Fallback Priority
+
+When an error occurs:
+1. **State-level fallback** is checked first (if defined)
+2. **Workflow-level fallback** is used if no state-level fallback exists
+3. **Error is thrown** if no fallback is configured
+
+```yaml
+name: "Mixed Fallback Example"
+on_error: "global_fallback"  # Default fallback
+start_state: "normal_step"
+
+states:
+  normal_step:
+    type: "prompt"
+    prompt: "Normal operation"
+    next: "special_step"
+  
+  special_step:
+    type: "prompt"
+    prompt: "Special operation"
+    on_error: "specific_handler"  # Overrides global fallback
+    next: "end"
+  
+  specific_handler:
+    type: "prompt"
+    prompt: "Handling specific error"
+    next: "end"
+  
+  global_fallback:
+    type: "prompt"
+    prompt: "Handling general error"
+    next: "end"
 ```
 
 ### Complete Example
@@ -513,6 +606,9 @@ The `examples/` directory contains sample workflows:
 - **external-prompt-file.yaml**: Example using external markdown file for prompts
 - **greeting-workflow.yaml**: Simple reusable greeting workflow
 - **workflow-reference.yaml**: Example of referencing another workflow
+- **state-level-fallback.yaml**: Demonstrates state-level error handling with fallback states
+- **workflow-level-fallback.yaml**: Demonstrates workflow-level error handling
+- **mixed-fallback.yaml**: Shows both state-level and workflow-level fallback priorities
 
 See [USAGE.md](USAGE.md) for detailed usage examples and guides.
 
