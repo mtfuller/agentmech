@@ -177,6 +177,10 @@ class WebServer {
     return text.replace(/[&<>"']/g, (char) => map[char]);
   }
 
+  /**
+   * Get the index.html page content
+   * Reads from dist/views/index.html (after build script copies from src/views/)
+   */
   private getIndexHtml(): string {
     try {
       const indexPath = path.join(__dirname, 'views', 'index.html');
@@ -223,6 +227,10 @@ class WebServer {
     }
   }
 
+  /**
+   * Get the execution.html page content
+   * Reads from dist/views/execution.html (after build script copies from src/views/)
+   */
   private getExecutionHtml(): string {
     try {
       const executionPath = path.join(__dirname, 'views', 'execution.html');

@@ -7,21 +7,59 @@ const path = require('path');
 const srcDir = path.join(__dirname, '..', 'src', 'views');
 const destDir = path.join(__dirname, '..', 'dist', 'views');
 
+// Check if source directory exists
+if (!fs.existsSync(srcDir)) {
+  console.error(`Error: Source directory does not exist: ${srcDir}`);
+  console.error('Please ensure the src/views directory exists before building.');
+  process.exit(1);
+}
+
 // Create destination directory if it doesn't exist
-if (!fs.existsSync(destDir)) {
-  fs.mkdirSync(destDir, { recursive: true });
-  console.log('Created directory:', destDir);
+try {
+  if (!fs.existsSync(destDir)) {
+    fs.mkdirSync(destDir, { recursive: true });
+    console.log('Created directory:', destDir);
+  }
+} catch (error) {
+  console.error(`Error creating destination directory: ${error.message}`);
+  process.exit(1);
 }
 
 // Read all HTML files from source directory
-const files = fs.readdirSync(srcDir).filter(file => file.endsWith('.html'));
+let files;
+try {
+  files = fs.readdirSync(srcDir).filter(file => file.endsWith('.html'));
+} catch (error) {
+  console.error(`Error reading source directory: ${error.message}`);
+  process.exit(1);
+}
+
+if (files.length === 0) {
+  console.warn('Warning: No HTML files found in src/views/');
+  process.exit(0);
+}
 
 // Copy each HTML file
+let successCount = 0;
+let errorCount = 0;
+
 files.forEach(file => {
   const srcFile = path.join(srcDir, file);
   const destFile = path.join(destDir, file);
-  fs.copyFileSync(srcFile, destFile);
-  console.log(`Copied ${file} to dist/views/`);
+  
+  try {
+    fs.copyFileSync(srcFile, destFile);
+    console.log(`Copied ${file} to dist/views/`);
+    successCount++;
+  } catch (error) {
+    console.error(`Error copying ${file}: ${error.message}`);
+    errorCount++;
+  }
 });
 
-console.log(`Successfully copied ${files.length} HTML file(s)`);
+if (errorCount > 0) {
+  console.error(`Failed to copy ${errorCount} file(s)`);
+  process.exit(1);
+}
+
+console.log(`Successfully copied ${successCount} HTML file(s)`);
