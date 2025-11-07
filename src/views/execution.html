@@ -425,6 +425,9 @@
             }
         }
         
+        // Counter for generating unique prompt IDs
+        let promptCounter = 0;
+        
         function addMessage(type, message, data) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
@@ -443,14 +446,24 @@
                 }
             } else if (type === 'prompt-details') {
                 // Create collapsible prompt component
-                const promptId = 'prompt-' + Date.now();
-                messageDiv.innerHTML = `
-                    <div class="prompt-header" onclick="togglePrompt('${promptId}')">
-                        <span>📝 Model Prompt</span>
-                        <span class="prompt-toggle" id="${promptId}-toggle">▼ Show</span>
-                    </div>
-                    <div class="prompt-content" id="${promptId}-content">${escapeHtml(data.fullPrompt)}</div>
+                const promptId = 'prompt-' + (++promptCounter);
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'prompt-header';
+                headerDiv.innerHTML = `
+                    <span>📝 Model Prompt</span>
+                    <span class="prompt-toggle" id="${promptId}-toggle">▼ Show</span>
                 `;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'prompt-content';
+                contentDiv.id = promptId + '-content';
+                contentDiv.textContent = data.fullPrompt;
+                
+                // Add click event listener to toggle
+                headerDiv.addEventListener('click', () => togglePrompt(promptId));
+                
+                messageDiv.appendChild(headerDiv);
+                messageDiv.appendChild(contentDiv);
             } else {
                 messageDiv.textContent = message;
             }
@@ -460,8 +473,19 @@
         }
         
         function togglePrompt(promptId) {
+            // Validate promptId format
+            if (!/^prompt-\d+$/.test(promptId)) {
+                console.error('Invalid promptId format');
+                return;
+            }
+            
             const content = document.getElementById(promptId + '-content');
             const toggle = document.getElementById(promptId + '-toggle');
+            
+            if (!content || !toggle) {
+                console.error('Prompt elements not found');
+                return;
+            }
             
             if (content.classList.contains('visible')) {
                 content.classList.remove('visible');
