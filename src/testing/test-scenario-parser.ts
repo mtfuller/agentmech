@@ -23,6 +23,8 @@ export interface TestAssertion {
   target?: string;        // Variable name or state name to check
   value?: string;         // Expected value or pattern
   description?: string;   // Optional description of what this assertion validates
+  case_sensitive?: boolean; // For contains/not_contains: whether to match case-sensitively (default: true)
+  regex?: boolean;        // For contains/not_contains: whether to treat value as regex pattern (default: false)
 }
 
 /**
@@ -169,8 +171,8 @@ export class TestScenarioParser {
       }
     }
 
-    // Validate regex pattern if type is regex
-    if (assertion.type === 'regex') {
+    // Validate regex pattern if type is regex, or if regex flag is true for contains/not_contains
+    if (assertion.type === 'regex' || (assertion.regex === true && (assertion.type === 'contains' || assertion.type === 'not_contains'))) {
       try {
         new RegExp(assertion.value!);
       } catch (error) {
