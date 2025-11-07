@@ -16,9 +16,10 @@ export interface RunDirectoryInfo {
 /**
  * Generate a unique directory name for a workflow run
  * @param workflowName - Name of the workflow
+ * @param timestamp - Optional ISO timestamp (uses current time if not provided)
  * @returns Directory name in format: workflowName-timestamp
  */
-export function generateRunDirectoryName(workflowName: string): string {
+export function generateRunDirectoryName(workflowName: string, timestamp?: string): string {
   // Sanitize workflow name for filesystem
   const sanitizedName = workflowName
     .toLowerCase()
@@ -26,13 +27,14 @@ export function generateRunDirectoryName(workflowName: string): string {
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
   
-  // Generate timestamp
-  const timestamp = new Date().toISOString()
+  // Use provided timestamp or generate new one
+  const isoTimestamp = timestamp || new Date().toISOString();
+  const formattedTimestamp = isoTimestamp
     .replace(/:/g, '-')
     .replace(/\./g, '-')
     .substring(0, 19); // YYYY-MM-DDTHH-MM-SS
   
-  return `${sanitizedName}-${timestamp}`;
+  return `${sanitizedName}-${formattedTimestamp}`;
 }
 
 /**
@@ -46,9 +48,11 @@ export function createRunDirectory(workflowName: string, baseDir?: string): RunD
   const defaultBaseDir = path.join(os.homedir(), '.ai-workflow-cli', 'runs');
   const runsBaseDir = baseDir || defaultBaseDir;
   
-  // Generate unique directory name
-  const dirName = generateRunDirectoryName(workflowName);
+  // Generate timestamp once for consistency
   const timestamp = new Date().toISOString();
+  
+  // Generate unique directory name using the same timestamp
+  const dirName = generateRunDirectoryName(workflowName, timestamp);
   
   // Create full path
   const runPath = path.join(runsBaseDir, dirName);
