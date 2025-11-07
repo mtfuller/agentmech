@@ -83,8 +83,15 @@ class OllamaClient {
       
       // Trace with indication of multimodal if images present
       const hasImages = messages.some(m => m.images && m.images.length > 0);
-      const traceContext = hasImages ? { ...options, multimodal: true, imageCount: messages.reduce((sum, m) => sum + (m.images?.length || 0), 0) } : options;
-      this.tracer.traceModelInteraction(model, messages.map(m => `${m.role}: ${m.content}`).join('\n'), result, traceContext);
+      let traceContext = options;
+      
+      if (hasImages) {
+        const imageCount = messages.reduce((sum, m) => sum + (m.images?.length || 0), 0);
+        traceContext = { ...options, multimodal: true, imageCount };
+      }
+      
+      const formattedMessages = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+      this.tracer.traceModelInteraction(model, formattedMessages, result, traceContext);
       
       return result;
     } catch (error) {
