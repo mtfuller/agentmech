@@ -279,6 +279,9 @@ interface GenerateOptions {
   model?: string;
 }
 
+// Constants for workflow generation
+const MAX_FILENAME_LENGTH = 50;
+
 program
   .command('generate')
   .description('Generate a new workflow YAML file from a natural language description')
@@ -338,8 +341,17 @@ Generate ONLY the YAML content, nothing else:`;
       const yamlContent = await client.generate(options.model || 'gemma3:4b', prompt);
 
       // Clean up any markdown code fences that might have been included
+      // LLMs sometimes wrap code in markdown format, so we remove those artifacts
       let cleanedYaml = yamlContent.trim();
-      cleanedYaml = cleanedYaml.replace(/^```ya?ml\s*/i, '').replace(/^```\s*/, '').replace(/\s*```\s*$/g, '');
+      
+      // Remove opening yaml/yml code fence (e.g., ```yaml or ```yml)
+      cleanedYaml = cleanedYaml.replace(/^```ya?ml\s*/i, '');
+      
+      // Remove opening generic code fence (e.g., ```)
+      cleanedYaml = cleanedYaml.replace(/^```\s*/, '');
+      
+      // Remove closing code fence (e.g., ```)
+      cleanedYaml = cleanedYaml.replace(/\s*```\s*$/g, '');
 
       // Determine output path
       let outputPath: string;
@@ -347,11 +359,12 @@ Generate ONLY the YAML content, nothing else:`;
         outputPath = path.resolve(options.output);
       } else {
         // Generate a filename from the description
+        // Convert to lowercase, remove special characters, replace spaces with hyphens
         const filename = description
           .toLowerCase()
-          .replace(/[^a-z0-9\s]/g, '')
-          .replace(/\s+/g, '-')
-          .substring(0, 50) + '.yaml';
+          .replace(/[^a-z0-9\s]/g, '') // Remove non-alphanumeric except spaces
+          .replace(/\s+/g, '-') // Replace spaces with hyphens
+          .substring(0, MAX_FILENAME_LENGTH) + '.yaml'; // Truncate to max length
         outputPath = path.resolve(filename);
       }
 
