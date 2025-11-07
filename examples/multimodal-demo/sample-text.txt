@@ -1,0 +1,9 @@
+This is a sample text file for multimodal workflow demonstration.
+
+The file contains information about artificial intelligence and machine learning.
+
+Key concepts:
+- Machine learning is a subset of AI
+- Deep learning uses neural networks
+- Natural language processing helps computers understand human language
+- Computer vision enables machines to interpret images
