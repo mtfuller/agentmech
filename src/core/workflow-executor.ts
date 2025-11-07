@@ -1,8 +1,10 @@
 import * as readline from 'readline';
+import * as path from 'path';
 import OllamaClient = require('../integrations/ollama-client');
 import McpClient = require('../integrations/mcp-client');
 import RagService = require('../integrations/rag-service');
 import Tracer = require('../utils/tracer');
+import FileHandler = require('../utils/file-handler');
 
 const END_STATE = 'end';
 
@@ -42,6 +44,7 @@ interface State {
   rag?: RagConfig;  // inline RAG configuration
   default_value?: string;  // default value for input state
   on_error?: string;  // Fallback state to transition to on error (state-level)
+  files?: string[];  // Array of file paths for multimodal inputs (images, PDFs, text files, etc.)
 }
 
 interface Workflow {
@@ -269,6 +272,41 @@ class WorkflowExecutor {
     let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
     
+    // Process files if provided (for multimodal support)
+    let images: string[] = [];
+    let textContents: string[] = [];
+    
+    if (state.files && state.files.length > 0) {
+      console.log(`\nProcessing ${state.files.length} file(s) for multimodal input...`);
+      
+      for (const filePath of state.files) {
+        try {
+          const resolvedPath = this.interpolateVariables(filePath);
+          const processedFile = await FileHandler.processFile(resolvedPath);
+          
+          console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
+          
+          if (processedFile.type === 'image') {
+            images.push(processedFile.content);
+          } else if (processedFile.type === 'text') {
+            textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
+          }
+        } catch (error: any) {
+          console.warn(`⚠ Warning: ${error.message}`);
+          // Continue processing other files
+        }
+      }
+      
+      // Append text file contents to the prompt
+      if (textContents.length > 0) {
+        prompt = prompt + '\n\n' + textContents.join('\n');
+      }
+      
+      if (images.length > 0) {
+        console.log(`📷 Attached ${images.length} image(s) to the prompt`);
+      }
+    }
+    
     // Determine which RAG service to use
     let ragServiceToUse: RagService | undefined = undefined;
     
@@ -327,7 +365,8 @@ class WorkflowExecutor {
     console.log('Generating response...\n');
     
     try {
-      const response = await this.ollamaClient.generate(model, prompt, state.options || {});
+      // Use multimodal generate if images are present
+      const response = await this.ollamaClient.generate(model, prompt, state.options || {}, images.length > 0 ? images : undefined);
       console.log(`Response: ${response}\n`);
       
       // Store response in context if variable is specified

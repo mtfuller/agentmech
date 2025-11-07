@@ -1,0 +1,11 @@
+{
+  "product": "AI Workflow CLI",
+  "version": "1.0.0",
+  "features": [
+    "Multimodal support",
+    "RAG integration",
+    "MCP server connectivity",
+    "Workflow composition"
+  ],
+  "description": "A powerful CLI tool for running AI workflows with Ollama"
+}

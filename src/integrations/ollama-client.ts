@@ -9,6 +9,7 @@ interface OllamaModel {
 interface ChatMessage {
   role: string;
   content: string;
+  images?: string[];  // Array of base64-encoded images for multimodal support
 }
 
 interface GenerateOptions {
@@ -29,9 +30,15 @@ class OllamaClient {
    * @param model - The model to use (e.g., 'gemma3:4b', 'mistral')
    * @param prompt - The prompt to send
    * @param options - Additional options
+   * @param images - Optional array of base64-encoded images for multimodal models
    * @returns The generated response
    */
-  async generate(model: string, prompt: string, options: GenerateOptions = {}): Promise<string> {
+  async generate(model: string, prompt: string, options: GenerateOptions = {}, images?: string[]): Promise<string> {
+    // If images are provided, use the chat API instead for multimodal support
+    if (images && images.length > 0) {
+      return this.chat(model, [{ role: 'user', content: prompt, images }], options);
+    }
+    
     try {
       const response = await axios.post(`${this.baseUrl}/api/generate`, {
         model,
@@ -57,9 +64,9 @@ class OllamaClient {
   }
 
   /**
-   * Chat with Ollama using messages format
+   * Chat with Ollama using messages format (supports multimodal with images)
    * @param model - The model to use
-   * @param messages - Array of message objects with role and content
+   * @param messages - Array of message objects with role, content, and optional images
    * @param options - Additional options
    * @returns The generated response
    */
@@ -72,7 +79,21 @@ class OllamaClient {
         ...options
       });
       
-      return response.data.message.content;
+      const result = response.data.message.content;
+      
+      // Trace with indication of multimodal if images present
+      const hasImages = messages.some(m => m.images && m.images.length > 0);
+      let traceContext = options;
+      
+      if (hasImages) {
+        const imageCount = messages.reduce((sum, m) => sum + (m.images?.length || 0), 0);
+        traceContext = { ...options, multimodal: true, imageCount };
+      }
+      
+      const formattedMessages = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+      this.tracer.traceModelInteraction(model, formattedMessages, result, traceContext);
+      
+      return result;
     } catch (error) {
       const axiosError = error as AxiosError;
       if ((axiosError as any).code === 'ECONNREFUSED') {
