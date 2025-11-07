@@ -302,7 +302,9 @@ class WorkflowParser {
 
   /**
    * Normalize RAG configuration field names (support both old camelCase and new snake_case)
-   * @param ragConfig - RAG configuration
+   * This method mutates the input object to ensure both old and new field names are present.
+   * New snake_case field names take precedence when both are provided.
+   * @param ragConfig - RAG configuration (will be mutated)
    */
   static normalizeRagConfig(ragConfig: RagConfig): void {
     // Support both old (camelCase) and new (snake_case) field names
