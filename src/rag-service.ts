@@ -13,10 +13,14 @@ interface DocumentChunk {
 interface RagConfig {
   directory: string;
   model?: string;
-  embeddingsFile?: string;
-  chunkSize?: number;
-  topK?: number;
-  storageFormat?: 'json' | 'msgpack'; // Storage format for embeddings
+  embeddings_file?: string;
+  embeddingsFile?: string;  // Deprecated: use embeddings_file
+  chunk_size?: number;
+  chunkSize?: number;  // Deprecated: use chunk_size
+  top_k?: number;
+  topK?: number;  // Deprecated: use top_k
+  storage_format?: 'json' | 'msgpack';
+  storageFormat?: 'json' | 'msgpack';  // Deprecated: use storage_format
 }
 
 // Constants for embeddings storage
@@ -36,12 +40,22 @@ class RagService {
   private chunks: DocumentChunk[] = [];
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
+    // Support both old and new field names
+    const embeddingsFile = config.embeddings_file || config.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
+    const chunkSize = config.chunk_size || config.chunkSize || 1000;
+    const topK = config.top_k || config.topK || 3;
+    const storageFormat = config.storage_format || config.storageFormat || 'msgpack';
+    
     this.config = {
       model: config.model || 'gemma3:4b',
-      embeddingsFile: config.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE,
-      chunkSize: config.chunkSize || 1000,
-      topK: config.topK || 3,
-      storageFormat: config.storageFormat || 'msgpack', // Default to msgpack
+      embeddings_file: embeddingsFile,
+      embeddingsFile: embeddingsFile,  // Keep for backward compatibility
+      chunk_size: chunkSize,
+      chunkSize: chunkSize,  // Keep for backward compatibility
+      top_k: topK,
+      topK: topK,  // Keep for backward compatibility
+      storage_format: storageFormat,
+      storageFormat: storageFormat,  // Keep for backward compatibility
       ...config
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);

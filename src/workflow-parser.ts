@@ -23,9 +23,14 @@ interface McpServerConfig {
 interface RagConfig {
   directory: string;
   model?: string;
-  embeddingsFile?: string;
-  chunkSize?: number;
-  topK?: number;
+  embeddings_file?: string;
+  embeddingsFile?: string;  // Deprecated: use embeddings_file
+  chunk_size?: number;
+  chunkSize?: number;  // Deprecated: use chunk_size
+  top_k?: number;
+  topK?: number;  // Deprecated: use top_k
+  storage_format?: 'json' | 'msgpack';
+  storageFormat?: 'json' | 'msgpack';  // Deprecated: use storage_format
 }
 
 interface State {
@@ -300,10 +305,38 @@ class WorkflowParser {
   }
 
   /**
+   * Normalize RAG configuration field names (support both old camelCase and new snake_case)
+   * @param ragConfig - RAG configuration
+   */
+  static normalizeRagConfig(ragConfig: RagConfig): void {
+    // Support both old (camelCase) and new (snake_case) field names
+    // Warn about deprecated usage
+    if (ragConfig.embeddingsFile && !ragConfig.embeddings_file) {
+      console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
+      ragConfig.embeddings_file = ragConfig.embeddingsFile;
+    }
+    if (ragConfig.chunkSize && !ragConfig.chunk_size) {
+      console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
+      ragConfig.chunk_size = ragConfig.chunkSize;
+    }
+    if (ragConfig.topK && !ragConfig.top_k) {
+      console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
+      ragConfig.top_k = ragConfig.topK;
+    }
+    if (ragConfig.storageFormat && !ragConfig.storage_format) {
+      console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
+      ragConfig.storage_format = ragConfig.storageFormat;
+    }
+  }
+
+  /**
    * Validate RAG configuration
    * @param ragConfig - RAG configuration
    */
   static validateRagConfig(ragConfig: RagConfig): void {
+    // First normalize field names
+    this.normalizeRagConfig(ragConfig);
+
     if (!ragConfig.directory) {
       throw new Error('RAG configuration must have a directory');
     }
@@ -313,14 +346,21 @@ class WorkflowParser {
     if (ragConfig.model && typeof ragConfig.model !== 'string') {
       throw new Error('RAG model must be a string');
     }
-    if (ragConfig.embeddingsFile && typeof ragConfig.embeddingsFile !== 'string') {
-      throw new Error('RAG embeddingsFile must be a string');
+    
+    // Validate new snake_case fields (after normalization)
+    const embeddingsFile = ragConfig.embeddings_file || ragConfig.embeddingsFile;
+    if (embeddingsFile && typeof embeddingsFile !== 'string') {
+      throw new Error('RAG embeddings_file must be a string');
     }
-    if (ragConfig.chunkSize && (typeof ragConfig.chunkSize !== 'number' || ragConfig.chunkSize <= 0)) {
-      throw new Error('RAG chunkSize must be a positive number');
+    
+    const chunkSize = ragConfig.chunk_size || ragConfig.chunkSize;
+    if (chunkSize && (typeof chunkSize !== 'number' || chunkSize <= 0)) {
+      throw new Error('RAG chunk_size must be a positive number');
     }
-    if (ragConfig.topK && (typeof ragConfig.topK !== 'number' || ragConfig.topK <= 0)) {
-      throw new Error('RAG topK must be a positive number');
+    
+    const topK = ragConfig.top_k || ragConfig.topK;
+    if (topK && (typeof topK !== 'number' || topK <= 0)) {
+      throw new Error('RAG top_k must be a positive number');
     }
   }
 
