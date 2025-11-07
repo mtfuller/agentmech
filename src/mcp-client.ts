@@ -2,7 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import Tracer = require('./tracer');
 
 interface McpServerConfig {
-  command: string;
+  command?: string;  // Optional for type-based configs, but always set after normalization
   args?: string[];
   env?: Record<string, string>;
 }
@@ -42,7 +42,7 @@ class McpClient {
    */
   registerServer(name: string, config: McpServerConfig): void {
     this.serverConfigs.set(name, config);
-    this.tracer.traceMcpServerRegister(name, config.command);
+    this.tracer.traceMcpServerRegister(name, config.command || 'unknown');
   }
 
   /**
@@ -54,6 +54,12 @@ class McpClient {
     const config = this.serverConfigs.get(name);
     if (!config) {
       const error = `MCP server "${name}" is not registered`;
+      this.tracer.traceMcpServerConnect(name, false, error);
+      throw new Error(error);
+    }
+
+    if (!config.command) {
+      const error = `MCP server "${name}" has no command configured`;
       this.tracer.traceMcpServerConnect(name, false, error);
       throw new Error(error);
     }
@@ -71,7 +77,10 @@ class McpClient {
           ...config.env
         };
 
-        const serverProcess = spawn(config.command, config.args || [], {
+        // At this point, config.command is guaranteed to be defined due to check above
+        const command = config.command as string;
+
+        const serverProcess = spawn(command, config.args || [], {
           env,
           stdio: ['pipe', 'pipe', 'pipe']
         });

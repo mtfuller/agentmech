@@ -21,6 +21,4 @@ states:
     prompt: "Enter your city"
     save_as: "city"
     next: "end"
-  
-  end:
-    type: "end"
+

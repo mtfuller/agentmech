@@ -1,0 +1,47 @@
+name: "MCP NPX Simplified Example"
+description: "Demonstrates simplified NPX MCP server configuration"
+default_model: "gemma3:4b"
+start_state: "choose_task"
+
+# Simplified MCP server configuration using NPX type
+# No need to specify "npx" command or "-y" flag explicitly
+mcp_servers:
+  filesystem:
+    type: npx
+    package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  memory:
+    type: npx
+    package: "@modelcontextprotocol/server-memory"
+
+states:
+  choose_task:
+    type: "input"
+    prompt: "What would you like to do with MCP servers? (filesystem, memory, both)"
+    save_as: "task_choice"
+    next: "filesystem_task"
+  
+  filesystem_task:
+    type: "prompt"
+    prompt: "Analyze the structure of /tmp directory and suggest best practices for organization"
+    mcp_servers: ["filesystem"]
+    save_as: "filesystem_result"
+    next: "end"
+  
+  memory_task:
+    type: "prompt"
+    prompt: "Store and recall information using the memory server"
+    mcp_servers: ["memory"]
+    save_as: "memory_result"
+    next: "end"
+  
+  combined_task:
+    type: "prompt"
+    prompt: "Use both filesystem and memory capabilities to create a comprehensive solution"
+    mcp_servers: ["filesystem", "memory"]
+    save_as: "combined_result"
+    next: "end"
+  

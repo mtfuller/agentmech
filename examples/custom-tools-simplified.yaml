@@ -1,13 +1,14 @@
-name: "Custom Tools Demo"
-description: "Demonstrates using custom JavaScript tools in a workflow"
+name: "Custom Tools Simplified"
+description: "Demonstrates simplified custom tools MCP server configuration"
 default_model: "gemma3:4b"
 start_state: "choose_operation"
 
-# Configure custom MCP server with JavaScript tools
+# Simplified custom tools configuration
+# No need to specify "node", "dist/custom-mcp-server.js" explicitly
 mcp_servers:
   custom_tools:
-    command: "node"
-    args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
+    type: custom-tools
+    toolsDirectory: "examples/custom-tools"
 
 states:
   choose_operation:

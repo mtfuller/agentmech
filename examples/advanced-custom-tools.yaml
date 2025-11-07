@@ -84,6 +84,4 @@ states:
         description: "User wants to continue with another operation"
       - state: "end"
         description: "User wants to stop or said no"
-  
-  end:
-    type: "end"
+

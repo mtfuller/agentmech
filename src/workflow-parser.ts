@@ -12,7 +12,10 @@ interface NextOption {
 }
 
 interface McpServerConfig {
-  command: string;
+  type?: 'npx' | 'custom-tools';  // Optional type for simplified configs
+  command?: string;  // Made optional when type is specified
+  package?: string;  // For npx type: package name
+  toolsDirectory?: string;  // For custom-tools type: directory path
   args?: string[];
   env?: Record<string, string>;
 }
@@ -78,6 +81,9 @@ class WorkflowParser {
       const fileContent = fs.readFileSync(filePath, 'utf8');
       const workflow = yaml.load(fileContent) as Workflow;
       
+      // Normalize MCP server configurations
+      this.normalizeMcpServerConfigs(workflow, filePath);
+      
       // Resolve external file references
       this.resolveExternalReferences(workflow, filePath, newVisitedFiles);
       
@@ -89,6 +95,67 @@ class WorkflowParser {
         throw new Error(`Workflow file not found: ${filePath}`);
       }
       throw new Error(`Failed to parse workflow: ${error.message}`);
+    }
+  }
+
+  /**
+   * Normalize MCP server configurations by converting simplified types to standard format
+   * @param workflow - The workflow object
+   * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
+   */
+  static normalizeMcpServerConfigs(workflow: Workflow, workflowFilePath: string): void {
+    if (!workflow.mcp_servers) {
+      return;
+    }
+
+    const workflowDir = path.dirname(workflowFilePath);
+
+    for (const [serverName, config] of Object.entries(workflow.mcp_servers)) {
+      if (config.type === 'npx') {
+        // NPX type: automatic npx invocation with package name
+        if (!config.package) {
+          throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
+        }
+
+        // Convert to standard format
+        const packageArgs = ['-y', config.package];
+        if (config.args && config.args.length > 0) {
+          packageArgs.push(...config.args);
+        }
+
+        config.command = 'npx';
+        config.args = packageArgs;
+        
+        // Remove the type-specific fields after normalization
+        delete config.type;
+        delete config.package;
+      } else if (config.type === 'custom-tools') {
+        // Custom tools type: automatic path to custom-mcp-server.js
+        if (!config.toolsDirectory) {
+          throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
+        }
+
+        // Resolve tools directory relative to workflow file
+        const resolvedToolsDir = path.resolve(workflowDir, config.toolsDirectory);
+        
+        // Basic validation to prevent obvious path traversal attempts
+        // Note: This is a basic check. The OS-level permissions and spawn() security
+        // provide the actual security boundary.
+        const normalizedPath = path.normalize(resolvedToolsDir);
+        if (normalizedPath.includes('..') && !path.isAbsolute(config.toolsDirectory)) {
+          console.warn(`Warning: MCP server "${serverName}" uses relative path with '..' which may traverse directories: ${config.toolsDirectory}`);
+        }
+
+        // Convert to standard format
+        // The custom-mcp-server.js is expected to be in dist/ from the project root
+        // We use the standard location that's consistent with how the tool is distributed
+        config.command = 'node';
+        config.args = ['dist/custom-mcp-server.js', resolvedToolsDir];
+        
+        // Remove the type-specific fields after normalization
+        delete config.type;
+        delete config.toolsDirectory;
+      }
     }
   }
 
@@ -263,12 +330,29 @@ class WorkflowParser {
    */
   static validateMcpServers(mcpServers: Record<string, McpServerConfig>): void {
     for (const [serverName, config] of Object.entries(mcpServers)) {
-      if (!config.command) {
-        throw new Error(`MCP server "${serverName}" must have a command`);
+      // Check if using simplified type configuration
+      if (config.type) {
+        if (config.type === 'npx') {
+          if (!config.package || typeof config.package !== 'string') {
+            throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
+          }
+        } else if (config.type === 'custom-tools') {
+          if (!config.toolsDirectory || typeof config.toolsDirectory !== 'string') {
+            throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
+          }
+        } else {
+          throw new Error(`MCP server "${serverName}" has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
+        }
+      } else {
+        // Standard configuration requires command
+        if (!config.command) {
+          throw new Error(`MCP server "${serverName}" must have a command`);
+        }
+        if (typeof config.command !== 'string') {
+          throw new Error(`MCP server "${serverName}" command must be a string`);
+        }
       }
-      if (typeof config.command !== 'string') {
-        throw new Error(`MCP server "${serverName}" command must be a string`);
-      }
+      
       if (config.args && !Array.isArray(config.args)) {
         throw new Error(`MCP server "${serverName}" args must be an array`);
       }

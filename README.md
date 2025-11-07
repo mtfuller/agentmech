@@ -247,7 +247,11 @@ states:
 
 ### MCP Server Configuration
 
-You can configure Model Context Protocol (MCP) servers to extend workflow capabilities with tools and resources:
+You can configure Model Context Protocol (MCP) servers to extend workflow capabilities with tools and resources. There are two ways to configure MCP servers:
+
+#### Standard Configuration (Full Control)
+
+Use the standard format when you need complete control over the command and arguments:
 
 ```yaml
 mcp_servers:
@@ -258,16 +262,38 @@ mcp_servers:
       MCP_LOG_LEVEL: "info"
 ```
 
-#### Custom JavaScript Tools
+#### Simplified NPX Configuration
 
-You can create your own custom tools as JavaScript functions and use them in workflows:
+For NPX-based MCP servers, use the simplified `type: npx` format to automatically handle NPX invocation:
+
+```yaml
+mcp_servers:
+  filesystem:
+    type: npx
+    package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]  # Additional arguments after the package name
+    env:
+      MCP_LOG_LEVEL: "info"
+```
+
+This automatically expands to `npx -y @modelcontextprotocol/server-filesystem /tmp`.
+
+#### Simplified Custom Tools Configuration
+
+For custom JavaScript tools, use the simplified `type: custom-tools` format:
 
 ```yaml
 mcp_servers:
   custom_tools:
-    command: "node"
-    args: ["dist/custom-mcp-server.js", "path/to/tools-directory"]
+    type: custom-tools
+    toolsDirectory: "examples/custom-tools"
 ```
+
+This automatically resolves to `node dist/custom-mcp-server.js <resolved-path-to-tools-directory>`.
+
+#### Custom JavaScript Tools
+
+You can create your own custom tools as JavaScript functions and use them in workflows:
 
 Then create JavaScript files in the tools directory:
 
@@ -581,6 +607,33 @@ states:
 
 ### MCP Integration Example
 
+Using the simplified NPX configuration:
+
+```yaml
+name: "MCP Integration Example"
+description: "A workflow demonstrating simplified MCP server integration"
+default_model: "gemma3:4b"
+start_state: "analyze"
+
+mcp_servers:
+  filesystem:
+    type: npx
+    package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+  memory:
+    type: npx
+    package: "@modelcontextprotocol/server-memory"
+
+states:
+  analyze:
+    type: "prompt"
+    prompt: "Analyze the filesystem and store insights"
+    mcp_servers: ["filesystem", "memory"]
+    next: "end"
+```
+
+Or using the standard configuration (for backward compatibility):
+
 ```yaml
 name: "MCP Integration Example"
 description: "A workflow demonstrating MCP server integration"
@@ -851,7 +904,9 @@ The `examples/` directory contains sample workflows:
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
+- **mcp-npx-simplified.yaml**: Demonstrates simplified NPX MCP server configuration
 - **custom-tools-demo.yaml**: Demonstrates using custom JavaScript tools in workflows
+- **custom-tools-simplified.yaml**: Demonstrates simplified custom tools MCP server configuration
 - **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
 - **multi-rag-qa.yaml**: Multiple named RAG configurations
 - **inline-rag.yaml**: Inline state-level RAG configuration
