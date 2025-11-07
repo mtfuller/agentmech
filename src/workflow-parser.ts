@@ -306,38 +306,46 @@ class WorkflowParser {
 
   /**
    * Normalize RAG configuration field names (support both old camelCase and new snake_case)
-   * @param ragConfig - RAG configuration
+   * This method mutates the input object to ensure both old and new field names are present.
+   * New snake_case field names take precedence when both are provided.
+   * @param ragConfig - RAG configuration (will be mutated)
    */
   static normalizeRagConfig(ragConfig: RagConfig): void {
     // Support both old (camelCase) and new (snake_case) field names
-    // Warn about deprecated usage and normalize to new names
-    if (ragConfig.embeddingsFile && !ragConfig.embeddings_file) {
+    // Prioritize new field names when both are present
+    
+    // embeddings_file / embeddingsFile
+    if (ragConfig.embeddings_file) {
+      // New field is provided, use it as source of truth
+      ragConfig.embeddingsFile = ragConfig.embeddings_file;
+    } else if (ragConfig.embeddingsFile) {
+      // Only old field provided, warn and normalize
       console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
       ragConfig.embeddings_file = ragConfig.embeddingsFile;
-    } else if (ragConfig.embeddings_file) {
-      // Also set old name for backward compatibility in consumers
-      ragConfig.embeddingsFile = ragConfig.embeddings_file;
     }
     
-    if (ragConfig.chunkSize && !ragConfig.chunk_size) {
+    // chunk_size / chunkSize
+    if (ragConfig.chunk_size) {
+      ragConfig.chunkSize = ragConfig.chunk_size;
+    } else if (ragConfig.chunkSize) {
       console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
       ragConfig.chunk_size = ragConfig.chunkSize;
-    } else if (ragConfig.chunk_size) {
-      ragConfig.chunkSize = ragConfig.chunk_size;
     }
     
-    if (ragConfig.topK && !ragConfig.top_k) {
+    // top_k / topK
+    if (ragConfig.top_k) {
+      ragConfig.topK = ragConfig.top_k;
+    } else if (ragConfig.topK) {
       console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
       ragConfig.top_k = ragConfig.topK;
-    } else if (ragConfig.top_k) {
-      ragConfig.topK = ragConfig.top_k;
     }
     
-    if (ragConfig.storageFormat && !ragConfig.storage_format) {
+    // storage_format / storageFormat
+    if (ragConfig.storage_format) {
+      ragConfig.storageFormat = ragConfig.storage_format;
+    } else if (ragConfig.storageFormat) {
       console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
       ragConfig.storage_format = ragConfig.storageFormat;
-    } else if (ragConfig.storage_format) {
-      ragConfig.storageFormat = ragConfig.storage_format;
     }
   }
 
