@@ -447,12 +447,20 @@
             } else if (type === 'prompt-details') {
                 // Create collapsible prompt component
                 const promptId = 'prompt-' + (++promptCounter);
+                
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'prompt-header';
-                headerDiv.innerHTML = `
-                    <span>📝 Model Prompt</span>
-                    <span class="prompt-toggle" id="${promptId}-toggle">▼ Show</span>
-                `;
+                
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = '📝 Model Prompt';
+                
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'prompt-toggle';
+                toggleSpan.id = promptId + '-toggle';
+                toggleSpan.textContent = '▼ Show';
+                
+                headerDiv.appendChild(labelSpan);
+                headerDiv.appendChild(toggleSpan);
                 
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'prompt-content';
@@ -496,12 +504,6 @@
                 toggle.classList.add('expanded');
                 toggle.textContent = '▲ Hide';
             }
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
         }
         
         function showInputField(prompt, defaultValue) {
