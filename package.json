@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc && npm run copy-views",
-    "copy-views": "mkdir -p dist/views && cp src/views/*.html dist/views/",
+    "copy-views": "node scripts/copy-views.js",
     "start": "node dist/cli.js",
     "test": "npm run build && jest",
     "test:watch": "jest --watch",
