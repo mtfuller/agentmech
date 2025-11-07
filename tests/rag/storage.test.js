@@ -1,4 +1,4 @@
-const RagService = require('../../dist/rag-service');
+const RagService = require('../../dist/integrations/rag-service');
 const fs = require('fs');
 const path = require('path');
 

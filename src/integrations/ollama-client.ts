@@ -1,5 +1,5 @@
 import axios, { AxiosError } from 'axios';
-import Tracer = require('./tracer');
+import Tracer = require('../utils/tracer');
 
 interface OllamaModel {
   name: string;

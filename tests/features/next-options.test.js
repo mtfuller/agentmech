@@ -1,4 +1,4 @@
-const WorkflowParser = require('../../dist/workflow-parser');
+const WorkflowParser = require('../../dist/core/workflow-parser');
 
 describe('Next Options (LLM State Selection)', () => {
   test('should accept valid next_options configuration', () => {

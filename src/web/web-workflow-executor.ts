@@ -1,6 +1,6 @@
-import OllamaClient = require('./ollama-client');
-import McpClient = require('./mcp-client');
-import RagService = require('./rag-service');
+import OllamaClient = require('../integrations/ollama-client');
+import McpClient = require('../integrations/mcp-client');
+import RagService = require('../integrations/rag-service');
 import { Response } from 'express';
 
 const END_STATE = 'end';

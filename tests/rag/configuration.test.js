@@ -1,4 +1,4 @@
-const WorkflowParser = require('../../dist/workflow-parser');
+const WorkflowParser = require('../../dist/core/workflow-parser');
 const path = require('path');
 
 describe('RAG Configuration Validation', () => {
