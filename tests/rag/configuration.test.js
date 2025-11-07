@@ -3,9 +3,13 @@ const path = require('path');
 
 describe('RAG Configuration Validation', () => {
   test('should parse workflow with RAG configuration', () => {
-    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/rag-qa.yaml'));
+    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/multi-rag-qa.yaml'));
+    // multi-rag-qa.yaml has both default rag and named rags
     expect(workflow.rag).toBeDefined();
     expect(workflow.rag.directory).toBe('./examples/knowledge-base');
+    expect(workflow.rags).toBeDefined();
+    expect(workflow.rags.product_kb).toBeDefined();
+    expect(workflow.rags.technical_kb).toBeDefined();
   });
 
   test('should validate RAG configuration with directory', () => {

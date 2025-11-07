@@ -127,56 +127,26 @@ npm start run examples/simple-qa.yaml
 - Displays the response
 - Ends
 
-### 2. Story Generator (examples/story-generator.yaml)
+### 2. Complete Story Builder (examples/complete-story-builder.yaml)
 
-An interactive workflow that generates custom stories based on user choices.
+An interactive workflow that demonstrates workflow composition by combining character creation with story generation.
 
 **Run it:**
 ```bash
-npm start run examples/story-generator.yaml
+npm start run examples/complete-story-builder.yaml
 ```
 
 **What it does:**
-1. Asks you to choose a story genre (Sci-Fi, Fantasy, Mystery, Romance)
-2. Asks you to choose a setting (Distant planet, Medieval castle, Modern city, Enchanted forest)
-3. Generates a short story based on your choices
-4. Asks if you want to continue the story
-5. If yes, generates a continuation with a plot twist
+1. References the character-creator.yaml workflow to create a detailed character
+2. Uses the created character to write a custom story
+3. Demonstrates the workflow_ref feature for composing modular workflows
+4. Asks if you want to continue with another action
 
-**Example interaction:**
-```
---- State: choose_genre ---
-
-What genre of story would you like?
-
-Choices:
-  1. Science Fiction
-  2. Fantasy
-  3. Mystery
-  4. Romance
-
-Select an option (enter number): 1
-
-Selected: Science Fiction
-
---- State: choose_setting ---
-
-Where should the story take place?
-
-Choices:
-  1. A distant planet
-  2. Medieval castle
-  3. Modern city
-  4. Enchanted forest
-
-Select an option (enter number): 1
-
-Selected: A distant planet
-
---- State: generate_story ---
-
-Prompt: Write a short science fiction story set in a distant planet. Keep it under 200 words.
-Using model: gemma3:4b
+**Features demonstrated:**
+- Workflow composition using `workflow_ref`
+- External prompt files (`prompt_file`)
+- Context variable usage across workflows
+- Input states for user interaction
 
 Generating response...
 
@@ -477,10 +447,10 @@ states:
 #### Example RAG Workflow
 
 ```bash
-npm start run examples/rag-qa.yaml
+npm start run examples/multi-rag-qa.yaml
 ```
 
-This example demonstrates RAG with a pre-configured knowledge base about the AI Workflow CLI itself.
+This comprehensive example demonstrates all three RAG approaches: default workflow-level, named configurations, and inline state-level RAG with a pre-configured knowledge base about the AI Workflow CLI itself.
 
 ### Custom Ollama URL
 

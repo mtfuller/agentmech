@@ -5,7 +5,7 @@
 ```bash
 # Run a workflow
 npm start run <workflow.yaml>
-npm start run examples/story-generator.yaml
+npm start run examples/complete-story-builder.yaml
 
 # Validate a workflow
 npm start validate <workflow.yaml>

@@ -1,0 +1,156 @@
+name: "Comprehensive MCP Integration"
+description: "Demonstrates all MCP server configuration methods: standard, NPX simplified, and custom-tools"
+default_model: "gemma3:4b"
+start_state: "choose_mcp_type"
+
+# Configure MCP servers using different methods
+mcp_servers:
+  # Method 1: Standard configuration with explicit command and args
+  filesystem_standard:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  # Method 2: Simplified NPX configuration (recommended for NPX packages)
+  filesystem_simplified:
+    type: npx
+    package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  # Method 3: Memory server with simplified NPX config
+  memory:
+    type: npx
+    package: "@modelcontextprotocol/server-memory"
+  
+  # Method 4: Custom JavaScript tools with simplified config
+  custom_tools:
+    type: custom-tools
+    toolsDirectory: "examples/custom-tools"
+
+states:
+  choose_mcp_type:
+    type: "input"
+    prompt: |
+      Which MCP configuration would you like to explore?
+      
+      Options:
+      - standard: Standard filesystem MCP server (explicit npx command)
+      - simplified: Simplified NPX filesystem server (type: npx)
+      - memory: Memory server with simplified config
+      - custom: Custom JavaScript tools server
+      - combined: Use multiple servers together
+    save_as: "mcp_choice"
+    next: "route_choice"
+  
+  route_choice:
+    type: "prompt"
+    prompt: |
+      User chose: {{mcp_choice}}
+      
+      Route to the appropriate demonstration based on the user's choice.
+    next_options:
+      - state: "standard_mcp_demo"
+        description: "User wants to see standard configuration"
+      - state: "simplified_mcp_demo"
+        description: "User wants to see simplified NPX configuration"
+      - state: "memory_demo"
+        description: "User wants to see memory server"
+      - state: "custom_tools_demo"
+        description: "User wants to see custom tools"
+      - state: "combined_demo"
+        description: "User wants to see combined usage"
+  
+  # Standard MCP configuration demo
+  standard_mcp_demo:
+    type: "prompt"
+    prompt: |
+      This demonstrates the STANDARD MCP configuration method:
+      
+      ```yaml
+      filesystem_standard:
+        command: "npx"
+        args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+        env:
+          MCP_LOG_LEVEL: "info"
+      ```
+      
+      Analyze the structure of /tmp directory and suggest best practices for organization.
+    mcp_servers: ["filesystem_standard"]
+    save_as: "standard_result"
+    next: "end"
+  
+  # Simplified NPX configuration demo
+  simplified_mcp_demo:
+    type: "prompt"
+    prompt: |
+      This demonstrates the SIMPLIFIED NPX configuration method (recommended):
+      
+      ```yaml
+      filesystem_simplified:
+        type: npx
+        package: "@modelcontextprotocol/server-filesystem"
+        args: ["/tmp"]
+      ```
+      
+      This automatically expands to: npx -y @modelcontextprotocol/server-filesystem /tmp
+      
+      Analyze the structure of /tmp directory using the simplified config.
+    mcp_servers: ["filesystem_simplified"]
+    save_as: "simplified_result"
+    next: "end"
+  
+  # Memory server demo
+  memory_demo:
+    type: "prompt"
+    prompt: |
+      This demonstrates the MEMORY server with simplified config:
+      
+      ```yaml
+      memory:
+        type: npx
+        package: "@modelcontextprotocol/server-memory"
+      ```
+      
+      Store and recall information using the memory server capabilities.
+      Try to remember that the user's favorite color is blue.
+    mcp_servers: ["memory"]
+    save_as: "memory_result"
+    next: "end"
+  
+  # Custom tools demo
+  custom_tools_demo:
+    type: "prompt"
+    prompt: |
+      This demonstrates CUSTOM JAVASCRIPT TOOLS with simplified config:
+      
+      ```yaml
+      custom_tools:
+        type: custom-tools
+        toolsDirectory: "examples/custom-tools"
+      ```
+      
+      Use the calculator tool to add 15 and 27, then use the text-transform tool
+      to convert "hello world" to uppercase.
+    mcp_servers: ["custom_tools"]
+    save_as: "custom_result"
+    next: "end"
+  
+  # Combined usage demo
+  combined_demo:
+    type: "prompt"
+    prompt: |
+      This demonstrates using MULTIPLE MCP servers together:
+      
+      Use the filesystem, memory, and custom tools capabilities together to:
+      1. Check the /tmp directory
+      2. Store findings in memory
+      3. Use the calculator to count items
+      
+      Create a comprehensive solution using all available tools.
+    mcp_servers: ["filesystem_simplified", "memory", "custom_tools"]
+    save_as: "combined_result"
+    next: "end"
+  
