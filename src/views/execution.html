@@ -465,7 +465,10 @@
                 const contentDiv = document.createElement('div');
                 contentDiv.className = 'prompt-content';
                 contentDiv.id = promptId + '-content';
-                contentDiv.textContent = data.fullPrompt;
+                // Validate data before using it
+                contentDiv.textContent = (data && typeof data.fullPrompt === 'string') 
+                    ? data.fullPrompt 
+                    : '[No prompt data available]';
                 
                 // Add click event listener to toggle
                 headerDiv.addEventListener('click', () => togglePrompt(promptId));
