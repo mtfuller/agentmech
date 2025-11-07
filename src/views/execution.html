@@ -172,6 +172,59 @@
             text-align: center;
         }
         
+        .message.prompt-details {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #333;
+            align-self: flex-start;
+            max-width: 90%;
+        }
+        
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .prompt-header:hover {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 4px;
+        }
+        
+        .prompt-toggle {
+            font-size: 12px;
+            color: #667eea;
+            transition: transform 0.2s;
+        }
+        
+        .prompt-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .prompt-content {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+            display: none;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .prompt-content.visible {
+            display: block;
+        }
+        
         /* Markdown styles for response messages */
         .message.response h1,
         .message.response h2,
@@ -370,7 +423,7 @@
             }
         }
         
-        function addMessage(type, message) {
+        function addMessage(type, message, data) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
@@ -380,12 +433,43 @@
                 const rawHtml = marked.parse(message);
                 const cleanHtml = DOMPurify.sanitize(rawHtml);
                 messageDiv.innerHTML = cleanHtml;
+            } else if (type === 'prompt-details') {
+                // Create collapsible prompt component
+                const promptId = 'prompt-' + Date.now();
+                messageDiv.innerHTML = `
+                    <div class="prompt-header" onclick="togglePrompt('${promptId}')">
+                        <span>📝 Model Prompt</span>
+                        <span class="prompt-toggle" id="${promptId}-toggle">▼ Show</span>
+                    </div>
+                    <div class="prompt-content" id="${promptId}-content">${escapeHtml(data.fullPrompt)}</div>
+                `;
             } else {
                 messageDiv.textContent = message;
             }
             
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function togglePrompt(promptId) {
+            const content = document.getElementById(promptId + '-content');
+            const toggle = document.getElementById(promptId + '-toggle');
+            
+            if (content.classList.contains('visible')) {
+                content.classList.remove('visible');
+                toggle.classList.remove('expanded');
+                toggle.textContent = '▼ Show';
+            } else {
+                content.classList.add('visible');
+                toggle.classList.add('expanded');
+                toggle.textContent = '▲ Hide';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         function showInputField(prompt, defaultValue) {
@@ -419,7 +503,7 @@
                 
                 document.getElementById('input-field').value = '';
             } catch (error) {
-                addMessage('error', 'Failed to send input: ' + error.message);
+                addMessage('error', 'Failed to send input: ' + error.message, null);
             }
         }
         
@@ -437,7 +521,7 @@
                     body: JSON.stringify({ sessionId })
                 });
             } catch (error) {
-                addMessage('error', 'Failed to stop workflow: ' + error.message);
+                addMessage('error', 'Failed to stop workflow: ' + error.message, null);
                 stopBtn.disabled = false;
                 stopBtn.textContent = '⏹ Stop';
             }
@@ -464,13 +548,16 @@
                     
                     switch (event.type) {
                         case 'log':
-                            addMessage('log', event.message);
+                            addMessage('log', event.message, event.data);
                             break;
                         case 'state_change':
-                            addMessage('state-change', event.message);
+                            addMessage('state-change', event.message, event.data);
                             break;
                         case 'response':
-                            addMessage('response', event.message);
+                            addMessage('response', event.message, event.data);
+                            break;
+                        case 'prompt_sent':
+                            addMessage('prompt-details', event.message, event.data);
                             break;
                         case 'prompt':
                             showInputField(event.message);
@@ -479,10 +566,10 @@
                             showInputField('Enter your response', event.data.defaultValue);
                             break;
                         case 'error':
-                            addMessage('error', event.message);
+                            addMessage('error', event.message, event.data);
                             break;
                         case 'stopped':
-                            addMessage('system', event.message);
+                            addMessage('system', event.message, event.data);
                             document.getElementById('status').textContent = 'Workflow stopped by user';
                             document.getElementById('status').classList.add('stopped');
                             document.getElementById('stop-btn').classList.remove('active');
@@ -490,7 +577,7 @@
                             eventSource.close();
                             break;
                         case 'complete':
-                            addMessage('system', event.message);
+                            addMessage('system', event.message, event.data);
                             document.getElementById('status').textContent = 'Workflow completed successfully';
                             document.getElementById('status').classList.add('complete');
                             document.getElementById('stop-btn').classList.remove('active');
@@ -504,7 +591,7 @@
             };
             
             eventSource.onerror = (e) => {
-                addMessage('error', 'Connection error. Please try again.');
+                addMessage('error', 'Connection error. Please try again.', null);
                 document.getElementById('status').textContent = 'Connection lost';
                 document.getElementById('stop-btn').classList.remove('active');
                 eventSource.close();
