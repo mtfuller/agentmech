@@ -1,0 +1,21 @@
+# Test Scenarios for MCP Connection Test
+
+workflow: mcp-connection-test.yaml
+
+test_scenarios:
+  - name: "MCP Connection Mocking Test"
+    description: "Test that MCP servers can be connected without spawning processes"
+    inputs:
+      - state: "connect"
+        value: "test input"
+    assertions:
+      - type: "state_reached"
+        value: "connect"
+        description: "Should reach connect state"
+      - type: "state_reached"
+        value: "use_mcp"
+        description: "Should reach use_mcp state (where MCP connects)"
+      - type: "equals"
+        target: "user_input"
+        value: "test input"
+        description: "User input should be captured"

@@ -1,0 +1,29 @@
+name: "MCP Connection Demo Test"
+description: "Workflow that connects to MCP servers"
+default_model: "gemma3:4b"
+start_state: "start"
+
+# These MCP servers should be mocked during tests
+mcp_servers:
+  test_server:
+    command: "node"
+    args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
+
+states:
+  start:
+    type: "transition"
+    next: "connect"
+  
+  connect:
+    type: "input"
+    prompt: "This state will try to connect to MCP server"
+    default_value: "test"
+    save_as: "user_input"
+    next: "use_mcp"
+  
+  use_mcp:
+    type: "prompt"
+    prompt: "Using MCP server"
+    mcp_servers: ["test_server"]
+    save_as: "result"
+    next: "end"

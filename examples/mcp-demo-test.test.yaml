@@ -1,0 +1,14 @@
+# Test Scenarios for MCP Demo Test Workflow
+
+workflow: mcp-demo-test.yaml
+
+test_scenarios:
+  - name: "MCP Mocking Test"
+    description: "Test that MCP servers are mocked and don't spawn processes"
+    assertions:
+      - type: "state_reached"
+        value: "start"
+        description: "Should reach start state"
+      - type: "state_reached"
+        value: "end"
+        description: "Should reach end state"

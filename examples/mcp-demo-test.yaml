@@ -1,0 +1,18 @@
+name: "MCP Demo Test Workflow"
+description: "Workflow with MCP servers for testing mocking"
+default_model: "gemma3:4b"
+start_state: "start"
+
+# These MCP servers should NOT spawn processes during tests
+mcp_servers:
+  test_filesystem:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+  test_memory:
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-memory"]
+
+states:
+  start:
+    type: "transition"
+    next: "end"
