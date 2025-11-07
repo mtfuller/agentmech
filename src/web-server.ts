@@ -163,6 +163,20 @@ class WebServer {
     });
   }
 
+  /**
+   * Escape HTML special characters to prevent XSS attacks
+   */
+  private escapeHtml(text: string): string {
+    const map: { [key: string]: string } = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, (char) => map[char]);
+  }
+
   private getIndexHtml(): string {
     try {
       const indexPath = path.join(__dirname, 'views', 'index.html');
@@ -201,7 +215,7 @@ class WebServer {
     <div class="error-container">
         <h1>⚠️ Error Loading Page</h1>
         <p>Failed to load the web interface. Please ensure the application was built correctly.</p>
-        <p><strong>Error:</strong> ${error.message}</p>
+        <p><strong>Error:</strong> ${this.escapeHtml(error.message)}</p>
         <p>Try running <code>npm run build</code> to rebuild the application.</p>
     </div>
 </body>
@@ -247,7 +261,7 @@ class WebServer {
     <div class="error-container">
         <h1>⚠️ Error Loading Page</h1>
         <p>Failed to load the execution interface. Please ensure the application was built correctly.</p>
-        <p><strong>Error:</strong> ${error.message}</p>
+        <p><strong>Error:</strong> ${this.escapeHtml(error.message)}</p>
         <p>Try running <code>npm run build</code> to rebuild the application.</p>
     </div>
 </body>
