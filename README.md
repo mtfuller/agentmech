@@ -102,7 +102,7 @@ Options:
 
 Example:
 ```bash
-ai-workflow run examples/story-generator.yaml
+ai-workflow run examples/complete-story-builder.yaml
 ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
 ai-workflow run my-workflow.yaml --trace
 ai-workflow run my-workflow.yaml --trace --log-file trace.log
@@ -173,7 +173,7 @@ ai-workflow validate <workflow-file>
 
 Example:
 ```bash
-ai-workflow validate examples/story-generator.yaml
+ai-workflow validate examples/complete-story-builder.yaml
 ```
 
 ### List Available Models
@@ -896,28 +896,31 @@ The test command will:
 
 ## Example Workflows
 
-The `examples/` directory contains sample workflows:
+The `examples/` directory contains sample workflows organized by feature:
 
-- **simple-qa.yaml**: Basic question-answering workflow
-- **story-generator.yaml**: Interactive story generation with choices
+### Basic Examples
+- **simple-qa.yaml**: Basic question-answering workflow - great for getting started
 - **user-input-demo.yaml**: Demonstrates the input state for collecting user information
-- **code-review.yaml**: Code review assistant with different review types
+
+### MCP Integration Examples
+- **comprehensive-mcp-integration.yaml**: Complete guide to all MCP server configuration methods (standard, NPX simplified, and custom-tools)
+- **advanced-custom-tools.yaml**: Advanced workflow using custom JavaScript tools for data processing
+
+### RAG (Retrieval-Augmented Generation) Examples
+- **multi-rag-qa.yaml**: Comprehensive example showing all three RAG approaches (default, named, and inline configurations)
+
+### Advanced Features
+- **research-assistant.yaml**: Advanced research workflow with LLM-driven state routing
+- **mixed-fallback.yaml**: Demonstrates both state-level and workflow-level error handling
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
-- **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
-- **mcp-npx-simplified.yaml**: Demonstrates simplified NPX MCP server configuration
-- **custom-tools-demo.yaml**: Demonstrates using custom JavaScript tools in workflows
-- **custom-tools-simplified.yaml**: Demonstrates simplified custom tools MCP server configuration
-- **rag-qa.yaml**: RAG-powered Q&A with knowledge base retrieval
-- **multi-rag-qa.yaml**: Multiple named RAG configurations
-- **inline-rag.yaml**: Inline state-level RAG configuration
-- **external-prompt-file.yaml**: Example using external markdown file for prompts
-- **greeting-workflow.yaml**: Simple reusable greeting workflow
+- **code-review.yaml**: Code review assistant with different review types
+
+### Workflow Composition Examples
+- **complete-story-builder.yaml**: Demonstrates workflow composition using workflow_ref
+- **character-creator.yaml**: Character creation workflow (used by complete-story-builder.yaml)
+- **greeting-workflow.yaml**: Simple reusable greeting workflow (used by workflow-reference.yaml)
 - **workflow-reference.yaml**: Example of referencing another workflow
-- **state-level-fallback.yaml**: Demonstrates state-level error handling with fallback states
-- **workflow-level-fallback.yaml**: Demonstrates workflow-level error handling
-- **mixed-fallback.yaml**: Shows both state-level and workflow-level fallback priorities
-- **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
-- **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
+- **external-prompt-file.yaml**: Example using external markdown file for prompts
 
 ### Custom Tools Examples
 
@@ -955,7 +958,7 @@ ai-workflow-cli/
 ├── dist/                       # Compiled JavaScript output
 ├── examples/                   # Example workflow files
 │   ├── simple-qa.yaml
-│   ├── story-generator.yaml
+│   ├── complete-story-builder.yaml
 │   └── code-review.yaml
 ├── tests/                      # Test files
 ├── tsconfig.json               # TypeScript configuration

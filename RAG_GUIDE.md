@@ -244,9 +244,9 @@ rag:
 
 ## Example Workflow
 
-See `examples/rag-qa.yaml` for a complete working example with:
-- RAG configuration
-- Multiple prompt states with RAG enabled
+See `examples/multi-rag-qa.yaml` for a complete working example demonstrating:
+- All three RAG configuration approaches (default, named, and inline)
+- Multiple prompt states with different RAG strategies
 - Sample knowledge base in `examples/knowledge-base/`
 
 ## Security Considerations
