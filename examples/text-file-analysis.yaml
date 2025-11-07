@@ -1,0 +1,15 @@
+name: "Text File Analysis"
+description: "Analyze multiple text files without requiring vision models"
+default_model: "gemma3:4b"
+
+start_state: "analyze_files"
+
+states:
+  analyze_files:
+    type: "prompt"
+    prompt: "Please analyze these documents and provide a summary:"
+    files:
+      - "examples/multimodal-demo/sample-text.txt"
+      - "examples/multimodal-demo/data.json"
+    save_as: "file_summary"
+    next: "end"

@@ -1,0 +1,23 @@
+name: "Multimodal Text and Image Analysis"
+description: "Demonstrate processing multiple file types (text files and images) in a workflow"
+default_model: "llava"
+
+start_state: "analyze_data"
+
+states:
+  analyze_data:
+    type: "prompt"
+    prompt: "Analyze the following files and provide a summary of what information they contain:"
+    files:
+      - "examples/multimodal-demo/sample-text.txt"
+      - "examples/multimodal-demo/data.json"
+    save_as: "text_analysis"
+    next: "analyze_with_image"
+  
+  analyze_with_image:
+    type: "prompt"
+    prompt: "Now, also consider this image and explain how it relates to the text data analyzed earlier: {{text_analysis}}"
+    files:
+      - "examples/multimodal-demo/test-image.png"
+    save_as: "combined_analysis"
+    next: "end"
