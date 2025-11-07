@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Workflow CLI - Web UI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .workflows-container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .workflow-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .workflow-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .workflow-card.invalid {
+            border-color: #ff6b6b;
+            opacity: 0.7;
+        }
+        
+        .workflow-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .workflow-description {
+            color: #666;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .workflow-file {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #999;
+            background: #f5f5f5;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .workflow-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-run {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-run:hover {
+            background: #218838;
+        }
+        
+        .btn-details {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.3s ease;
+        }
+        
+        .btn-details:hover {
+            background: #5568d3;
+        }
+        
+        .workflow-error {
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff5f5;
+            border-radius: 4px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fff5f5;
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 20px;
+            color: #ff6b6b;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        
+        .badge.valid {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge.invalid {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #5568d3;
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .close-btn:hover {
+            color: #333;
+        }
+        
+        pre {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI Workflow CLI</h1>
+            <p class="subtitle">Browse and manage your AI workflows</p>
+        </header>
+        
+        <div class="workflows-container">
+            <h2 style="margin-bottom: 20px;">Available Workflows</h2>
+            <div id="workflows-list" class="loading">Loading workflows...</div>
+        </div>
+    </div>
+    
+    <div id="workflow-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Workflow Details</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <script>
+        let workflows = [];
+        
+        async function loadWorkflows() {
+            try {
+                const response = await fetch('/api/workflows');
+                const data = await response.json();
+                workflows = data.workflows;
+                renderWorkflows();
+            } catch (error) {
+                document.getElementById('workflows-list').innerHTML = `
+                    <div class="error">
+                        <strong>Error loading workflows:</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        function renderWorkflows() {
+            const container = document.getElementById('workflows-list');
+            
+            if (workflows.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📂</div>
+                        <h3>No workflows found</h3>
+                        <p>Place your workflow YAML files in the workflows directory</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = workflows.map(wf => `
+                <div class="workflow-card ${wf.valid ? '' : 'invalid'}">
+                    <div class="workflow-name">
+                        ${wf.name}
+                        <span class="badge ${wf.valid ? 'valid' : 'invalid'}">
+                            ${wf.valid ? '✓ Valid' : '✗ Invalid'}
+                        </span>
+                    </div>
+                    ${wf.description ? `<div class="workflow-description">${wf.description}</div>` : ''}
+                    <div class="workflow-file">${wf.fileName}</div>
+                    ${wf.error ? `<div class="workflow-error"><strong>Error:</strong> ${wf.error}</div>` : ''}
+                    ${wf.valid ? `
+                        <div class="workflow-actions">
+                            <a href="/execute/${wf.fileName}" class="btn-run">▶ Run</a>
+                            <button class="btn-details" onclick="showWorkflowDetails('${wf.fileName}')">ℹ Details</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+        
+        function buildWorkflowGraph(workflow) {
+            const states = workflow.states;
+            const startState = workflow.start_state;
+            
+            // Build graph data structure
+            const nodes = [];
+            const edges = [];
+            const stateNames = Object.keys(states);
+            
+            // Create nodes
+            stateNames.forEach((stateName) => {
+                const state = states[stateName];
+                nodes.push({
+                    id: stateName,
+                    label: stateName,
+                    type: state.type,
+                    isStart: stateName === startState
+                });
+            });
+            
+            // Create edges
+            stateNames.forEach((stateName) => {
+                const state = states[stateName];
+                
+                // Handle simple next transitions
+                if (state.next) {
+                    edges.push({
+                        from: stateName,
+                        to: state.next,
+                        label: ''
+                    });
+                }
+                
+                // Handle choice transitions
+                if (state.choices && Array.isArray(state.choices)) {
+                    state.choices.forEach((choice, idx) => {
+                        if (choice.next) {
+                            edges.push({
+                                from: stateName,
+                                to: choice.next,
+                                label: choice.label || choice.value || `Choice ${idx + 1}`
+                            });
+                        }
+                    });
+                }
+                
+                // Handle next_options
+                if (state.next_options && Array.isArray(state.next_options)) {
+                    state.next_options.forEach((option) => {
+                        if (option.state) {
+                            const desc = option.description ?? '';
+                            edges.push({
+                                from: stateName,
+                                to: option.state,
+                                label: desc.length > 20 ? desc.substring(0, 20) + '...' : desc
+                            });
+                        }
+                    });
+                }
+            });
+            
+            return { nodes, edges };
+        }
+        
+        function renderWorkflowGraph(workflow, containerId) {
+            const { nodes, edges } = buildWorkflowGraph(workflow);
+            const container = document.getElementById(containerId);
+            
+            if (nodes.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">No states to visualize</p>';
+                return;
+            }
+            
+            // Simple layout algorithm - hierarchical top-to-bottom
+            const positions = layoutGraph(nodes, edges, workflow.start_state);
+            
+            // Calculate SVG dimensions
+            const GRAPH_WIDTH = 800;
+            const height = Math.max(400, positions.maxY + 100);
+            
+            // Build SVG
+            let svg = `<svg width="${GRAPH_WIDTH}" height="${height}" style="border: 1px solid #e0e0e0; border-radius: 8px; background: #fafafa;">`;
+            
+            // Define arrow marker
+            svg += `
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                        <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                    </marker>
+                </defs>
+            `;
+            
+            // Draw edges first (so they appear behind nodes)
+            edges.forEach(edge => {
+                const fromPos = positions.nodes[edge.from];
+                const toPos = positions.nodes[edge.to];
+                
+                if (!fromPos || !toPos) return;
+                
+                // Calculate connection points (bottom of from node to top of to node)
+                const x1 = fromPos.x;
+                const y1 = fromPos.y + 30; // bottom of node
+                const x2 = toPos.x;
+                const y2 = toPos.y - 30; // top of node
+                
+                // Draw curved path
+                const midY = (y1 + y2) / 2;
+                const path = `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2}`;
+                
+                svg += `<path d="${path}" stroke="#666" stroke-width="2" fill="none" marker-end="url(#arrowhead)" />`;
+                
+                // Add edge label if present
+                if (edge.label) {
+                    const labelX = (x1 + x2) / 2;
+                    const labelY = midY;
+                    svg += `<text x="${labelX}" y="${labelY}" text-anchor="middle" font-size="11" fill="#666" style="background: white;">${edge.label}</text>`;
+                }
+            });
+            
+            // Draw nodes
+            nodes.forEach(node => {
+                const pos = positions.nodes[node.id];
+                if (!pos) return;
+                
+                const x = pos.x;
+                const y = pos.y;
+                
+                // Choose color based on state type
+                let fillColor = '#e3f2fd';
+                let strokeColor = '#2196f3';
+                
+                if (node.type === 'end') {
+                    fillColor = '#ffebee';
+                    strokeColor = '#f44336';
+                } else if (node.type === 'choice') {
+                    fillColor = '#fff3e0';
+                    strokeColor = '#ff9800';
+                } else if (node.type === 'input') {
+                    fillColor = '#f3e5f5';
+                    strokeColor = '#9c27b0';
+                } else if (node.type === 'prompt') {
+                    fillColor = '#e8f5e9';
+                    strokeColor = '#4caf50';
+                }
+                
+                // Draw node box
+                const boxWidth = 140;
+                const boxHeight = 60;
+                svg += `<rect x="${x - boxWidth/2}" y="${y - boxHeight/2}" width="${boxWidth}" height="${boxHeight}" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${node.isStart ? 3 : 2}" />`;
+                
+                // Add start indicator
+                if (node.isStart) {
+                    svg += `<text x="${x}" y="${y - boxHeight/2 - 10}" text-anchor="middle" font-size="12" fill="#4caf50" font-weight="bold">▼ START</text>`;
+                }
+                
+                // Add node label (truncate if too long)
+                const labelText = node.label.length > 15 ? node.label.substring(0, 13) + '...' : node.label;
+                svg += `<text x="${x}" y="${y}" text-anchor="middle" font-size="13" font-weight="600" fill="#333">${labelText}</text>`;
+                
+                // Add type label
+                svg += `<text x="${x}" y="${y + 16}" text-anchor="middle" font-size="10" fill="#666">${node.type}</text>`;
+            });
+            
+            svg += '</svg>';
+            container.innerHTML = svg;
+        }
+        
+        function layoutGraph(nodes, edges, startState) {
+            // Simple hierarchical layout
+            const positions = {};
+            const levels = {};
+            const visited = new Set();
+            
+            // Build adjacency list
+            const adjacency = {};
+            nodes.forEach(node => adjacency[node.id] = []);
+            edges.forEach(edge => {
+                if (adjacency[edge.from]) {
+                    adjacency[edge.from].push(edge.to);
+                }
+            });
+            
+            // BFS to assign levels
+            const queue = [{ id: startState, level: 0 }];
+            levels[startState] = 0;
+            visited.add(startState);
+            
+            while (queue.length > 0) {
+                const { id, level } = queue.shift();
+                
+                if (adjacency[id]) {
+                    adjacency[id].forEach(nextId => {
+                        if (!visited.has(nextId)) {
+                            visited.add(nextId);
+                            levels[nextId] = level + 1;
+                            queue.push({ id: nextId, level: level + 1 });
+                        }
+                    });
+                }
+            }
+            
+            // Assign positions to unvisited nodes (disconnected from start)
+            nodes.forEach(node => {
+                if (!visited.has(node.id)) {
+                    const maxLevel = Object.keys(levels).length > 0 ? Math.max(...Object.values(levels)) : -1;
+                    levels[node.id] = maxLevel + 1;
+                }
+            });
+            
+            // Group nodes by level
+            const levelGroups = {};
+            Object.keys(levels).forEach(nodeId => {
+                const level = levels[nodeId];
+                if (!levelGroups[level]) levelGroups[level] = [];
+                levelGroups[level].push(nodeId);
+            });
+            
+            // Position nodes
+            const GRAPH_WIDTH = 800;
+            const levelHeight = 150;
+            const nodeSpacing = 180;
+            let maxY = 0;
+            
+            Object.keys(levelGroups).forEach(level => {
+                const nodesInLevel = levelGroups[level];
+                const y = 80 + parseInt(level) * levelHeight;
+                maxY = Math.max(maxY, y);
+                
+                const totalWidth = (nodesInLevel.length - 1) * nodeSpacing;
+                const startX = (GRAPH_WIDTH - totalWidth) / 2;
+                
+                nodesInLevel.forEach((nodeId, idx) => {
+                    positions[nodeId] = {
+                        x: startX + idx * nodeSpacing,
+                        y: y
+                    };
+                });
+            });
+            
+            return { nodes: positions, maxY };
+        }
+        
+        async function showWorkflowDetails(fileName) {
+            const workflow = workflows.find(wf => wf.fileName === fileName);
+            if (!workflow || !workflow.valid) return;
+            
+            try {
+                const response = await fetch(`/api/workflows/${fileName}`);
+                const data = await response.json();
+                
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h3>Workflow Information</h3>
+                    <p><strong>Name:</strong> ${data.name}</p>
+                    ${data.description ? `<p><strong>Description:</strong> ${data.description}</p>` : ''}
+                    <p><strong>Default Model:</strong> ${data.default_model || 'Not specified'}</p>
+                    <p><strong>Start State:</strong> ${data.start_state}</p>
+                    <p><strong>Total States:</strong> ${Object.keys(data.states).length}</p>
+                    
+                    <h3 style="margin-top: 20px;">Workflow Graph</h3>
+                    <div id="workflow-graph" style="margin: 20px 0; overflow-x: auto;"></div>
+                    
+                    <h3 style="margin-top: 20px;">States</h3>
+                    <pre>${JSON.stringify(data.states, null, 2)}</pre>
+                    
+                    ${data.mcp_servers ? `
+                        <h3 style="margin-top: 20px;">MCP Servers</h3>
+                        <pre>${JSON.stringify(data.mcp_servers, null, 2)}</pre>
+                    ` : ''}
+                `;
+                
+                document.getElementById('modal-title').textContent = data.name;
+                document.getElementById('workflow-modal').classList.add('active');
+                
+                // Render the graph after the modal content is added to the DOM
+                renderWorkflowGraph(data, 'workflow-graph');
+            } catch (error) {
+                alert('Error loading workflow details: ' + error.message);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('workflow-modal').classList.remove('active');
+        }
+        
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+        
+        // Close modal on background click
+        document.getElementById('workflow-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'workflow-modal') closeModal();
+        });
+        
+        // Load workflows on page load
+        loadWorkflows();
+    </script>
+</body>
+</html>
