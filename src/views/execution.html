@@ -406,11 +406,13 @@
         let sessionId = null;
         let eventSource = null;
         
-        // Configure marked for safe HTML rendering
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
+        // Configure marked for safe HTML rendering (if loaded)
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+        }
         
         // Get workflow info
         async function loadWorkflowInfo() {
