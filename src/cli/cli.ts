@@ -316,12 +316,21 @@ program
 
       console.log('\nGenerating workflow...\n');
 
-      // Create the prompt for the LLM
+      // Sanitize user description to prevent prompt injection
+      // Replace any potential prompt manipulation attempts
+      const sanitizedDescription = description
+        .replace(/```/g, '') // Remove code fence markers
+        .replace(/\n\n+/g, '\n') // Normalize multiple newlines
+        .trim();
+
+      // Create the prompt for the LLM with user input clearly delimited
       const prompt = `You are an expert at creating workflow YAML files for the AI Workflow CLI tool.
 
 Based on the following user description, generate a complete, valid workflow YAML file:
 
-User Description: ${description}
+--- BEGIN USER DESCRIPTION ---
+${sanitizedDescription}
+--- END USER DESCRIPTION ---
 
 Important guidelines:
 1. The workflow YAML must include: name, description, default_model, start_state, and states
@@ -360,12 +369,19 @@ Generate ONLY the YAML content, nothing else:`;
       } else {
         // Generate a filename from the description
         // Convert to lowercase, remove special characters, replace spaces with hyphens
-        const filename = description
+        let filename = description
           .toLowerCase()
           .replace(/[^a-z0-9\s]/g, '') // Remove non-alphanumeric except spaces
           .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .substring(0, MAX_FILENAME_LENGTH) + '.yaml'; // Truncate to max length
-        outputPath = path.resolve(filename);
+          .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
+          .substring(0, MAX_FILENAME_LENGTH); // Truncate to max length
+        
+        // Ensure we have a valid filename (fallback if sanitization removed everything)
+        if (!filename || filename.length < 3) {
+          filename = 'generated-workflow';
+        }
+        
+        outputPath = path.resolve(filename + '.yaml');
       }
 
       // Save the generated workflow
