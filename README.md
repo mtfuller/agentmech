@@ -373,7 +373,7 @@ calculator.inputSchema = {
 module.exports = calculator;
 ```
 
-See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for detailed documentation on creating custom tools.
+See [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) for detailed documentation on creating custom tools.
 
 ### State Types
 
@@ -994,7 +994,7 @@ The `examples/custom-tools/` directory contains example JavaScript tool implemen
 - **simple-qa.test.yaml**: Test scenarios for simple Q&A workflow
 - **user-input-demo.test.yaml**: Test scenarios demonstrating input mocking and assertions
 
-See [USAGE.md](USAGE.md) for detailed usage examples and guides.
+See [USAGE.md](docs/USAGE.md) for detailed usage examples and guides.
 
 ## Development
 
@@ -1022,11 +1022,11 @@ ai-workflow-cli/
 ├── tests/                      # Test files
 ├── tsconfig.json               # TypeScript configuration
 ├── package.json
-├── ARCHITECTURE.md             # Detailed architecture documentation
+├── docs/                       # Documentation files
 └── README.md
 ```
 
-For a detailed explanation of the code organization and module responsibilities, see [ARCHITECTURE.md](ARCHITECTURE.md).
+For a detailed explanation of the code organization and module responsibilities, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### Building from Source
 

@@ -85,7 +85,7 @@ states:
     next: "end"
 ```
 
-See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for details.
+See [CUSTOM_TOOLS_GUIDE.md](./CUSTOM_TOOLS_GUIDE.md) for details.
 
 ## State Types
 

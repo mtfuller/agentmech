@@ -79,7 +79,7 @@ states:
 
 ## Creating Your Own Tools
 
-See the [Custom Tools Guide](../../CUSTOM_TOOLS_GUIDE.md) for detailed instructions on creating your own custom tools.
+See the [Custom Tools Guide](../../docs/CUSTOM_TOOLS_GUIDE.md) for detailed instructions on creating your own custom tools.
 
 ## Testing Tools
 

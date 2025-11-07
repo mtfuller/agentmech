@@ -161,4 +161,4 @@ Potential improvements:
 
 - [MCP Protocol](https://modelcontextprotocol.io/)
 - [JSON Schema](https://json-schema.org/)
-- [Custom Tools Guide](CUSTOM_TOOLS_GUIDE.md)
+- [Custom Tools Guide](./CUSTOM_TOOLS_GUIDE.md)
