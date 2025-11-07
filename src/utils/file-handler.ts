@@ -113,7 +113,7 @@ class FileHandler {
   /**
    * Process an image file - convert to base64
    */
-  private static async processImage(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+  private static processImage(filePath: string, filename: string, mimeType: string): ProcessedFile {
     const buffer = fs.readFileSync(filePath);
     const base64 = buffer.toString('base64');
     
@@ -128,7 +128,7 @@ class FileHandler {
   /**
    * Process a text file - read as UTF-8 string
    */
-  private static async processTextFile(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+  private static processTextFile(filePath: string, filename: string, mimeType: string): ProcessedFile {
     const content = fs.readFileSync(filePath, 'utf-8');
     
     return {
@@ -143,7 +143,7 @@ class FileHandler {
    * Process a PDF file - for now, return error suggesting text extraction
    * In a full implementation, this would use a library like pdf-parse
    */
-  private static async processPdf(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+  private static processPdf(filePath: string, filename: string, mimeType: string): ProcessedFile {
     // For MVP, we'll read PDF as base64 and let vision models handle it
     // Or we could extract text using a library
     throw new Error(
@@ -156,7 +156,7 @@ class FileHandler {
    * Process a Word document - for now, return error suggesting text extraction
    * In a full implementation, this would use a library like mammoth
    */
-  private static async processWordDoc(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+  private static processWordDoc(filePath: string, filename: string, mimeType: string): ProcessedFile {
     throw new Error(
       `Word document processing not yet implemented. Please convert to text or PDF first. ` +
       `For text extraction, consider using mammoth or similar tools.`
