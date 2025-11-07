@@ -1004,13 +1004,22 @@ Each test scenario contains:
   - Requires: `target` (variable name), `value` (expected value)
   - Example: `{ type: "equals", target: "name", value: "Alice" }`
 
-- **`contains`**: Checks if a variable contains a substring
-  - Requires: `target` (variable name), `value` (expected substring)
-  - Example: `{ type: "contains", target: "response", value: "artificial intelligence" }`
+- **`contains`**: Checks if a variable contains a substring or matches a regex pattern
+  - Requires: `target` (variable name), `value` (expected substring or regex pattern)
+  - Optional: `case_sensitive` (boolean, default: `true`) - Whether to perform case-sensitive matching
+  - Optional: `regex` (boolean, default: `false`) - Whether to treat `value` as a regex pattern
+  - Example (substring): `{ type: "contains", target: "response", value: "artificial intelligence" }`
+  - Example (case-insensitive): `{ type: "contains", target: "response", value: "hello", case_sensitive: false }`
+  - Example (regex): `{ type: "contains", target: "email", value: "[a-z]+@[a-z]+\\.com", regex: true }`
+  - Example (case-insensitive regex): `{ type: "contains", target: "text", value: "hello", regex: true, case_sensitive: false }`
 
-- **`not_contains`**: Checks if a variable does NOT contain a substring
-  - Requires: `target` (variable name), `value` (unexpected substring)
-  - Example: `{ type: "not_contains", target: "answer", value: "error" }`
+- **`not_contains`**: Checks if a variable does NOT contain a substring or match a regex pattern
+  - Requires: `target` (variable name), `value` (unexpected substring or regex pattern)
+  - Optional: `case_sensitive` (boolean, default: `true`) - Whether to perform case-sensitive matching
+  - Optional: `regex` (boolean, default: `false`) - Whether to treat `value` as a regex pattern
+  - Example (substring): `{ type: "not_contains", target: "answer", value: "error" }`
+  - Example (case-insensitive): `{ type: "not_contains", target: "answer", value: "error", case_sensitive: false }`
+  - Example (regex): `{ type: "not_contains", target: "text", value: "\\d{4}", regex: true }`
 
 - **`regex`**: Checks if a variable matches a regular expression pattern
   - Requires: `target` (variable name), `value` (regex pattern)

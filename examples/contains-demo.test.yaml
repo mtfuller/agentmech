@@ -1,0 +1,62 @@
+# Test Scenarios demonstrating the enhanced contains assertion
+# This file shows the new case-insensitive and regex matching options
+
+workflow: simple-qa.yaml
+
+test_scenarios:
+  - name: "Case-Insensitive Contains"
+    description: "Test case-insensitive substring matching"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "contains"
+        target: "answer"
+        value: "ARTIFICIAL"
+        case_sensitive: false
+        description: "Response should contain 'artificial' (case-insensitive)"
+
+  - name: "Regex Pattern Matching"
+    description: "Test regex pattern matching in contains assertion"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "contains"
+        target: "answer"
+        value: "artificial\\s+intelligence"
+        regex: true
+        description: "Response should match the pattern 'artificial intelligence'"
+
+  - name: "Case-Insensitive Regex"
+    description: "Test case-insensitive regex pattern matching"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "contains"
+        target: "answer"
+        value: "AI|ARTIFICIAL INTELLIGENCE"
+        regex: true
+        case_sensitive: false
+        description: "Response should match AI or artificial intelligence (case-insensitive)"
+
+  - name: "Not Contains with Case-Insensitive"
+    description: "Test not_contains with case-insensitive matching"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "not_contains"
+        target: "answer"
+        value: "ERROR"
+        case_sensitive: false
+        description: "Response should not contain 'error' in any case"
+
+  - name: "Not Contains with Regex"
+    description: "Test not_contains with regex pattern"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "not_contains"
+        target: "answer"
+        value: "\\d{4}-\\d{2}-\\d{2}"
+        regex: true
+        description: "Response should not contain date patterns like 2024-01-01"
