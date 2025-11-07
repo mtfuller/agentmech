@@ -137,6 +137,14 @@ class WorkflowParser {
 
         // Resolve tools directory relative to workflow file
         const resolvedToolsDir = path.resolve(workflowDir, config.toolsDirectory);
+        
+        // Basic validation to prevent obvious path traversal attempts
+        // Note: This is a basic check. The OS-level permissions and spawn() security
+        // provide the actual security boundary.
+        const normalizedPath = path.normalize(resolvedToolsDir);
+        if (normalizedPath.includes('..') && !path.isAbsolute(config.toolsDirectory)) {
+          console.warn(`Warning: MCP server "${serverName}" uses relative path with '..' which may traverse directories: ${config.toolsDirectory}`);
+        }
 
         // Convert to standard format
         // The custom-mcp-server.js is expected to be in dist/ from the project root

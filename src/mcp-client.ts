@@ -77,7 +77,10 @@ class McpClient {
           ...config.env
         };
 
-        const serverProcess = spawn(config.command!, config.args || [], {
+        // At this point, config.command is guaranteed to be defined due to check above
+        const command = config.command as string;
+
+        const serverProcess = spawn(command, config.args || [], {
           env,
           stdio: ['pipe', 'pipe', 'pipe']
         });

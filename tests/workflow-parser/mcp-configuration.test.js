@@ -1,4 +1,8 @@
 const WorkflowParser = require('../../dist/workflow-parser');
+const fs = require('fs');
+const path = require('path');
+const yaml = require('js-yaml');
+const os = require('os');
 
 describe('MCP Server Configuration', () => {
   test('should validate MCP server configuration', () => {
@@ -109,12 +113,8 @@ describe('MCP Server Configuration', () => {
     });
 
     test('should normalize NPX type to standard command format', () => {
-      const fs = require('fs');
-      const path = require('path');
-      const yaml = require('js-yaml');
-      
       // Create a temporary workflow file
-      const tmpDir = require('os').tmpdir();
+      const tmpDir = os.tmpdir();
       const workflowPath = path.join(tmpDir, 'test-npx-workflow.yaml');
       const workflowContent = `
 name: "NPX Test"
@@ -179,12 +179,8 @@ states:
     });
 
     test('should normalize custom-tools type to standard command format', () => {
-      const fs = require('fs');
-      const path = require('path');
-      const yaml = require('js-yaml');
-      
       // Create a temporary workflow file
-      const tmpDir = require('os').tmpdir();
+      const tmpDir = os.tmpdir();
       const workflowPath = path.join(tmpDir, 'test-custom-tools-workflow.yaml');
       const workflowContent = `
 name: "Custom Tools Test"
