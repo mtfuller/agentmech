@@ -1,0 +1,39 @@
+name: "Run Directory Demo"
+description: "Demonstrates the unique run directory feature"
+default_model: "gemma3:4b"
+start_state: "show_directory"
+
+states:
+  show_directory:
+    type: "prompt"
+    prompt: |
+      The run directory for this workflow execution is: {{run_directory}}
+      
+      This directory is unique for each run and will contain:
+      - trace.log (if tracing is enabled)
+      - run-metadata.json (workflow metadata)
+      - Any files created by the workflow
+      
+      The filesystem MCP server has been automatically configured to use this directory,
+      so you can read and write files to this location.
+      
+      Please acknowledge this information.
+    save_as: "acknowledgement"
+    next: "create_test_file"
+  
+  create_test_file:
+    type: "prompt"
+    prompt: |
+      Create a simple text file called "output.txt" in the current directory with the content:
+      "This file was created during workflow execution at {{run_directory}}"
+      
+      Use the filesystem tools to write this file.
+    save_as: "file_creation_result"
+    next: "read_test_file"
+  
+  read_test_file:
+    type: "prompt"
+    prompt: |
+      Now read the content of the "output.txt" file you just created and confirm its contents.
+    save_as: "file_read_result"
+    next: "end"

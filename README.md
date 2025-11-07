@@ -108,6 +108,33 @@ ai-workflow run my-workflow.yaml --trace
 ai-workflow run my-workflow.yaml --trace --log-file trace.log
 ```
 
+#### Unique Run Directories
+
+Each workflow execution automatically gets its own unique directory to isolate file operations and logs:
+
+- **Location**: `~/.ai-workflow-cli/runs/<workflow-name>-<timestamp>/`
+- **Contents**:
+  - `trace.log` - Trace logs (when tracing is enabled)
+  - `run-metadata.json` - Workflow execution metadata
+  - Any files created or modified during workflow execution
+
+The run directory path is:
+- Automatically available as the context variable `{{run_directory}}` in your workflows
+- Used as the root directory for the filesystem MCP server (auto-injected if not already configured)
+- Displayed at the start and end of workflow execution
+
+Example:
+```bash
+ai-workflow run examples/run-directory-demo.yaml --trace
+# Creates: ~/.ai-workflow-cli/runs/run-directory-demo-2024-01-15T10-30-45/
+# Contains: trace.log, run-metadata.json, and any workflow-created files
+```
+
+This ensures each run is isolated with its own workspace, making it easy to:
+- Review logs and outputs from specific executions
+- Debug issues by examining files from failed runs
+- Maintain a history of workflow executions
+
 #### Observability and Tracing
 
 Use the `--trace` flag to enable detailed logging of workflow execution:
@@ -116,10 +143,10 @@ Use the `--trace` flag to enable detailed logging of workflow execution:
 ai-workflow run examples/simple-qa.yaml --trace
 ```
 
-To save trace events to a file in addition to console output, use the `--log-file` option:
+With unique run directories, trace logs are automatically saved to `<run-directory>/trace.log`. You can also specify a custom log file location:
 
 ```bash
-ai-workflow run examples/simple-qa.yaml --trace --log-file workflow-trace.log
+ai-workflow run examples/simple-qa.yaml --trace --log-file /custom/path/trace.log
 ```
 
 Note: If you specify `--log-file` without `--trace`, tracing will be automatically enabled.
@@ -133,7 +160,7 @@ When tracing is enabled, the CLI logs all interactions including:
 - User choices and selections
 - Errors and their context
 
-Trace logs include timestamps and are written in a structured format. When using `--log-file`, each workflow execution session is clearly marked with session start/end markers, and new runs append to the existing file for continuous logging.
+Trace logs include timestamps and are written in a structured format. Each workflow execution session is clearly marked with session start/end markers.
 
 This feature is useful for debugging workflows, understanding execution flow, monitoring AI interactions, and maintaining audit trails.
 
@@ -491,6 +518,22 @@ generate_response:
   prompt: "Write a {{genre}} story about {{topic}}"
   save_as: "story"
   next: "display_result"
+```
+
+#### Built-in Context Variables
+
+The following variables are automatically available in all workflows:
+
+- `{{run_directory}}` - The unique directory path for the current workflow execution. This directory contains trace logs, metadata, and any files created during the workflow. The filesystem MCP server (if auto-injected) uses this as its root directory.
+
+Example usage:
+```yaml
+states:
+  save_output:
+    type: "prompt"
+    prompt: "Save the analysis results to a file in {{run_directory}}"
+    save_as: "file_path"
+    next: "end"
 ```
 
 ### Error Handling with Fallback Flow
@@ -903,6 +946,7 @@ The `examples/` directory contains sample workflows:
 - **user-input-demo.yaml**: Demonstrates the input state for collecting user information
 - **code-review.yaml**: Code review assistant with different review types
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
+- **run-directory-demo.yaml**: Demonstrates the unique run directory feature with file operations
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
 - **mcp-npx-simplified.yaml**: Demonstrates simplified NPX MCP server configuration
 - **custom-tools-demo.yaml**: Demonstrates using custom JavaScript tools in workflows
