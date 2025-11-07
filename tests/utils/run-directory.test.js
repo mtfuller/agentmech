@@ -12,7 +12,7 @@ describe('Run Directory Management', () => {
   
   beforeEach(() => {
     // Create a temporary directory for tests
-    testBaseDir = path.join(os.tmpdir(), 'ai-workflow-test-runs-' + Date.now());
+    testBaseDir = path.join(os.tmpdir(), 'agentmech-test-runs-' + Date.now());
     fs.mkdirSync(testBaseDir, { recursive: true });
   });
   
@@ -63,7 +63,7 @@ describe('Run Directory Management', () => {
     it('should create directory in default location if no base dir provided', () => {
       const runDirInfo = RunDirectory.createRunDirectory('Test Workflow');
       
-      const expectedBasePath = path.join(os.homedir(), '.ai-workflow-cli', 'runs');
+      const expectedBasePath = path.join(os.homedir(), '.agentmech', 'runs');
       expect(runDirInfo.path).toContain(expectedBasePath);
       
       // Clean up

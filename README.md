@@ -1,4 +1,4 @@
-# AI Workflow CLI
+# AgentMech
 
 A Node.js CLI tool for running AI workflows locally with Ollama integration. Define complex AI-powered workflows using simple YAML files and execute them with state machine logic.
 
@@ -26,8 +26,8 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 
 ```bash
 # Clone the repository
-git clone https://github.com/mtfuller/ai-workflow-cli.git
-cd ai-workflow-cli
+git clone https://github.com/mtfuller/agentmech.git
+cd agentmech
 
 # Install dependencies
 npm install
@@ -58,7 +58,7 @@ npm start run examples/simple-qa.yaml
 
 Or if you've linked the CLI:
 ```bash
-ai-workflow run examples/simple-qa.yaml
+agentmech run examples/simple-qa.yaml
 ```
 
 ## Usage
@@ -68,7 +68,7 @@ ai-workflow run examples/simple-qa.yaml
 Create a new workflow YAML file by describing what you want in natural language:
 
 ```bash
-ai-workflow generate [options]
+agentmech generate [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
@@ -78,9 +78,9 @@ Options:
 
 Example:
 ```bash
-ai-workflow generate
-ai-workflow generate --output my-workflow.yaml
-ai-workflow generate --model mistral
+agentmech generate
+agentmech generate --output my-workflow.yaml
+agentmech generate --model mistral
 ```
 
 When you run this command, you'll be prompted to describe the workflow you want to create. The AI will generate a complete workflow YAML file based on your description, which you can then customize and run.
@@ -90,7 +90,7 @@ When you run this command, you'll be prompted to describe the workflow you want 
 Start a web interface to browse and manage workflows:
 
 ```bash
-ai-workflow serve [workflow-dir] [options]
+agentmech serve [workflow-dir] [options]
 
 Arguments:
   workflow-dir            Directory containing workflow files (default: "./examples")
@@ -102,8 +102,8 @@ Options:
 
 Example:
 ```bash
-ai-workflow serve examples
-ai-workflow serve ./my-workflows --port 8080
+agentmech serve examples
+agentmech serve ./my-workflows --port 8080
 ```
 
 The web UI provides:
@@ -115,7 +115,7 @@ The web UI provides:
 ### Run a Workflow
 
 ```bash
-ai-workflow run <workflow-file> [options]
+agentmech run <workflow-file> [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
@@ -125,17 +125,17 @@ Options:
 
 Example:
 ```bash
-ai-workflow run examples/complete-story-builder.yaml
-ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
-ai-workflow run my-workflow.yaml --trace
-ai-workflow run my-workflow.yaml --trace --log-file trace.log
+agentmech run examples/complete-story-builder.yaml
+agentmech run my-workflow.yaml --ollama-url http://localhost:11434
+agentmech run my-workflow.yaml --trace
+agentmech run my-workflow.yaml --trace --log-file trace.log
 ```
 
 #### Unique Run Directories
 
 Each workflow execution automatically gets its own unique directory to isolate file operations and logs:
 
-- **Location**: `~/.ai-workflow-cli/runs/<workflow-name>-<timestamp>/`
+- **Location**: `~/.agentmech/runs/<workflow-name>-<timestamp>/`
 - **Contents**:
   - `trace.log` - Trace logs (when tracing is enabled)
   - `run-metadata.json` - Workflow execution metadata
@@ -148,8 +148,8 @@ The run directory path is:
 
 Example:
 ```bash
-ai-workflow run examples/run-directory-demo.yaml --trace
-# Creates: ~/.ai-workflow-cli/runs/run-directory-demo-2024-01-15T10-30-45/
+agentmech run examples/run-directory-demo.yaml --trace
+# Creates: ~/.agentmech/runs/run-directory-demo-2024-01-15T10-30-45/
 # Contains: trace.log, run-metadata.json, and any workflow-created files
 ```
 
@@ -163,13 +163,13 @@ This ensures each run is isolated with its own workspace, making it easy to:
 Use the `--trace` flag to enable detailed logging of workflow execution:
 
 ```bash
-ai-workflow run examples/simple-qa.yaml --trace
+agentmech run examples/simple-qa.yaml --trace
 ```
 
 With unique run directories, trace logs are automatically saved to `<run-directory>/trace.log`. You can also specify a custom log file location:
 
 ```bash
-ai-workflow run examples/simple-qa.yaml --trace --log-file /custom/path/trace.log
+agentmech run examples/simple-qa.yaml --trace --log-file /custom/path/trace.log
 ```
 
 Note: If you specify `--log-file` without `--trace`, tracing will be automatically enabled.
@@ -192,7 +192,7 @@ This feature is useful for debugging workflows, understanding execution flow, mo
 Run automated tests against a workflow to verify it performs as expected:
 
 ```bash
-ai-workflow test <test-file> [options]
+agentmech test <test-file> [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
@@ -202,9 +202,9 @@ Options:
 
 Example:
 ```bash
-ai-workflow test examples/user-input-demo.test.yaml
-ai-workflow test examples/simple-qa.test.yaml --format json --output report.json
-ai-workflow test examples/user-input-demo.test.yaml --format markdown --output report.md
+agentmech test examples/user-input-demo.test.yaml
+agentmech test examples/simple-qa.test.yaml --format json --output report.json
+agentmech test examples/user-input-demo.test.yaml --format markdown --output report.md
 ```
 
 Test files define scenarios with mocked inputs and assertions to validate workflow behavior. The test command:
@@ -218,18 +218,18 @@ See the [Test Scenarios](#test-scenarios) section for details on creating test f
 ### Validate a Workflow
 
 ```bash
-ai-workflow validate <workflow-file>
+agentmech validate <workflow-file>
 ```
 
 Example:
 ```bash
-ai-workflow validate examples/complete-story-builder.yaml
+agentmech validate examples/complete-story-builder.yaml
 ```
 
 ### List Available Models
 
 ```bash
-ai-workflow list-models [options]
+agentmech list-models [options]
 
 Options:
   -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
@@ -237,7 +237,7 @@ Options:
 
 Example:
 ```bash
-ai-workflow list-models
+agentmech list-models
 ```
 
 ## Workflow YAML Format
@@ -920,13 +920,13 @@ Run tests using the `test` command:
 
 ```bash
 # Run tests with console output
-ai-workflow test examples/user-input-demo.test.yaml
+agentmech test examples/user-input-demo.test.yaml
 
 # Generate JSON report
-ai-workflow test examples/simple-qa.test.yaml --format json --output report.json
+agentmech test examples/simple-qa.test.yaml --format json --output report.json
 
 # Generate Markdown report
-ai-workflow test examples/user-input-demo.test.yaml --format markdown --output report.md
+agentmech test examples/user-input-demo.test.yaml --format markdown --output report.md
 ```
 
 The test command will:
@@ -1005,7 +1005,7 @@ This project is written in TypeScript and compiled to JavaScript.
 The source code is organized into logical subdirectories for improved maintainability:
 
 ```
-ai-workflow-cli/
+agentmech/
 ├── src/
 │   ├── cli/                    # CLI entry point and commands
 │   ├── core/                   # Core workflow logic (parser, executor, discovery)
@@ -1067,7 +1067,7 @@ ollama pull mistral
 
 Ensure you're providing the correct path to your YAML file:
 ```bash
-ai-workflow run /full/path/to/workflow.yaml
+agentmech run /full/path/to/workflow.yaml
 ```
 
 ## Contributing

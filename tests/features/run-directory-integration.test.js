@@ -16,7 +16,7 @@ describe('Run Directory Integration', () => {
   
   beforeEach(() => {
     // Create a temporary directory for tests
-    testBaseDir = path.join(os.tmpdir(), 'ai-workflow-test-integration-' + Date.now());
+    testBaseDir = path.join(os.tmpdir(), 'agentmech-test-integration-' + Date.now());
     fs.mkdirSync(testBaseDir, { recursive: true });
     
     // Create a simple test workflow
