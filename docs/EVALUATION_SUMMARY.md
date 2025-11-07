@@ -4,7 +4,7 @@
 
 I've completed a comprehensive evaluation of your workflow YAML schema and implemented the most impactful improvements. Here's what was done:
 
-## 1. Schema Analysis (SCHEMA_IMPROVEMENTS.md)
+## 1. Schema Analysis (./SCHEMA_IMPROVEMENTS.md)
 
 Created a detailed analysis document that:
 - Identified 15 areas for improvement
@@ -117,7 +117,7 @@ rag:
 
 ## Remaining Recommendations (Not Implemented)
 
-These are documented in SCHEMA_IMPROVEMENTS.md for future consideration:
+These are documented in ./SCHEMA_IMPROVEMENTS.md for future consideration:
 
 ### Medium Priority
 - Add decision tree diagram for RAG configuration options
