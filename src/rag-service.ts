@@ -40,23 +40,29 @@ class RagService {
   private chunks: DocumentChunk[] = [];
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
-    // Support both old and new field names
-    const embeddingsFile = config.embeddings_file || config.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
-    const chunkSize = config.chunk_size || config.chunkSize || 1000;
-    const topK = config.top_k || config.topK || 3;
-    const storageFormat = config.storage_format || config.storageFormat || 'msgpack';
-    
-    this.config = {
+    // First apply config overrides, then normalize field names
+    const mergedConfig = {
       model: config.model || 'gemma3:4b',
+      ...config
+    };
+    
+    // Support both old and new field names, preferring new ones
+    const embeddingsFile = mergedConfig.embeddings_file || mergedConfig.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
+    const chunkSize = mergedConfig.chunk_size || mergedConfig.chunkSize || 1000;
+    const topK = mergedConfig.top_k || mergedConfig.topK || 3;
+    const storageFormat = mergedConfig.storage_format || mergedConfig.storageFormat || 'msgpack';
+    
+    // Store normalized config using new field names
+    this.config = {
+      ...mergedConfig,
       embeddings_file: embeddingsFile,
-      embeddingsFile: embeddingsFile,  // Keep for backward compatibility
+      embeddingsFile: embeddingsFile,  // Keep for backward compatibility in internal usage
       chunk_size: chunkSize,
       chunkSize: chunkSize,  // Keep for backward compatibility
       top_k: topK,
       topK: topK,  // Keep for backward compatibility
       storage_format: storageFormat,
-      storageFormat: storageFormat,  // Keep for backward compatibility
-      ...config
+      storageFormat: storageFormat  // Keep for backward compatibility
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
   }
@@ -65,7 +71,7 @@ class RagService {
    * Initialize RAG by loading or creating embeddings
    */
   async initialize(): Promise<void> {
-    const embeddingsPath = path.join(this.config.directory, this.config.embeddingsFile!);
+    const embeddingsPath = path.join(this.config.directory, this.config.embeddings_file!);
     
     // Check if embeddings file exists
     if (fs.existsSync(embeddingsPath)) {
@@ -73,7 +79,7 @@ class RagService {
       await this.loadEmbeddings(embeddingsPath);
     } else {
       // Check for legacy JSON file if using msgpack format
-      if (this.config.storageFormat === 'msgpack') {
+      if (this.config.storage_format === 'msgpack') {
         const legacyJsonPath = path.join(this.config.directory, DEFAULT_JSON_EMBEDDINGS_FILE);
         if (fs.existsSync(legacyJsonPath)) {
           console.log(`Found legacy JSON embeddings at ${legacyJsonPath}`);
@@ -150,7 +156,7 @@ class RagService {
       
       // Determine format from file extension or config
       const fileExt = path.extname(filePath).toLowerCase();
-      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt) || this.config.storageFormat === 'msgpack';
+      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt) || this.config.storage_format === 'msgpack';
       
       if (isMsgpack) {
         // Save as MessagePack format (binary)
@@ -192,7 +198,7 @@ class RagService {
         }
         
         const content = fs.readFileSync(file, 'utf8');
-        const chunks = this.chunkText(content, this.config.chunkSize!);
+        const chunks = this.chunkText(content, this.config.chunk_size!);
       
         for (let i = 0; i < chunks.length; i++) {
           const chunk: DocumentChunk = {
@@ -345,7 +351,7 @@ class RagService {
     
     // Sort by similarity and return top K
     scores.sort((a, b) => b.score - a.score);
-    const topChunks = scores.slice(0, this.config.topK!).map(s => s.chunk);
+    const topChunks = scores.slice(0, this.config.top_k!).map(s => s.chunk);
     
     console.log(`Found ${topChunks.length} relevant chunks`);
     return topChunks;

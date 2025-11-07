@@ -310,22 +310,34 @@ class WorkflowParser {
    */
   static normalizeRagConfig(ragConfig: RagConfig): void {
     // Support both old (camelCase) and new (snake_case) field names
-    // Warn about deprecated usage
+    // Warn about deprecated usage and normalize to new names
     if (ragConfig.embeddingsFile && !ragConfig.embeddings_file) {
       console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
       ragConfig.embeddings_file = ragConfig.embeddingsFile;
+    } else if (ragConfig.embeddings_file) {
+      // Also set old name for backward compatibility in consumers
+      ragConfig.embeddingsFile = ragConfig.embeddings_file;
     }
+    
     if (ragConfig.chunkSize && !ragConfig.chunk_size) {
       console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
       ragConfig.chunk_size = ragConfig.chunkSize;
+    } else if (ragConfig.chunk_size) {
+      ragConfig.chunkSize = ragConfig.chunk_size;
     }
+    
     if (ragConfig.topK && !ragConfig.top_k) {
       console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
       ragConfig.top_k = ragConfig.topK;
+    } else if (ragConfig.top_k) {
+      ragConfig.topK = ragConfig.top_k;
     }
+    
     if (ragConfig.storageFormat && !ragConfig.storage_format) {
       console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
       ragConfig.storage_format = ragConfig.storageFormat;
+    } else if (ragConfig.storage_format) {
+      ragConfig.storageFormat = ragConfig.storage_format;
     }
   }
 
@@ -347,19 +359,16 @@ class WorkflowParser {
       throw new Error('RAG model must be a string');
     }
     
-    // Validate new snake_case fields (after normalization)
-    const embeddingsFile = ragConfig.embeddings_file || ragConfig.embeddingsFile;
-    if (embeddingsFile && typeof embeddingsFile !== 'string') {
+    // Validate using normalized (new) field names
+    if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
       throw new Error('RAG embeddings_file must be a string');
     }
     
-    const chunkSize = ragConfig.chunk_size || ragConfig.chunkSize;
-    if (chunkSize && (typeof chunkSize !== 'number' || chunkSize <= 0)) {
+    if (ragConfig.chunk_size && (typeof ragConfig.chunk_size !== 'number' || ragConfig.chunk_size <= 0)) {
       throw new Error('RAG chunk_size must be a positive number');
     }
     
-    const topK = ragConfig.top_k || ragConfig.topK;
-    if (topK && (typeof topK !== 'number' || topK <= 0)) {
+    if (ragConfig.top_k && (typeof ragConfig.top_k !== 'number' || ragConfig.top_k <= 0)) {
       throw new Error('RAG top_k must be a positive number');
     }
   }
