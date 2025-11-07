@@ -67,8 +67,9 @@ class WorkflowExecutor {
   private rl: readline.Interface;
   private tracer: Tracer;
   private stopRequested: boolean;
+  private runDirectory?: string;
 
-  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer) {
+  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer, runDirectory?: string) {
     this.workflow = workflow;
     this.ollamaClient = new OllamaClient(ollamaUrl, tracer);
     this.mcpClient = new McpClient(tracer);
@@ -76,6 +77,12 @@ class WorkflowExecutor {
     this.history = [];
     this.namedRagServices = new Map();
     this.stopRequested = false;
+    this.runDirectory = runDirectory;
+    
+    // Add run directory to context if provided
+    if (runDirectory) {
+      this.context['run_directory'] = runDirectory;
+    }
     
     // Initialize default RAG service if configured
     if (workflow.rag) {
@@ -111,6 +118,32 @@ class WorkflowExecutor {
     }
 
     this.tracer.traceWorkflowStart(this.workflow.name, this.workflow.start_state);
+
+    // Auto-inject filesystem MCP server if run directory is provided and not already configured
+    if (this.runDirectory) {
+      // Initialize mcp_servers if not present
+      if (!this.workflow.mcp_servers) {
+        this.workflow.mcp_servers = {};
+      }
+      
+      // Check if filesystem server is already configured
+      const hasFilesystemServer = Object.entries(this.workflow.mcp_servers).some(
+        ([name, config]) => {
+          // Check if it's explicitly named 'filesystem' or uses the filesystem package
+          return name === 'filesystem' || 
+                 (config.args && config.args.some(arg => arg.includes('@modelcontextprotocol/server-filesystem')));
+        }
+      );
+      
+      // If no filesystem server configured, auto-inject one
+      if (!hasFilesystemServer) {
+        console.log(`Auto-configuring filesystem MCP server with run directory: ${this.runDirectory}`);
+        this.workflow.mcp_servers['filesystem'] = {
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory]
+        };
+      }
+    }
 
     // Initialize MCP servers if configured
     if (this.workflow.mcp_servers) {

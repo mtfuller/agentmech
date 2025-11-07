@@ -9,6 +9,7 @@ import WebServer = require('../web/web-server');
 import { TestScenarioParser } from '../testing/test-scenario-parser';
 import { TestExecutor } from '../testing/test-executor';
 import { TestReportGenerator } from '../testing/test-report-generator';
+import * as RunDirectory from '../utils/run-directory';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -41,6 +42,21 @@ program
       const workflow = WorkflowParser.parseFile(workflowPath);
       console.log(`Workflow "${workflow.name}" loaded successfully`);
       
+      // Create unique run directory for this workflow execution
+      const runDirInfo = RunDirectory.createRunDirectory(workflow.name);
+      console.log(`Run directory created: ${runDirInfo.path}\n`);
+      
+      // Write run metadata
+      RunDirectory.writeRunMetadata(runDirInfo);
+      
+      // Determine log file path
+      let logFilePath = options.logFile;
+      
+      // If tracing is enabled but no log file specified, use default in run directory
+      if (options.trace && !logFilePath) {
+        logFilePath = RunDirectory.getTraceLogPath(runDirInfo.path);
+      }
+      
       // Validate options
       if (options.logFile && !options.trace) {
         console.log('Warning: --log-file requires --trace to be enabled. Enabling tracing automatically.\n');
@@ -48,17 +64,17 @@ program
       }
       
       // Create tracer
-      const tracer = new Tracer(options.trace, options.logFile);
+      const tracer = new Tracer(options.trace, logFilePath);
       if (options.trace) {
         console.log('Tracing enabled');
-        if (options.logFile) {
-          console.log(`Logging to file: ${options.logFile}`);
+        if (logFilePath) {
+          console.log(`Logging to file: ${logFilePath}`);
         }
         console.log('');
       }
       
-      // Execute the workflow
-      const executor = new WorkflowExecutor(workflow, options.ollamaUrl, tracer);
+      // Execute the workflow with run directory
+      const executor = new WorkflowExecutor(workflow, options.ollamaUrl, tracer, runDirInfo.path);
       
       // Handle graceful shutdown on Ctrl+C
       const handleStop = () => {
@@ -76,6 +92,8 @@ program
       
       // Close the tracer to flush file stream
       tracer.close();
+      
+      console.log(`\nWorkflow files saved to: ${runDirInfo.path}`);
       
     } catch (error: any) {
       console.error(`\nError: ${error.message}`);
