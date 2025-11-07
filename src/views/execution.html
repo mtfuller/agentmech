@@ -430,9 +430,15 @@
             
             // Render markdown for response messages with sanitization
             if (type === 'response') {
-                const rawHtml = marked.parse(message);
-                const cleanHtml = DOMPurify.sanitize(rawHtml);
-                messageDiv.innerHTML = cleanHtml;
+                // Check if marked and DOMPurify are loaded, otherwise use plain text
+                if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                    const rawHtml = marked.parse(message);
+                    const cleanHtml = DOMPurify.sanitize(rawHtml);
+                    messageDiv.innerHTML = cleanHtml;
+                } else {
+                    // Fallback to plain text if libraries aren't loaded
+                    messageDiv.textContent = message;
+                }
             } else if (type === 'prompt-details') {
                 // Create collapsible prompt component
                 const promptId = 'prompt-' + Date.now();
