@@ -1,0 +1,18 @@
+name: "MCP Test Workflow"
+description: "Simple workflow to test MCP mocking"
+default_model: "gemma3:4b"
+start_state: "greet"
+
+# Configure MCP server that should NOT spawn during tests
+mcp_servers:
+  test_server:
+    command: "echo"
+    args: ["test"]
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "Say hello to the test"
+    mcp_servers: ["test_server"]
+    save_as: "greeting"
+    next: "end"

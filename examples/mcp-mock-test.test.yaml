@@ -1,0 +1,10 @@
+workflow: mcp-mock-test.yaml
+
+test_scenarios:
+  - name: "Test MCP mocking"
+    assertions:
+      - type: state_reached
+        value: end
+      - type: contains
+        target: greeting
+        value: hello

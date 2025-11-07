@@ -1,6 +1,7 @@
 import * as readline from 'readline';
 import OllamaClient = require('./ollama-client');
 import McpClient = require('./mcp-client');
+import { IMcpClient } from './mcp-types';
 import RagService = require('./rag-service');
 import Tracer = require('./tracer');
 
@@ -59,7 +60,7 @@ interface Workflow {
 class WorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
-  private mcpClient: McpClient;
+  private mcpClient: IMcpClient;
   private ragService?: RagService;
   private namedRagServices: Map<string, RagService>;
   private context: Record<string, any>;
@@ -68,10 +69,10 @@ class WorkflowExecutor {
   private tracer: Tracer;
   private stopRequested: boolean;
 
-  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer) {
+  constructor(workflow: Workflow, ollamaUrl: string = 'http://localhost:11434', tracer?: Tracer, mcpClient?: IMcpClient) {
     this.workflow = workflow;
     this.ollamaClient = new OllamaClient(ollamaUrl, tracer);
-    this.mcpClient = new McpClient(tracer);
+    this.mcpClient = mcpClient || new McpClient(tracer);
     this.context = {};
     this.history = [];
     this.namedRagServices = new Map();

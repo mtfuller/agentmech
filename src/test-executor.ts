@@ -2,6 +2,7 @@ import WorkflowParser = require('./workflow-parser');
 import WorkflowExecutor = require('./workflow-executor');
 import { TestScenario, TestAssertion, TestInput } from './test-scenario-parser';
 import Tracer = require('./tracer');
+import MockMcpClient = require('./mock-mcp-client');
 
 /**
  * Result of a single assertion
@@ -289,7 +290,11 @@ class TestWorkflowExecutor extends WorkflowExecutor {
    * @param inputs - Array of mocked inputs for input states
    */
   constructor(workflow: any, ollamaUrl: string, tracer: Tracer, inputs: TestInput[]) {
-    super(workflow, ollamaUrl, tracer);
+    // Create a mock MCP client to prevent actual process spawning during tests
+    const mockMcpClient = new MockMcpClient(tracer);
+    
+    // Pass the mock MCP client to the parent constructor
+    super(workflow, ollamaUrl, tracer, mockMcpClient);
     
     // Convert inputs array to map for easy lookup
     this.mockInputs = new Map();

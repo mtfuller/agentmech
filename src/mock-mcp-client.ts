@@ -1,24 +1,27 @@
-import { spawn, ChildProcess } from 'child_process';
 import Tracer = require('./tracer');
 import { IMcpClient, McpServerConfig, McpTool, McpResource } from './mcp-types';
 
-class McpClient implements IMcpClient {
-  private servers: Map<string, ChildProcess>;
+/**
+ * Mock MCP Client for testing
+ * This client simulates MCP server functionality without spawning actual processes
+ */
+class MockMcpClient implements IMcpClient {
   private serverConfigs: Map<string, McpServerConfig>;
+  private connectedServers: Set<string>;
   private serverTools: Map<string, McpTool[]>;
   private serverResources: Map<string, McpResource[]>;
   private tracer: Tracer;
 
   constructor(tracer?: Tracer) {
-    this.servers = new Map();
     this.serverConfigs = new Map();
+    this.connectedServers = new Set();
     this.serverTools = new Map();
     this.serverResources = new Map();
     this.tracer = tracer || new Tracer(false);
   }
 
   /**
-   * Register an MCP server configuration
+   * Register an MCP server configuration (mocked - doesn't spawn processes)
    * @param name - Server name
    * @param config - Server configuration
    */
@@ -28,9 +31,9 @@ class McpClient implements IMcpClient {
   }
 
   /**
-   * Connect to a registered MCP server
+   * Connect to a registered MCP server (mocked - doesn't spawn processes)
    * @param name - Server name
-   * @returns Promise that resolves when connection is established
+   * @returns Promise that resolves immediately
    */
   async connectServer(name: string): Promise<void> {
     const config = this.serverConfigs.get(name);
@@ -46,68 +49,26 @@ class McpClient implements IMcpClient {
       throw new Error(error);
     }
 
-    if (this.servers.has(name)) {
+    if (this.connectedServers.has(name)) {
       // Already connected
       this.tracer.traceMcpServerConnect(name, true);
       return;
     }
 
-    return new Promise((resolve, reject) => {
-      try {
-        const env = {
-          ...process.env,
-          ...config.env
-        };
-
-        // At this point, config.command is guaranteed to be defined due to check above
-        const command = config.command as string;
-
-        const serverProcess = spawn(command, config.args || [], {
-          env,
-          stdio: ['pipe', 'pipe', 'pipe']
-        });
-
-        serverProcess.on('error', (error) => {
-          const errorMsg = `Failed to start MCP server "${name}": ${error.message}`;
-          this.tracer.traceMcpServerConnect(name, false, errorMsg);
-          reject(new Error(errorMsg));
-        });
-
-        serverProcess.on('spawn', () => {
-          this.servers.set(name, serverProcess);
-          // Initialize empty tools and resources lists
-          // Note: Full MCP protocol implementation for querying tools/resources
-          // would require JSON-RPC communication over stdio, which is not yet implemented.
-          // This provides the infrastructure for future MCP protocol integration.
-          this.serverTools.set(name, []);
-          this.serverResources.set(name, []);
-          this.tracer.traceMcpServerConnect(name, true);
-          resolve();
-        });
-
-        serverProcess.on('exit', (code) => {
-          if (code !== 0) {
-            console.warn(`MCP server "${name}" exited with code ${code}`);
-          }
-          this.servers.delete(name);
-        });
-      } catch (error: any) {
-        const errorMsg = `Failed to connect to MCP server "${name}": ${error.message}`;
-        this.tracer.traceMcpServerConnect(name, false, errorMsg);
-        reject(new Error(errorMsg));
-      }
-    });
+    // Mock connection - don't actually spawn process
+    this.connectedServers.add(name);
+    this.serverTools.set(name, []);
+    this.serverResources.set(name, []);
+    this.tracer.traceMcpServerConnect(name, true);
   }
 
   /**
-   * Disconnect from an MCP server
+   * Disconnect from an MCP server (mocked)
    * @param name - Server name
    */
   async disconnectServer(name: string): Promise<void> {
-    const serverProcess = this.servers.get(name);
-    if (serverProcess) {
-      serverProcess.kill();
-      this.servers.delete(name);
+    if (this.connectedServers.has(name)) {
+      this.connectedServers.delete(name);
       this.serverTools.delete(name);
       this.serverResources.delete(name);
       this.tracer.traceMcpServerDisconnect(name);
@@ -115,10 +76,10 @@ class McpClient implements IMcpClient {
   }
 
   /**
-   * Disconnect from all MCP servers
+   * Disconnect from all MCP servers (mocked)
    */
   async disconnectAll(): Promise<void> {
-    const disconnectPromises = Array.from(this.servers.keys()).map(name => 
+    const disconnectPromises = Array.from(this.connectedServers.keys()).map(name => 
       this.disconnectServer(name)
     );
     await Promise.all(disconnectPromises);
@@ -130,7 +91,7 @@ class McpClient implements IMcpClient {
    * @returns Array of available tools with server name
    */
   getAvailableTools(serverNames?: string[]): Array<{ server: string; tool: McpTool }> {
-    const servers = serverNames || Array.from(this.servers.keys());
+    const servers = serverNames || Array.from(this.connectedServers.keys());
     const tools: Array<{ server: string; tool: McpTool }> = [];
 
     for (const serverName of servers) {
@@ -149,7 +110,7 @@ class McpClient implements IMcpClient {
    * @returns Array of available resources with server name
    */
   getAvailableResources(serverNames?: string[]): Array<{ server: string; resource: McpResource }> {
-    const servers = serverNames || Array.from(this.servers.keys());
+    const servers = serverNames || Array.from(this.connectedServers.keys());
     const resources: Array<{ server: string; resource: McpResource }> = [];
 
     for (const serverName of servers) {
@@ -168,7 +129,7 @@ class McpClient implements IMcpClient {
    * @returns True if server is connected
    */
   isConnected(name: string): boolean {
-    return this.servers.has(name);
+    return this.connectedServers.has(name);
   }
 
   /**
@@ -176,8 +137,8 @@ class McpClient implements IMcpClient {
    * @returns Array of connected server names
    */
   getConnectedServers(): string[] {
-    return Array.from(this.servers.keys());
+    return Array.from(this.connectedServers.keys());
   }
 }
 
-export = McpClient;
+export = MockMcpClient;
