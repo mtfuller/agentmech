@@ -164,13 +164,95 @@ class WebServer {
   }
 
   private getIndexHtml(): string {
-    const indexPath = path.join(__dirname, 'views', 'index.html');
-    return fs.readFileSync(indexPath, 'utf-8');
+    try {
+      const indexPath = path.join(__dirname, 'views', 'index.html');
+      return fs.readFileSync(indexPath, 'utf-8');
+    } catch (error: any) {
+      console.error('Failed to load index.html:', error.message);
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - AI Workflow CLI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .error-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 { color: #dc3545; margin-bottom: 20px; }
+        p { color: #666; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>⚠️ Error Loading Page</h1>
+        <p>Failed to load the web interface. Please ensure the application was built correctly.</p>
+        <p><strong>Error:</strong> ${error.message}</p>
+        <p>Try running <code>npm run build</code> to rebuild the application.</p>
+    </div>
+</body>
+</html>`;
+    }
   }
 
   private getExecutionHtml(): string {
-    const executionPath = path.join(__dirname, 'views', 'execution.html');
-    return fs.readFileSync(executionPath, 'utf-8');
+    try {
+      const executionPath = path.join(__dirname, 'views', 'execution.html');
+      return fs.readFileSync(executionPath, 'utf-8');
+    } catch (error: any) {
+      console.error('Failed to load execution.html:', error.message);
+      return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - AI Workflow CLI</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .error-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 { color: #dc3545; margin-bottom: 20px; }
+        p { color: #666; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>⚠️ Error Loading Page</h1>
+        <p>Failed to load the execution interface. Please ensure the application was built correctly.</p>
+        <p><strong>Error:</strong> ${error.message}</p>
+        <p>Try running <code>npm run build</code> to rebuild the application.</p>
+    </div>
+</body>
+</html>`;
+    }
   }
 
   /**
