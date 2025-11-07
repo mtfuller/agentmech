@@ -301,10 +301,38 @@ class WorkflowParser {
   }
 
   /**
+   * Normalize RAG configuration field names (support both old camelCase and new snake_case)
+   * @param ragConfig - RAG configuration
+   */
+  static normalizeRagConfig(ragConfig: RagConfig): void {
+    // Support both old (camelCase) and new (snake_case) field names
+    // Warn about deprecated usage
+    if (ragConfig.embeddings_file && !ragConfig.embeddings_file) {
+      console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
+      ragConfig.embeddings_file = ragConfig.embeddings_file;
+    }
+    if (ragConfig.chunk_size && !ragConfig.chunk_size) {
+      console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
+      ragConfig.chunk_size = ragConfig.chunk_size;
+    }
+    if (ragConfig.top_k && !ragConfig.top_k) {
+      console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
+      ragConfig.top_k = ragConfig.top_k;
+    }
+    if (ragConfig.storage_format && !ragConfig.storage_format) {
+      console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
+      ragConfig.storage_format = ragConfig.storage_format;
+    }
+  }
+
+  /**
    * Validate RAG configuration
    * @param ragConfig - RAG configuration
    */
   static validateRagConfig(ragConfig: RagConfig): void {
+    // First normalize field names
+    this.normalizeRagConfig(ragConfig);
+
     if (!ragConfig.directory) {
       throw new Error('RAG configuration must have a directory');
     }

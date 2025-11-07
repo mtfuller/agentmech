@@ -36,6 +36,12 @@ class RagService {
   private chunks: DocumentChunk[] = [];
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
+    // Support both old and new field names
+    const embeddingsFile = config.embeddings_file || config.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
+    const chunkSize = config.chunk_size || config.chunk_size || 1000;
+    const topK = config.top_k || config.top_k || 3;
+    const storageFormat = config.storage_format || config.storage_format || 'msgpack';
+    
     this.config = {
       model: config.model || 'gemma3:4b',
       embeddings_file: config.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE,
