@@ -57,7 +57,7 @@ interface Workflow {
 }
 
 interface ExecutionEvent {
-  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped';
+  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped' | 'prompt_sent';
   message?: string;
   data?: any;
 }
@@ -424,6 +424,13 @@ class WebWorkflowExecutor {
     this.sendEvent({
       type: 'log',
       message: `Using model: ${model}`
+    });
+    
+    // Send the full prompt that will be sent to the model
+    this.sendEvent({
+      type: 'prompt_sent',
+      message: 'Full prompt sent to model',
+      data: { fullPrompt: prompt, model }
     });
     
     this.sendEvent({
