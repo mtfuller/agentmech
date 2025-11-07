@@ -1,57 +1,108 @@
-name: "Multi-RAG Q&A System"
-description: "Answer questions using multiple RAG configurations for different knowledge bases"
+name: "Comprehensive RAG Examples"
+description: "Demonstrates all three RAG approaches: default workflow-level, named configurations, and inline state-level"
 default_model: "gemma3:4b"
-start_state: "choose_topic"
+start_state: "choose_rag_type"
+
+# Default RAG configuration (workflow-level) - used when use_rag: true
+rag:
+  directory: "./examples/knowledge-base"
+  model: "gemma3:4b"
+  embeddingsFile: "embeddings.msgpack"
+  storageFormat: "msgpack"
+  chunkSize: 500
+  topK: 3
 
 # Named RAG configurations - each with its own knowledge base
 rags:
   product_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "product_embeddings.msgpack"
-    storageFormat: "msgpack"
-    chunkSize: 500
-    topK: 3
+    embeddings_file: "product_embeddings.msgpack"
+    storage_format: "msgpack"
+    chunk_size: 500
+    top_k: 3
   
   technical_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "technical_embeddings.msgpack"
-    storageFormat: "msgpack"
-    chunkSize: 800
-    topK: 5
+    embeddings_file: "technical_embeddings.msgpack"
+    storage_format: "msgpack"
+    chunk_size: 800
+    top_k: 5
 
 states:
-  choose_topic:
+  choose_rag_type:
     type: "input"
-    prompt: "What would you like to know about? (product, technical, general)"
-    save_as: "topic"
-    next: "product_question"
+    prompt: "Which RAG approach would you like to see? (default, named, inline, all)"
+    save_as: "rag_type"
+    next: "explain_choice"
   
-  product_question:
+  explain_choice:
+    type: "prompt"
+    prompt: |
+      User chose: {{rag_type}}
+      
+      Explain which RAG approach will be demonstrated:
+      - default: Uses workflow-level 'rag:' configuration with 'use_rag: true'
+      - named: Uses named RAG configs from 'rags:' section with 'use_rag: "name"'
+      - inline: Uses state-level inline 'rag:' configuration
+      - all: Demonstrates all three approaches in sequence
+    save_as: "explanation"
+    next_options:
+      - state: "default_rag_example"
+        description: "User wants to see default or all approaches"
+      - state: "named_rag_example"
+        description: "User wants to see named approach only"
+      - state: "inline_rag_example"
+        description: "User wants to see inline approach only"
+  
+  # Example 1: Default workflow-level RAG
+  default_rag_example:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    use_rag: true  # Uses default workflow-level RAG configuration
+    save_as: "default_answer"
+    next: "named_rag_example"
+  
+  # Example 2: Named RAG configuration (product knowledge base)
+  named_rag_example:
     type: "prompt"
     prompt: "Tell me about the features and pricing of AI Workflow CLI"
-    use_rag: "product_kb"  # Use named RAG configuration
-    save_as: "answer"
-    next: "ask_another"
+    use_rag: "product_kb"  # Uses named RAG configuration
+    save_as: "product_answer"
+    next: "named_rag_example_2"
   
-  technical_question:
+  # Example 2b: Different named RAG configuration (technical knowledge base)
+  named_rag_example_2:
     type: "prompt"
     prompt: "How do I install AI Workflow CLI and what are common use cases?"
-    use_rag: "technical_kb"  # Use different named RAG configuration
-    save_as: "answer"
-    next: "ask_another"
+    use_rag: "technical_kb"  # Uses different named RAG configuration
+    save_as: "technical_answer"
+    next: "inline_rag_example"
   
-  general_question:
+  # Example 3: Inline state-level RAG configuration
+  inline_rag_example:
     type: "prompt"
-    prompt: "Provide a general overview of AI Workflow CLI"
-    # No RAG - just use the model's knowledge
-    save_as: "answer"
-    next: "ask_another"
+    prompt: "What are the best practices for using AI Workflow CLI?"
+    # Inline RAG configuration - specific to this state
+    rag:
+      directory: "./examples/knowledge-base"
+      chunkSize: 400
+      topK: 2
+    save_as: "inline_answer"
+    next: "summary"
   
-  ask_another:
-    type: "input"
-    prompt: "Would you like to ask another question? (yes/no)"
-    save_as: "continue_answer"
+  summary:
+    type: "prompt"
+    prompt: |
+      Summarize what we demonstrated:
+      
+      1. Default RAG (use_rag: true): {{default_answer}}
+      2. Named RAG for products: {{product_answer}}
+      3. Named RAG for technical: {{technical_answer}}
+      4. Inline RAG: {{inline_answer}}
+      
+      Explain the benefits of each approach briefly.
+    save_as: "rag_summary"
     next: "end"
   

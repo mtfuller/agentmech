@@ -23,9 +23,10 @@ interface McpServerConfig {
 interface RagConfig {
   directory: string;
   model?: string;
-  embeddingsFile?: string;
-  chunkSize?: number;
-  topK?: number;
+  embeddings_file?: string;
+  chunk_size?: number;
+  top_k?: number;
+  storage_format?: 'json' | 'msgpack';
 }
 
 interface State {
@@ -300,6 +301,33 @@ class WorkflowParser {
   }
 
   /**
+   * Normalize RAG configuration field names (support both old camelCase and new snake_case)
+   * This method mutates the input object to ensure both old and new field names are present.
+   * New snake_case field names take precedence when both are provided.
+   * @param ragConfig - RAG configuration (will be mutated)
+   */
+  static normalizeRagConfig(ragConfig: RagConfig): void {
+    // Support both old (camelCase) and new (snake_case) field names
+    // Warn about deprecated usage
+    if (ragConfig.embeddings_file && !ragConfig.embeddings_file) {
+      console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
+      ragConfig.embeddings_file = ragConfig.embeddings_file;
+    }
+    if (ragConfig.chunk_size && !ragConfig.chunk_size) {
+      console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
+      ragConfig.chunk_size = ragConfig.chunk_size;
+    }
+    if (ragConfig.top_k && !ragConfig.top_k) {
+      console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
+      ragConfig.top_k = ragConfig.top_k;
+    }
+    if (ragConfig.storage_format && !ragConfig.storage_format) {
+      console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
+      ragConfig.storage_format = ragConfig.storage_format;
+    }
+  }
+
+  /**
    * Validate RAG configuration
    * @param ragConfig - RAG configuration
    */
@@ -313,14 +341,17 @@ class WorkflowParser {
     if (ragConfig.model && typeof ragConfig.model !== 'string') {
       throw new Error('RAG model must be a string');
     }
-    if (ragConfig.embeddingsFile && typeof ragConfig.embeddingsFile !== 'string') {
-      throw new Error('RAG embeddingsFile must be a string');
+    
+    if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
+      throw new Error('RAG embeddings_file must be a string');
     }
-    if (ragConfig.chunkSize && (typeof ragConfig.chunkSize !== 'number' || ragConfig.chunkSize <= 0)) {
-      throw new Error('RAG chunkSize must be a positive number');
+    
+    if (ragConfig.chunk_size && (typeof ragConfig.chunk_size !== 'number' || ragConfig.chunk_size <= 0)) {
+      throw new Error('RAG chunk_size must be a positive number');
     }
-    if (ragConfig.topK && (typeof ragConfig.topK !== 'number' || ragConfig.topK <= 0)) {
-      throw new Error('RAG topK must be a positive number');
+    
+    if (ragConfig.top_k && (typeof ragConfig.top_k !== 'number' || ragConfig.top_k <= 0)) {
+      throw new Error('RAG top_k must be a positive number');
     }
   }
 

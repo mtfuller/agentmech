@@ -4,6 +4,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 
 ## Features
 
+- ✨ **AI-Powered Generation**: Create workflows from natural language descriptions
 - 🌐 **Web UI**: Browse and manage workflows through a beautiful web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
 - 🔌 **MCP Server Integration**: Connect to Model Context Protocol (MCP) servers for extended capabilities
@@ -62,6 +63,28 @@ ai-workflow run examples/simple-qa.yaml
 
 ## Usage
 
+### Generate a Workflow
+
+Create a new workflow YAML file by describing what you want in natural language:
+
+```bash
+ai-workflow generate [options]
+
+Options:
+  -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -o, --output <path>     Output file path for the generated workflow
+  -m, --model <model>     Model to use for generation (default: "gemma3:4b")
+```
+
+Example:
+```bash
+ai-workflow generate
+ai-workflow generate --output my-workflow.yaml
+ai-workflow generate --model mistral
+```
+
+When you run this command, you'll be prompted to describe the workflow you want to create. The AI will generate a complete workflow YAML file based on your description, which you can then customize and run.
+
 ### Serve Web UI
 
 Start a web interface to browse and manage workflows:
@@ -102,7 +125,7 @@ Options:
 
 Example:
 ```bash
-ai-workflow run examples/story-generator.yaml
+ai-workflow run examples/complete-story-builder.yaml
 ai-workflow run my-workflow.yaml --ollama-url http://localhost:11434
 ai-workflow run my-workflow.yaml --trace
 ai-workflow run my-workflow.yaml --trace --log-file trace.log
@@ -200,7 +223,7 @@ ai-workflow validate <workflow-file>
 
 Example:
 ```bash
-ai-workflow validate examples/story-generator.yaml
+ai-workflow validate examples/complete-story-builder.yaml
 ```
 
 ### List Available Models
@@ -221,14 +244,15 @@ ai-workflow list-models
 
 A workflow file consists of:
 
-- **name**: Workflow name
-- **description**: Optional workflow description
-- **default_model**: Default Ollama model to use (e.g., "gemma3:4b", "mistral")
-- **mcp_servers**: Optional MCP server configurations
-- **rag**: Optional RAG (Retrieval-Augmented Generation) configuration
-- **on_error**: Optional workflow-level fallback state for error handling
-- **start_state**: The initial state to begin execution
-- **states**: Object containing all workflow states
+- **name** (required): Workflow name
+- **description** (optional): Workflow description
+- **default_model** (optional): Default Ollama model to use (e.g., "gemma3:4b", "mistral")
+- **mcp_servers** (optional): MCP server configurations
+- **rag** (optional): Default RAG (Retrieval-Augmented Generation) configuration
+- **rags** (optional): Named RAG configurations
+- **on_error** (optional): Workflow-level fallback state for error handling
+- **start_state** (required): The initial state to begin execution
+- **states** (required): Object containing all workflow states
 
 ### RAG Configuration
 
@@ -237,12 +261,12 @@ You can enable Retrieval-Augmented Generation (RAG) to provide context from a kn
 #### 1. Default RAG (Workflow-level)
 ```yaml
 rag:
-  directory: "./knowledge-base"           # Directory containing documents
-  model: "gemma3:4b"                      # Optional: Model for embeddings
-  embeddingsFile: "embeddings.msgpack"    # Optional: Cache file (default: embeddings.msgpack)
-  storageFormat: "msgpack"                # Optional: "msgpack" (default) or "json"
-  chunkSize: 500                          # Optional: Text chunk size (default: 1000)
-  topK: 3                                 # Optional: Number of chunks to retrieve (default: 3)
+  directory: "./knowledge-base"              # Required: Directory containing documents
+  model: "gemma3:4b"                         # Optional: Model for embeddings
+  embeddings_file: "embeddings.msgpack"      # Optional: Cache file (default: embeddings.msgpack)
+  storage_format: "msgpack"                  # Optional: "msgpack" (default) or "json"
+  chunk_size: 500                            # Optional: Text chunk size (default: 1000)
+  top_k: 3                                   # Optional: Number of chunks to retrieve (default: 3)
 ```
 
 States can then use `use_rag: true` to use this default configuration.
@@ -254,8 +278,8 @@ rags:
     directory: "./docs/products"
   technical_kb:
     directory: "./docs/technical"
-    chunkSize: 800
-    topK: 5
+    chunk_size: 800
+    top_k: 5
 ```
 
 States can reference by name: `use_rag: "product_kb"`
@@ -268,7 +292,7 @@ states:
     prompt: "Question here"
     rag:
       directory: "./specific-docs"
-      chunkSize: 400
+      chunk_size: 400
     next: "end"
 ```
 
@@ -353,31 +377,34 @@ See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for detailed documentation on
 
 ### State Types
 
+The workflow engine supports the following state types:
+
 #### 1. Prompt State
 Sends a prompt to Ollama and stores the response.
 
 ```yaml
 state_name:
-  type: "prompt"
-  prompt: "Your question or prompt here"
-  model: "gemma3:4b"  # Optional, uses default_model if not specified
-  save_as: "variable_name"  # Optional, saves response to context
-  mcp_servers: ["server1", "server2"]  # Optional, MCP servers for this state
-  use_rag: true  # Optional: true (default RAG) or "rag_name" (named RAG)
-  rag:  # Optional: inline RAG configuration
+  type: "prompt"                               # Required
+  prompt: "Your question or prompt here"       # Required (or use prompt_file)
+  prompt_file: "prompts/my-prompt.md"          # Optional: Load prompt from file (mutually exclusive with prompt)
+  model: "gemma3:4b"                           # Optional: Override default_model
+  save_as: "variable_name"                     # Optional: Save response to context
+  mcp_servers: ["server1", "server2"]          # Optional: MCP servers for this state
+  use_rag: true                                # Optional: true (default RAG) or "rag_name" (named RAG)
+  rag:                                         # Optional: Inline RAG configuration
     directory: "./docs"
-    chunkSize: 500
-  on_error: "error_handler"  # Optional: fallback state on error
-  next: "next_state_name"  # Next state to transition to
+    chunk_size: 500
+  on_error: "error_handler"                    # Optional: Fallback state on error
+  next: "next_state_name"                      # Required (or use next_options)
   # OR use LLM-driven state selection:
-  next_options:  # Optional: let the LLM choose the next state
+  next_options:                                # Optional: Let the LLM choose the next state
     - state: "state_option_1"
       description: "Description of when to choose this state"
     - state: "state_option_2"
       description: "Description of when to choose this state"
 ```
 
-RAG Options:
+**RAG Options:**
 - `use_rag: true` - Use default workflow-level RAG
 - `use_rag: "name"` - Use named RAG configuration
 - `rag: {...}` - Use inline RAG configuration
@@ -394,59 +421,38 @@ Requirements:
 - Only available for `prompt` type states
 
 When `use_rag: true` is set, the prompt will automatically search the RAG knowledge base and append relevant context before sending to the model.
-You can also load prompts from external files:
-
-```yaml
-state_name:
-  type: "prompt"
-  prompt_file: "prompts/my-prompt.md"  # Load prompt from external file
-  model: "gemma3:4b"
-  save_as: "variable_name"
-  next: "next_state_name"
-```
-
-#### 2. Choice State
-Presents options to the user and transitions based on selection.
-
-```yaml
-state_name:
-  type: "choice"
-  prompt: "Choose an option:"  # Optional
-  save_as: "variable_name"  # Optional, saves choice to context
-  on_error: "error_handler"  # Optional: fallback state on error
-  choices:
-    - label: "Option 1"
-      value: "option1"
-      next: "state_for_option1"
-    - label: "Option 2"
-      value: "option2"
-      next: "state_for_option2"
-  next: "default_next_state"  # Optional fallback
-```
 
 #### 2. Input State
 Asks the user for freeform text input.
 
 ```yaml
 state_name:
-  type: "input"
-  prompt: "What is your name?"  # Question to ask the user
-  save_as: "variable_name"  # Optional, saves input to context
-  default_value: "Default Name"  # Optional, default value if user provides no input
-  next: "next_state_name"  # Next state to transition to
+  type: "input"                                # Required
+  prompt: "What is your name?"                 # Required: Question to ask the user
+  save_as: "variable_name"                     # Optional: Save input to context
+  default_value: "Default Name"                # Optional: Default value if user provides no input
+  next: "next_state_name"                      # Required: Next state to transition to
 ```
 
 The input state allows workflows to collect freeform text from users. The collected input can be saved to a context variable and used in subsequent states via variable interpolation (e.g., `{{variable_name}}`).
+
+**Note:** For presenting a menu of choices to users, use an `input` state combined with `next_options` in a subsequent `prompt` state to route based on the user's choice.
 
 #### 3. Workflow Reference State
 References and includes another workflow as part of the current workflow.
 
 ```yaml
 state_name:
-  type: "workflow_ref"
-  workflow_ref: "path/to/other-workflow.yaml"  # Path to workflow file
-  next: "next_state_name"  # State to go to after referenced workflow completes
+  type: "workflow_ref"                         # Required
+  workflow_ref: "path/to/other-workflow.yaml"  # Required: Path to workflow file
+  next: "next_state_name"                      # Required: State to go to after referenced workflow completes
 ```
+
+### Reserved State Names
+
+The following state names are reserved and have special meaning:
+
+- **`end`**: Reserved termination state. Automatically ends the workflow. Do not define this state explicitly in your workflow.
 
 ### Ending a Workflow
 
@@ -712,10 +718,10 @@ start_state: "ask_question"
 rag:
   directory: "./examples/knowledge-base"
   model: "gemma3:4b"
-  embeddingsFile: "embeddings.msgpack"
-  storageFormat: "msgpack"
-  chunkSize: 500
-  topK: 3
+  embeddings_file: "embeddings.msgpack"
+  storage_format: "msgpack"
+  chunk_size: 500
+  top_k: 3
 
 states:
   ask_question:
@@ -744,7 +750,7 @@ rags:
     directory: "./docs/products"
   technical_kb:
     directory: "./docs/technical"
-    chunkSize: 800
+    chunk_size: 800
 
 states:
   choose:
@@ -832,7 +838,7 @@ Each test scenario contains:
 
 - **name**: Test scenario name (required)
 - **description**: Optional description of what the test validates
-- **inputs**: Array of mocked inputs for `input` and `choice` states
+- **inputs**: Array of mocked inputs for `input` states
   - **state**: Name of the state where input should be provided
   - **value**: Value to provide as input
 - **assertions**: Array of assertions to validate workflow behavior (at least one required)
@@ -939,12 +945,22 @@ The test command will:
 
 ## Example Workflows
 
-The `examples/` directory contains sample workflows:
+The `examples/` directory contains sample workflows organized by feature:
 
-- **simple-qa.yaml**: Basic question-answering workflow
-- **story-generator.yaml**: Interactive story generation with choices
+### Basic Examples
+- **simple-qa.yaml**: Basic question-answering workflow - great for getting started
 - **user-input-demo.yaml**: Demonstrates the input state for collecting user information
-- **code-review.yaml**: Code review assistant with different review types
+
+### MCP Integration Examples
+- **comprehensive-mcp-integration.yaml**: Complete guide to all MCP server configuration methods (standard, NPX simplified, and custom-tools)
+- **advanced-custom-tools.yaml**: Advanced workflow using custom JavaScript tools for data processing
+
+### RAG (Retrieval-Augmented Generation) Examples
+- **multi-rag-qa.yaml**: Comprehensive example showing all three RAG approaches (default, named, and inline configurations)
+
+### Advanced Features
+- **research-assistant.yaml**: Advanced research workflow with LLM-driven state routing
+- **mixed-fallback.yaml**: Demonstrates both state-level and workflow-level error handling
 - **writing-assistant.yaml**: Creative writing assistant with multiple tasks
 - **run-directory-demo.yaml**: Demonstrates the unique run directory feature with file operations
 - **mcp-integration.yaml**: Demonstrates MCP server integration with filesystem and memory servers
@@ -956,12 +972,14 @@ The `examples/` directory contains sample workflows:
 - **inline-rag.yaml**: Inline state-level RAG configuration
 - **external-prompt-file.yaml**: Example using external markdown file for prompts
 - **greeting-workflow.yaml**: Simple reusable greeting workflow
+- **code-review.yaml**: Code review assistant with different review types
+
+### Workflow Composition Examples
+- **complete-story-builder.yaml**: Demonstrates workflow composition using workflow_ref
+- **character-creator.yaml**: Character creation workflow (used by complete-story-builder.yaml)
+- **greeting-workflow.yaml**: Simple reusable greeting workflow (used by workflow-reference.yaml)
 - **workflow-reference.yaml**: Example of referencing another workflow
-- **state-level-fallback.yaml**: Demonstrates state-level error handling with fallback states
-- **workflow-level-fallback.yaml**: Demonstrates workflow-level error handling
-- **mixed-fallback.yaml**: Shows both state-level and workflow-level fallback priorities
-- **llm-routing-simple.yaml**: Simple example of LLM-driven state selection
-- **research-assistant.yaml**: Advanced research workflow with LLM-driven routing
+- **external-prompt-file.yaml**: Example using external markdown file for prompts
 
 ### Custom Tools Examples
 
@@ -999,7 +1017,7 @@ ai-workflow-cli/
 ├── dist/                       # Compiled JavaScript output
 ├── examples/                   # Example workflow files
 │   ├── simple-qa.yaml
-│   ├── story-generator.yaml
+│   ├── complete-story-builder.yaml
 │   └── code-review.yaml
 ├── tests/                      # Test files
 ├── tsconfig.json               # TypeScript configuration

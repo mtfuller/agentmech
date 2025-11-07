@@ -191,7 +191,7 @@ class WebServer {
    */
   private getIndexHtml(): string {
     try {
-      const indexPath = path.join(__dirname, 'views', 'index.html');
+      const indexPath = path.join(__dirname, '..', 'views', 'index.html');
       return fs.readFileSync(indexPath, 'utf-8');
     } catch (error: any) {
       console.error('Failed to load index.html:', error.message);
@@ -243,7 +243,7 @@ class WebServer {
    */
   private getExecutionHtml(): string {
     try {
-      const executionPath = path.join(__dirname, 'views', 'execution.html');
+      const executionPath = path.join(__dirname, '..', 'views', 'execution.html');
       return fs.readFileSync(executionPath, 'utf-8');
     } catch (error: any) {
       console.error('Failed to load execution.html:', error.message);
