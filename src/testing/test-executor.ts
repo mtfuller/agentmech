@@ -195,9 +195,10 @@ export class TestExecutor {
       };
     }
 
-    const caseSensitive = assertion.case_sensitive !== false; // Default to true
-    const useRegex = assertion.regex === true; // Default to false
+    const caseSensitive = assertion.case_sensitive ?? true; // Default to true
+    const useRegex = assertion.regex ?? false; // Default to false
     const normalizedValue = this.normalizeString(actualValue);
+    const normalizedExpected = this.normalizeString(expectedSubstring);
 
     let passed: boolean;
     let matchDescription: string;
@@ -206,24 +207,24 @@ export class TestExecutor {
       // Treat value as a regex pattern
       try {
         const flags = caseSensitive ? '' : 'i';
-        const regex = new RegExp(expectedSubstring, flags);
+        const regex = new RegExp(normalizedExpected, flags);
         passed = regex.test(normalizedValue);
-        matchDescription = caseSensitive ? `pattern /${expectedSubstring}/` : `pattern /${expectedSubstring}/i`;
+        matchDescription = caseSensitive ? `pattern /${normalizedExpected}/` : `pattern /${normalizedExpected}/i`;
       } catch (error) {
         return {
           assertion,
           passed: false,
-          message: `Invalid regex pattern "${expectedSubstring}": ${(error as Error).message}`
+          message: `Invalid regex pattern "${normalizedExpected}": ${(error as Error).message}`
         };
       }
     } else {
       // String contains check
       if (caseSensitive) {
-        passed = normalizedValue.includes(expectedSubstring);
-        matchDescription = `"${expectedSubstring}"`;
+        passed = normalizedValue.includes(normalizedExpected);
+        matchDescription = `"${normalizedExpected}"`;
       } else {
-        passed = normalizedValue.toLowerCase().includes(expectedSubstring.toLowerCase());
-        matchDescription = `"${expectedSubstring}" (case-insensitive)`;
+        passed = normalizedValue.toLowerCase().includes(normalizedExpected.toLowerCase());
+        matchDescription = `"${normalizedExpected}" (case-insensitive)`;
       }
     }
     
@@ -249,9 +250,10 @@ export class TestExecutor {
       };
     }
 
-    const caseSensitive = assertion.case_sensitive !== false; // Default to true
-    const useRegex = assertion.regex === true; // Default to false
+    const caseSensitive = assertion.case_sensitive ?? true; // Default to true
+    const useRegex = assertion.regex ?? false; // Default to false
     const normalizedValue = this.normalizeString(actualValue);
+    const normalizedUnexpected = this.normalizeString(unexpectedSubstring);
 
     let passed: boolean;
     let matchDescription: string;
@@ -260,24 +262,24 @@ export class TestExecutor {
       // Treat value as a regex pattern
       try {
         const flags = caseSensitive ? '' : 'i';
-        const regex = new RegExp(unexpectedSubstring, flags);
+        const regex = new RegExp(normalizedUnexpected, flags);
         passed = !regex.test(normalizedValue);
-        matchDescription = caseSensitive ? `pattern /${unexpectedSubstring}/` : `pattern /${unexpectedSubstring}/i`;
+        matchDescription = caseSensitive ? `pattern /${normalizedUnexpected}/` : `pattern /${normalizedUnexpected}/i`;
       } catch (error) {
         return {
           assertion,
           passed: false,
-          message: `Invalid regex pattern "${unexpectedSubstring}": ${(error as Error).message}`
+          message: `Invalid regex pattern "${normalizedUnexpected}": ${(error as Error).message}`
         };
       }
     } else {
       // String contains check
       if (caseSensitive) {
-        passed = !normalizedValue.includes(unexpectedSubstring);
-        matchDescription = `"${unexpectedSubstring}"`;
+        passed = !normalizedValue.includes(normalizedUnexpected);
+        matchDescription = `"${normalizedUnexpected}"`;
       } else {
-        passed = !normalizedValue.toLowerCase().includes(unexpectedSubstring.toLowerCase());
-        matchDescription = `"${unexpectedSubstring}" (case-insensitive)`;
+        passed = !normalizedValue.toLowerCase().includes(normalizedUnexpected.toLowerCase());
+        matchDescription = `"${normalizedUnexpected}" (case-insensitive)`;
       }
     }
     
