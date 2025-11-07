@@ -332,9 +332,6 @@ class WorkflowParser {
    * @param ragConfig - RAG configuration
    */
   static validateRagConfig(ragConfig: RagConfig): void {
-    // First normalize field names
-    this.normalizeRagConfig(ragConfig);
-
     if (!ragConfig.directory) {
       throw new Error('RAG configuration must have a directory');
     }
