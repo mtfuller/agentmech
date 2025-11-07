@@ -107,7 +107,7 @@ export class TestExecutor {
    * @param stateHistory - History of visited states
    * @returns Assertion result
    */
-  private evaluateAssertion(
+  evaluateAssertion(
     assertion: TestAssertion,
     context: Record<string, any>,
     stateHistory: string[]
@@ -195,14 +195,44 @@ export class TestExecutor {
       };
     }
 
-    const passed = this.normalizeString(actualValue).includes(expectedSubstring);
+    const caseSensitive = assertion.case_sensitive !== false; // Default to true
+    const useRegex = assertion.regex === true; // Default to false
+    const normalizedValue = this.normalizeString(actualValue);
+
+    let passed: boolean;
+    let matchDescription: string;
+
+    if (useRegex) {
+      // Treat value as a regex pattern
+      try {
+        const flags = caseSensitive ? '' : 'i';
+        const regex = new RegExp(expectedSubstring, flags);
+        passed = regex.test(normalizedValue);
+        matchDescription = caseSensitive ? `pattern /${expectedSubstring}/` : `pattern /${expectedSubstring}/i`;
+      } catch (error) {
+        return {
+          assertion,
+          passed: false,
+          message: `Invalid regex pattern "${expectedSubstring}": ${(error as Error).message}`
+        };
+      }
+    } else {
+      // String contains check
+      if (caseSensitive) {
+        passed = normalizedValue.includes(expectedSubstring);
+        matchDescription = `"${expectedSubstring}"`;
+      } else {
+        passed = normalizedValue.toLowerCase().includes(expectedSubstring.toLowerCase());
+        matchDescription = `"${expectedSubstring}" (case-insensitive)`;
+      }
+    }
     
     return {
       assertion,
       passed,
       message: passed
-        ? `Variable "${target}" contains "${expectedSubstring}"`
-        : `Variable "${target}" does not contain "${expectedSubstring}". Value: "${actualValue}"`
+        ? `Variable "${target}" contains ${matchDescription}`
+        : `Variable "${target}" does not contain ${matchDescription}. Value: "${actualValue}"`
     };
   }
 
@@ -219,14 +249,44 @@ export class TestExecutor {
       };
     }
 
-    const passed = !this.normalizeString(actualValue).includes(unexpectedSubstring);
+    const caseSensitive = assertion.case_sensitive !== false; // Default to true
+    const useRegex = assertion.regex === true; // Default to false
+    const normalizedValue = this.normalizeString(actualValue);
+
+    let passed: boolean;
+    let matchDescription: string;
+
+    if (useRegex) {
+      // Treat value as a regex pattern
+      try {
+        const flags = caseSensitive ? '' : 'i';
+        const regex = new RegExp(unexpectedSubstring, flags);
+        passed = !regex.test(normalizedValue);
+        matchDescription = caseSensitive ? `pattern /${unexpectedSubstring}/` : `pattern /${unexpectedSubstring}/i`;
+      } catch (error) {
+        return {
+          assertion,
+          passed: false,
+          message: `Invalid regex pattern "${unexpectedSubstring}": ${(error as Error).message}`
+        };
+      }
+    } else {
+      // String contains check
+      if (caseSensitive) {
+        passed = !normalizedValue.includes(unexpectedSubstring);
+        matchDescription = `"${unexpectedSubstring}"`;
+      } else {
+        passed = !normalizedValue.toLowerCase().includes(unexpectedSubstring.toLowerCase());
+        matchDescription = `"${unexpectedSubstring}" (case-insensitive)`;
+      }
+    }
     
     return {
       assertion,
       passed,
       message: passed
-        ? `Variable "${target}" does not contain "${unexpectedSubstring}"`
-        : `Variable "${target}" contains unexpected "${unexpectedSubstring}". Value: "${actualValue}"`
+        ? `Variable "${target}" does not contain ${matchDescription}`
+        : `Variable "${target}" contains unexpected ${matchDescription}. Value: "${actualValue}"`
     };
   }
 

@@ -154,5 +154,61 @@ describe('Test Scenario Parser', () => {
       });
     }).toThrow();
   });
+
+  test('should accept contains with case_sensitive flag', () => {
+    expect(() => {
+      TestScenarioParser.validateTestSuite({
+        workflow: 'test.yaml',
+        test_scenarios: [
+          {
+            name: 'Test',
+            assertions: [{ type: 'contains', target: 'answer', value: 'test', case_sensitive: false }]
+          }
+        ]
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept contains with regex flag', () => {
+    expect(() => {
+      TestScenarioParser.validateTestSuite({
+        workflow: 'test.yaml',
+        test_scenarios: [
+          {
+            name: 'Test',
+            assertions: [{ type: 'contains', target: 'answer', value: '[a-z]+', regex: true }]
+          }
+        ]
+      });
+    }).not.toThrow();
+  });
+
+  test('should detect invalid regex pattern in contains with regex flag', () => {
+    expect(() => {
+      TestScenarioParser.validateTestSuite({
+        workflow: 'test.yaml',
+        test_scenarios: [
+          {
+            name: 'Test',
+            assertions: [{ type: 'contains', target: 'var', value: '[invalid(', regex: true }]
+          }
+        ]
+      });
+    }).toThrow();
+  });
+
+  test('should accept not_contains with case_sensitive and regex flags', () => {
+    expect(() => {
+      TestScenarioParser.validateTestSuite({
+        workflow: 'test.yaml',
+        test_scenarios: [
+          {
+            name: 'Test',
+            assertions: [{ type: 'not_contains', target: 'answer', value: '[0-9]+', regex: true, case_sensitive: false }]
+          }
+        ]
+      });
+    }).not.toThrow();
+  });
 });
 
