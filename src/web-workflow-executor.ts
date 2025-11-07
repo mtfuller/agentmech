@@ -14,7 +14,7 @@ interface NextOption {
 }
 
 interface McpServerConfig {
-  command: string;
+  command?: string;  // Optional for type-based configs, but always set after normalization
   args?: string[];
   env?: Record<string, string>;
 }
