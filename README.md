@@ -940,25 +940,31 @@ This project is written in TypeScript and compiled to JavaScript.
 
 ### Project Structure
 
+The source code is organized into logical subdirectories for improved maintainability:
+
 ```
 ai-workflow-cli/
 ├── src/
-│   ├── cli.ts                 # CLI entry point
-│   ├── ollama-client.ts       # Ollama API client
-│   ├── mcp-client.ts          # MCP server client
-│   ├── workflow-parser.ts     # YAML parser and validator
-│   └── workflow-executor.ts   # State machine executor
-├── dist/                      # Compiled JavaScript output
-├── examples/
+│   ├── cli/                    # CLI entry point and commands
+│   ├── core/                   # Core workflow logic (parser, executor, discovery)
+│   ├── integrations/           # External service integrations (Ollama, MCP, RAG)
+│   ├── testing/                # Test framework components
+│   ├── web/                    # Web server and UI
+│   ├── utils/                  # Utilities (tracer)
+│   └── views/                  # HTML templates
+├── dist/                       # Compiled JavaScript output
+├── examples/                   # Example workflow files
 │   ├── simple-qa.yaml
 │   ├── story-generator.yaml
 │   └── code-review.yaml
-├── tests/
-│   └── (test files)
-├── tsconfig.json              # TypeScript configuration
+├── tests/                      # Test files
+├── tsconfig.json               # TypeScript configuration
 ├── package.json
+├── ARCHITECTURE.md             # Detailed architecture documentation
 └── README.md
 ```
+
+For a detailed explanation of the code organization and module responsibilities, see [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ### Building from Source
 

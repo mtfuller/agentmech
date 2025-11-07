@@ -1,8 +1,8 @@
 import * as readline from 'readline';
-import OllamaClient = require('./ollama-client');
-import McpClient = require('./mcp-client');
-import RagService = require('./rag-service');
-import Tracer = require('./tracer');
+import OllamaClient = require('../integrations/ollama-client');
+import McpClient = require('../integrations/mcp-client');
+import RagService = require('../integrations/rag-service');
+import Tracer = require('../utils/tracer');
 
 const END_STATE = 'end';
 

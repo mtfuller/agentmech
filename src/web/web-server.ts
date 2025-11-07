@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import * as path from 'path';
 import * as fs from 'fs';
-import WorkflowDiscovery = require('./workflow-discovery');
-import WorkflowParser = require('./workflow-parser');
-import WorkflowExecutor = require('./workflow-executor');
+import WorkflowDiscovery = require('../core/workflow-discovery');
+import WorkflowParser = require('../core/workflow-parser');
+import WorkflowExecutor = require('../core/workflow-executor');
 import WebWorkflowExecutor = require('./web-workflow-executor');
 
 interface ServeOptions {

@@ -1,5 +1,5 @@
 import { spawn, ChildProcess } from 'child_process';
-import Tracer = require('./tracer');
+import Tracer = require('../utils/tracer');
 
 interface McpServerConfig {
   command?: string;  // Optional for type-based configs, but always set after normalization

@@ -2,14 +2,14 @@
   "name": "ai-workflow-cli",
   "version": "1.0.0",
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
-  "main": "dist/cli.js",
+  "main": "dist/cli/cli.js",
   "bin": {
-    "ai-workflow": "./dist/cli.js"
+    "ai-workflow": "./dist/cli/cli.js"
   },
   "scripts": {
     "build": "tsc && npm run copy-views",
     "copy-views": "node scripts/copy-views.js",
-    "start": "node dist/cli.js",
+    "start": "node dist/cli/cli.js",
     "test": "npm run build && jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
