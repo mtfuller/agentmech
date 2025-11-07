@@ -36,19 +36,25 @@ class RagService {
   private chunks: DocumentChunk[] = [];
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
-    // Support both old and new field names
-    const embeddingsFile = config.embeddings_file || config.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
-    const chunkSize = config.chunk_size || config.chunk_size || 1000;
-    const topK = config.top_k || config.top_k || 3;
-    const storageFormat = config.storage_format || config.storage_format || 'msgpack';
-    
-    this.config = {
+    // First apply config overrides, then normalize field names
+    const mergedConfig = {
       model: config.model || 'gemma3:4b',
-      embeddings_file: config.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE,
-      chunk_size: config.chunk_size || 1000,
-      top_k: config.top_k || 3,
-      storage_format: config.storage_format || 'msgpack',
       ...config
+    };
+    
+    // Support both old and new field names, preferring new ones
+    const embeddingsFile = mergedConfig.embeddings_file || mergedConfig.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
+    const chunkSize = mergedConfig.chunk_size || mergedConfig.chunk_size || 1000;
+    const topK = mergedConfig.top_k || mergedConfig.top_k || 3;
+    const storageFormat = mergedConfig.storage_format || mergedConfig.storage_format || 'msgpack';
+
+    // Store normalized config using new field names
+    this.config = {
+      ...mergedConfig,
+      embeddings_file: embeddingsFile,
+      chunk_size: chunkSize,
+      top_k: topK,
+      storage_format: storageFormat,
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
   }
