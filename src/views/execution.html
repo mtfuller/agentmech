@@ -172,6 +172,59 @@
             text-align: center;
         }
         
+        .message.prompt-details {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            color: #333;
+            align-self: flex-start;
+            max-width: 90%;
+        }
+        
+        .prompt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .prompt-header:hover {
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 4px;
+        }
+        
+        .prompt-toggle {
+            font-size: 12px;
+            color: #667eea;
+            transition: transform 0.2s;
+        }
+        
+        .prompt-toggle.expanded {
+            transform: rotate(180deg);
+        }
+        
+        .prompt-content {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #dee2e6;
+            display: none;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: #ffffff;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .prompt-content.visible {
+            display: block;
+        }
+        
         /* Markdown styles for response messages */
         .message.response h1,
         .message.response h2,
@@ -353,11 +406,13 @@
         let sessionId = null;
         let eventSource = null;
         
-        // Configure marked for safe HTML rendering
-        marked.setOptions({
-            breaks: true,
-            gfm: true
-        });
+        // Configure marked for safe HTML rendering (if loaded)
+        if (typeof marked !== 'undefined') {
+            marked.setOptions({
+                breaks: true,
+                gfm: true
+            });
+        }
         
         // Get workflow info
         async function loadWorkflowInfo() {
@@ -370,22 +425,88 @@
             }
         }
         
-        function addMessage(type, message) {
+        // Counter for generating unique prompt IDs
+        let promptCounter = 0;
+        
+        function addMessage(type, message, data) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             
             // Render markdown for response messages with sanitization
             if (type === 'response') {
-                const rawHtml = marked.parse(message);
-                const cleanHtml = DOMPurify.sanitize(rawHtml);
-                messageDiv.innerHTML = cleanHtml;
+                // Check if marked and DOMPurify are loaded, otherwise use plain text
+                if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                    const rawHtml = marked.parse(message);
+                    const cleanHtml = DOMPurify.sanitize(rawHtml);
+                    messageDiv.innerHTML = cleanHtml;
+                } else {
+                    // Fallback to plain text if libraries aren't loaded
+                    messageDiv.textContent = message;
+                }
+            } else if (type === 'prompt-details') {
+                // Create collapsible prompt component
+                const promptId = 'prompt-' + (++promptCounter);
+                
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'prompt-header';
+                
+                const labelSpan = document.createElement('span');
+                labelSpan.textContent = '📝 Model Prompt';
+                
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'prompt-toggle';
+                toggleSpan.id = promptId + '-toggle';
+                toggleSpan.textContent = '▼ Show';
+                
+                headerDiv.appendChild(labelSpan);
+                headerDiv.appendChild(toggleSpan);
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'prompt-content';
+                contentDiv.id = promptId + '-content';
+                // Validate data before using it
+                contentDiv.textContent = (data && typeof data.fullPrompt === 'string') 
+                    ? data.fullPrompt 
+                    : '[No prompt data available]';
+                
+                // Add click event listener to toggle
+                headerDiv.addEventListener('click', () => togglePrompt(promptId));
+                
+                messageDiv.appendChild(headerDiv);
+                messageDiv.appendChild(contentDiv);
             } else {
                 messageDiv.textContent = message;
             }
             
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function togglePrompt(promptId) {
+            // Validate promptId format
+            if (!/^prompt-\d+$/.test(promptId)) {
+                console.error('Invalid promptId format');
+                return;
+            }
+            
+            const content = document.getElementById(promptId + '-content');
+            const toggle = document.getElementById(promptId + '-toggle');
+            
+            if (!content || !toggle) {
+                console.error('Prompt elements not found');
+                return;
+            }
+            
+            if (content.classList.contains('visible')) {
+                content.classList.remove('visible');
+                toggle.classList.remove('expanded');
+                toggle.textContent = '▼ Show';
+            } else {
+                content.classList.add('visible');
+                toggle.classList.add('expanded');
+                toggle.textContent = '▲ Hide';
+            }
         }
         
         function showInputField(prompt, defaultValue) {
@@ -419,7 +540,7 @@
                 
                 document.getElementById('input-field').value = '';
             } catch (error) {
-                addMessage('error', 'Failed to send input: ' + error.message);
+                addMessage('error', 'Failed to send input: ' + error.message, null);
             }
         }
         
@@ -437,7 +558,7 @@
                     body: JSON.stringify({ sessionId })
                 });
             } catch (error) {
-                addMessage('error', 'Failed to stop workflow: ' + error.message);
+                addMessage('error', 'Failed to stop workflow: ' + error.message, null);
                 stopBtn.disabled = false;
                 stopBtn.textContent = '⏹ Stop';
             }
@@ -464,13 +585,16 @@
                     
                     switch (event.type) {
                         case 'log':
-                            addMessage('log', event.message);
+                            addMessage('log', event.message, event.data);
                             break;
                         case 'state_change':
-                            addMessage('state-change', event.message);
+                            addMessage('state-change', event.message, event.data);
                             break;
                         case 'response':
-                            addMessage('response', event.message);
+                            addMessage('response', event.message, event.data);
+                            break;
+                        case 'prompt_sent':
+                            addMessage('prompt-details', event.message, event.data);
                             break;
                         case 'prompt':
                             showInputField(event.message);
@@ -479,10 +603,10 @@
                             showInputField('Enter your response', event.data.defaultValue);
                             break;
                         case 'error':
-                            addMessage('error', event.message);
+                            addMessage('error', event.message, event.data);
                             break;
                         case 'stopped':
-                            addMessage('system', event.message);
+                            addMessage('system', event.message, event.data);
                             document.getElementById('status').textContent = 'Workflow stopped by user';
                             document.getElementById('status').classList.add('stopped');
                             document.getElementById('stop-btn').classList.remove('active');
@@ -490,7 +614,7 @@
                             eventSource.close();
                             break;
                         case 'complete':
-                            addMessage('system', event.message);
+                            addMessage('system', event.message, event.data);
                             document.getElementById('status').textContent = 'Workflow completed successfully';
                             document.getElementById('status').classList.add('complete');
                             document.getElementById('stop-btn').classList.remove('active');
@@ -504,7 +628,7 @@
             };
             
             eventSource.onerror = (e) => {
-                addMessage('error', 'Connection error. Please try again.');
+                addMessage('error', 'Connection error. Please try again.', null);
                 document.getElementById('status').textContent = 'Connection lost';
                 document.getElementById('stop-btn').classList.remove('active');
                 eventSource.close();
