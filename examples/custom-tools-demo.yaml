@@ -30,6 +30,4 @@ states:
     mcp_servers: ["custom_tools"]
     save_as: "result"
     next: "end"
-  
-  end:
-    type: "end"
+

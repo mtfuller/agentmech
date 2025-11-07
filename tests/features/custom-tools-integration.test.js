@@ -71,8 +71,6 @@ states:
     prompt: "Test"
     mcp_servers: ["custom_tools"]
     next: "end"
-  end:
-    type: "end"
 `;
       
       const yaml = require('js-yaml');
@@ -100,8 +98,6 @@ states:
     prompt: "Test"
     mcp_servers: ["nonexistent_server"]
     next: "end"
-  end:
-    type: "end"
 `;
       
       const yaml = require('js-yaml');
