@@ -180,6 +180,8 @@ class WebServer {
   /**
    * Get the index.html page content
    * Reads from dist/views/index.html (after build script copies from src/views/)
+   * Note: Path is constructed from trusted sources (__dirname + hardcoded path),
+   * not from user input, so no path traversal vulnerability exists.
    */
   private getIndexHtml(): string {
     try {
@@ -230,6 +232,8 @@ class WebServer {
   /**
    * Get the execution.html page content
    * Reads from dist/views/execution.html (after build script copies from src/views/)
+   * Note: Path is constructed from trusted sources (__dirname + hardcoded path),
+   * not from user input, so no path traversal vulnerability exists.
    */
   private getExecutionHtml(): string {
     try {
