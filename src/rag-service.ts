@@ -14,13 +14,9 @@ interface RagConfig {
   directory: string;
   model?: string;
   embeddings_file?: string;
-  embeddingsFile?: string;  // Deprecated: use embeddings_file
   chunk_size?: number;
-  chunkSize?: number;  // Deprecated: use chunk_size
   top_k?: number;
-  topK?: number;  // Deprecated: use top_k
   storage_format?: 'json' | 'msgpack';
-  storageFormat?: 'json' | 'msgpack';  // Deprecated: use storage_format
 }
 
 // Constants for embeddings storage
@@ -40,29 +36,13 @@ class RagService {
   private chunks: DocumentChunk[] = [];
 
   constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
-    // First apply config overrides, then normalize field names
-    const mergedConfig = {
-      model: config.model || 'gemma3:4b',
-      ...config
-    };
-    
-    // Support both old and new field names, preferring new ones
-    const embeddingsFile = mergedConfig.embeddings_file || mergedConfig.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
-    const chunkSize = mergedConfig.chunk_size || mergedConfig.chunkSize || 1000;
-    const topK = mergedConfig.top_k || mergedConfig.topK || 3;
-    const storageFormat = mergedConfig.storage_format || mergedConfig.storageFormat || 'msgpack';
-    
-    // Store normalized config using new field names
     this.config = {
-      ...mergedConfig,
-      embeddings_file: embeddingsFile,
-      embeddingsFile: embeddingsFile,  // Keep for backward compatibility in internal usage
-      chunk_size: chunkSize,
-      chunkSize: chunkSize,  // Keep for backward compatibility
-      top_k: topK,
-      topK: topK,  // Keep for backward compatibility
-      storage_format: storageFormat,
-      storageFormat: storageFormat  // Keep for backward compatibility
+      model: config.model || 'gemma3:4b',
+      embeddings_file: config.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE,
+      chunk_size: config.chunk_size || 1000,
+      top_k: config.top_k || 3,
+      storage_format: config.storage_format || 'msgpack',
+      ...config
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
   }

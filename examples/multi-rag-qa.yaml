@@ -8,18 +8,18 @@ rags:
   product_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "product_embeddings.msgpack"
-    storageFormat: "msgpack"
-    chunkSize: 500
-    topK: 3
+    embeddings_file: "product_embeddings.msgpack"
+    storage_format: "msgpack"
+    chunk_size: 500
+    top_k: 3
   
   technical_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"
-    embeddingsFile: "technical_embeddings.msgpack"
-    storageFormat: "msgpack"
-    chunkSize: 800
-    topK: 5
+    embeddings_file: "technical_embeddings.msgpack"
+    storage_format: "msgpack"
+    chunk_size: 800
+    top_k: 5
 
 states:
   choose_topic:

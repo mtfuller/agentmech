@@ -16,8 +16,8 @@ states:
     # Inline RAG configuration - specific to this state
     rag:
       directory: "./examples/knowledge-base"
-      chunkSize: 400
-      topK: 2
+      chunk_size: 400
+      top_k: 2
     save_as: "answer"
     next: "end"
   
@@ -27,10 +27,10 @@ states:
     # Different inline RAG configuration for this state
     rag:
       directory: "./examples/knowledge-base"
-      chunkSize: 1000
-      topK: 5
-      embeddingsFile: "custom_embeddings.msgpack"
-      storageFormat: "msgpack"
+      chunk_size: 1000
+      top_k: 5
+      embeddings_file: "custom_embeddings.msgpack"
+      storage_format: "msgpack"
     save_as: "answer"
     next: "end"
   

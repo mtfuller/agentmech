@@ -221,8 +221,6 @@ rag:
 
 States can then use `use_rag: true` to use this default configuration.
 
-**Note:** The old camelCase field names (`embeddingsFile`, `storageFormat`, `chunkSize`, `topK`) are still supported but deprecated. Please use the snake_case versions.
-
 #### 2. Named RAG Configurations
 ```yaml
 rags:

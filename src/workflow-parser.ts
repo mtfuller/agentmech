@@ -24,13 +24,9 @@ interface RagConfig {
   directory: string;
   model?: string;
   embeddings_file?: string;
-  embeddingsFile?: string;  // Deprecated: use embeddings_file
   chunk_size?: number;
-  chunkSize?: number;  // Deprecated: use chunk_size
   top_k?: number;
-  topK?: number;  // Deprecated: use top_k
   storage_format?: 'json' | 'msgpack';
-  storageFormat?: 'json' | 'msgpack';  // Deprecated: use storage_format
 }
 
 interface State {
@@ -305,58 +301,10 @@ class WorkflowParser {
   }
 
   /**
-   * Normalize RAG configuration field names (support both old camelCase and new snake_case)
-   * This method mutates the input object to ensure both old and new field names are present.
-   * New snake_case field names take precedence when both are provided.
-   * @param ragConfig - RAG configuration (will be mutated)
-   */
-  static normalizeRagConfig(ragConfig: RagConfig): void {
-    // Support both old (camelCase) and new (snake_case) field names
-    // Prioritize new field names when both are present
-    
-    // embeddings_file / embeddingsFile
-    if (ragConfig.embeddings_file) {
-      // New field is provided, use it as source of truth
-      ragConfig.embeddingsFile = ragConfig.embeddings_file;
-    } else if (ragConfig.embeddingsFile) {
-      // Only old field provided, warn and normalize
-      console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
-      ragConfig.embeddings_file = ragConfig.embeddingsFile;
-    }
-    
-    // chunk_size / chunkSize
-    if (ragConfig.chunk_size) {
-      ragConfig.chunkSize = ragConfig.chunk_size;
-    } else if (ragConfig.chunkSize) {
-      console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
-      ragConfig.chunk_size = ragConfig.chunkSize;
-    }
-    
-    // top_k / topK
-    if (ragConfig.top_k) {
-      ragConfig.topK = ragConfig.top_k;
-    } else if (ragConfig.topK) {
-      console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
-      ragConfig.top_k = ragConfig.topK;
-    }
-    
-    // storage_format / storageFormat
-    if (ragConfig.storage_format) {
-      ragConfig.storageFormat = ragConfig.storage_format;
-    } else if (ragConfig.storageFormat) {
-      console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
-      ragConfig.storage_format = ragConfig.storageFormat;
-    }
-  }
-
-  /**
    * Validate RAG configuration
    * @param ragConfig - RAG configuration
    */
   static validateRagConfig(ragConfig: RagConfig): void {
-    // First normalize field names
-    this.normalizeRagConfig(ragConfig);
-
     if (!ragConfig.directory) {
       throw new Error('RAG configuration must have a directory');
     }
@@ -367,7 +315,6 @@ class WorkflowParser {
       throw new Error('RAG model must be a string');
     }
     
-    // Validate using normalized (new) field names
     if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
       throw new Error('RAG embeddings_file must be a string');
     }
