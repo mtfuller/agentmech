@@ -7,7 +7,8 @@
     "ai-workflow": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-views",
+    "copy-views": "node scripts/copy-views.js",
     "start": "node dist/cli.js",
     "test": "npm run build && jest",
     "test:watch": "jest --watch",

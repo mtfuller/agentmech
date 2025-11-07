@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow Execution - AI Workflow CLI</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/lib/marked.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.8/dist/purify.min.js" crossorigin="anonymous"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 24px;
+        }
+        
+        .back-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .back-btn:hover {
+            background: #5568d3;
+        }
+        
+        .stop-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .stop-btn:hover {
+            background: #c82333;
+        }
+        
+        .stop-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .stop-btn.active {
+            display: inline-block;
+        }
+        
+        .chat-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            max-width: 80%;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.system {
+            background: #e3f2fd;
+            color: #1976d2;
+            align-self: flex-start;
+        }
+        
+        .message.log {
+            background: #f5f5f5;
+            color: #666;
+            align-self: flex-start;
+        }
+        
+        .message.response {
+            background: #667eea;
+            color: white;
+            align-self: flex-start;
+            max-width: 90%;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            align-self: flex-start;
+        }
+        
+        .message.user {
+            background: #e8eaf6;
+            color: #333;
+            align-self: flex-end;
+        }
+        
+        .message.state-change {
+            background: #fff3e0;
+            color: #e65100;
+            align-self: center;
+            font-weight: 600;
+            max-width: 100%;
+            text-align: center;
+        }
+        
+        /* Markdown styles for response messages */
+        .message.response h1,
+        .message.response h2,
+        .message.response h3,
+        .message.response h4,
+        .message.response h5,
+        .message.response h6 {
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .message.response h1 { font-size: 1.5em; }
+        .message.response h2 { font-size: 1.3em; }
+        .message.response h3 { font-size: 1.1em; }
+        
+        .message.response p {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        
+        .message.response ul,
+        .message.response ol {
+            margin-left: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .message.response li {
+            margin-bottom: 4px;
+        }
+        
+        .message.response code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        .message.response pre {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        
+        .message.response pre code {
+            background: transparent;
+            padding: 0;
+        }
+        
+        .message.response blockquote {
+            border-left: 4px solid rgba(255, 255, 255, 0.5);
+            padding-left: 12px;
+            margin: 8px 0;
+            font-style: italic;
+        }
+        
+        .message.response a {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        .message.response hr {
+            border: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            margin: 12px 0;
+        }
+        
+        .message.response table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+        }
+        
+        .message.response th,
+        .message.response td {
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .message.response th {
+            background: rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+        
+        .input-container {
+            border-top: 2px solid #e0e0e0;
+            padding: 15px 20px;
+            display: none;
+            gap: 10px;
+        }
+        
+        .input-container.active {
+            display: flex;
+        }
+        
+        .input-field {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .send-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .send-btn:hover {
+            background: #218838;
+        }
+        
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            padding: 10px 20px;
+            text-align: center;
+            background: #f5f5f5;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .status.complete {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.stopped {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="workflow-title">🚀 Workflow Execution</h1>
+            <div class="header-actions">
+                <button id="stop-btn" class="stop-btn">⏹ Stop</button>
+                <a href="/" class="back-btn">← Back to Workflows</a>
+            </div>
+        </header>
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">Connecting to workflow...</div>
+            </div>
+            
+            <div class="status" id="status">Initializing...</div>
+            
+            <div class="input-container" id="input-container">
+                <input type="text" id="input-field" class="input-field" placeholder="Type your response...">
+                <button id="send-btn" class="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const fileName = window.location.pathname.split('/').pop();
+        let sessionId = null;
+        let eventSource = null;
+        
+        // Configure marked for safe HTML rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+        
+        // Get workflow info
+        async function loadWorkflowInfo() {
+            try {
+                const response = await fetch(`/api/workflows/${fileName}`);
+                const data = await response.json();
+                document.getElementById('workflow-title').textContent = `🚀 ${data.name}`;
+            } catch (error) {
+                console.error('Failed to load workflow info:', error);
+            }
+        }
+        
+        function addMessage(type, message) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            // Render markdown for response messages with sanitization
+            if (type === 'response') {
+                const rawHtml = marked.parse(message);
+                const cleanHtml = DOMPurify.sanitize(rawHtml);
+                messageDiv.innerHTML = cleanHtml;
+            } else {
+                messageDiv.textContent = message;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function showInputField(prompt, defaultValue) {
+            const inputContainer = document.getElementById('input-container');
+            const inputField = document.getElementById('input-field');
+            inputField.placeholder = prompt || 'Type your response...';
+            if (defaultValue) {
+                inputField.value = defaultValue;
+            }
+            inputContainer.classList.add('active');
+            inputField.focus();
+        }
+        
+        function hideInputField() {
+            const inputContainer = document.getElementById('input-container');
+            inputContainer.classList.remove('active');
+        }
+        
+        async function sendInput(input) {
+            if (!input || !sessionId) return;
+            
+            addMessage('user', input);
+            hideInputField();
+            
+            try {
+                await fetch(`/api/workflows/${fileName}/input`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId, input })
+                });
+                
+                document.getElementById('input-field').value = '';
+            } catch (error) {
+                addMessage('error', 'Failed to send input: ' + error.message);
+            }
+        }
+        
+        async function stopWorkflow() {
+            if (!sessionId) return;
+            
+            const stopBtn = document.getElementById('stop-btn');
+            stopBtn.disabled = true;
+            stopBtn.textContent = '⏹ Stopping...';
+            
+            try {
+                await fetch(`/api/workflows/${fileName}/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+            } catch (error) {
+                addMessage('error', 'Failed to stop workflow: ' + error.message);
+                stopBtn.disabled = false;
+                stopBtn.textContent = '⏹ Stop';
+            }
+        }
+        
+        function connectToWorkflow() {
+            eventSource = new EventSource(`/api/workflows/${fileName}/execute`);
+            
+            eventSource.onopen = (e) => {
+                document.getElementById('status').textContent = 'Connecting...';
+            };
+            
+            eventSource.onmessage = (e) => {
+                try {
+                    const event = JSON.parse(e.data);
+                    
+                    // Capture session ID from the connection event
+                    if (event.data && event.data.sessionId && !sessionId && event.type === 'log' && event.message === 'Connected') {
+                        sessionId = event.data.sessionId;
+                        document.getElementById('status').textContent = 'Running...';
+                        // Show stop button
+                        document.getElementById('stop-btn').classList.add('active');
+                    }
+                    
+                    switch (event.type) {
+                        case 'log':
+                            addMessage('log', event.message);
+                            break;
+                        case 'state_change':
+                            addMessage('state-change', event.message);
+                            break;
+                        case 'response':
+                            addMessage('response', event.message);
+                            break;
+                        case 'prompt':
+                            showInputField(event.message);
+                            break;
+                        case 'input':
+                            showInputField('Enter your response', event.data.defaultValue);
+                            break;
+                        case 'error':
+                            addMessage('error', event.message);
+                            break;
+                        case 'stopped':
+                            addMessage('system', event.message);
+                            document.getElementById('status').textContent = 'Workflow stopped by user';
+                            document.getElementById('status').classList.add('stopped');
+                            document.getElementById('stop-btn').classList.remove('active');
+                            hideInputField();
+                            eventSource.close();
+                            break;
+                        case 'complete':
+                            addMessage('system', event.message);
+                            document.getElementById('status').textContent = 'Workflow completed successfully';
+                            document.getElementById('status').classList.add('complete');
+                            document.getElementById('stop-btn').classList.remove('active');
+                            hideInputField();
+                            eventSource.close();
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Failed to parse event:', error);
+                }
+            };
+            
+            eventSource.onerror = (e) => {
+                addMessage('error', 'Connection error. Please try again.');
+                document.getElementById('status').textContent = 'Connection lost';
+                document.getElementById('stop-btn').classList.remove('active');
+                eventSource.close();
+            };
+        }
+        
+        // Setup stop button
+        document.getElementById('stop-btn').onclick = () => {
+            stopWorkflow();
+        };
+        
+        // Setup send button
+        document.getElementById('send-btn').onclick = () => {
+            const input = document.getElementById('input-field').value.trim();
+            if (input) {
+                sendInput(input);
+            }
+        };
+        
+        // Setup enter key
+        document.getElementById('input-field').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const input = e.target.value.trim();
+                if (input) {
+                    sendInput(input);
+                }
+            }
+        });
+        
+        // Load workflow info and start execution
+        loadWorkflowInfo();
+        connectToWorkflow();
+    </script>
+</body>
+</html>
