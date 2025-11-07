@@ -2,7 +2,7 @@
  * Tests for Custom MCP Server functionality
  */
 
-const CustomMcpServer = require('../../dist/custom-mcp-server');
+const CustomMcpServer = require('../../dist/integrations/custom-mcp-server');
 const path = require('path');
 const fs = require('fs');
 
