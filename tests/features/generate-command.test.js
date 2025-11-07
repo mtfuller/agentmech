@@ -64,9 +64,40 @@ describe('Generate Command', () => {
       .toLowerCase()
       .replace(/[^a-z0-9\s]/g, '')
       .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '')
       .substring(0, 50) + '.yaml';
     
     expect(expectedFilename).toBe('create-a-simple-qa-workflow.yaml');
+  });
+
+  test('should handle empty filename after sanitization', () => {
+    // Test fallback for descriptions with only special characters
+    const description = "!!!@@@###";
+    let filename = description
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+    
+    if (!filename || filename.length < 3) {
+      filename = 'generated-workflow';
+    }
+    
+    expect(filename).toBe('generated-workflow');
+  });
+
+  test('should remove leading and trailing hyphens from filename', () => {
+    // Test that hyphens at start/end are removed
+    const description = "---Test Workflow---";
+    const filename = description
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .substring(0, 50);
+    
+    expect(filename).toBe('test-workflow');
   });
 
   test('should handle YAML cleanup correctly', () => {
