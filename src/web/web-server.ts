@@ -6,6 +6,7 @@ import WorkflowDiscovery = require('../core/workflow-discovery');
 import WorkflowParser = require('../core/workflow-parser');
 import WorkflowExecutor = require('../core/workflow-executor');
 import WebWorkflowExecutor = require('./web-workflow-executor');
+import * as RunDirectory from '../utils/run-directory';
 
 interface ServeOptions {
   port: number;
@@ -87,7 +88,12 @@ class WebServer {
         // Parse and create executor
         const workflow = WorkflowParser.parseFile(filePath);
         const sessionId = `${req.params.fileName}-${Date.now()}`;
-        const executor = new WebWorkflowExecutor(workflow, this.options.ollamaUrl);
+        
+        // Create unique run directory for this workflow execution
+        const runDirInfo = RunDirectory.createRunDirectory(workflow.name);
+        RunDirectory.writeRunMetadata(runDirInfo);
+        
+        const executor = new WebWorkflowExecutor(workflow, this.options.ollamaUrl, runDirInfo.path);
         
         // Store executor
         this.activeExecutions.set(sessionId, executor);
