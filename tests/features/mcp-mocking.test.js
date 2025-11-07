@@ -4,6 +4,7 @@
 
 const TestExecutor = require('../../dist/test-executor').TestExecutor;
 const TestScenarioParser = require('../../dist/test-scenario-parser').TestScenarioParser;
+const MockMcpClient = require('../../dist/mock-mcp-client');
 const path = require('path');
 
 describe('MCP Mocking in Test Executor', () => {
@@ -34,7 +35,6 @@ describe('MCP Mocking in Test Executor', () => {
   }, 15000); // 15 second timeout
 
   test('should handle MCP server registration in mock mode', async () => {
-    const MockMcpClient = require('../../dist/mock-mcp-client');
     const mockClient = new MockMcpClient();
     
     // Test that mock client can register servers without spawning processes
@@ -56,7 +56,6 @@ describe('MCP Mocking in Test Executor', () => {
   });
 
   test('should handle multiple MCP servers in mock mode', async () => {
-    const MockMcpClient = require('../../dist/mock-mcp-client');
     const mockClient = new MockMcpClient();
     
     // Register multiple servers
@@ -82,7 +81,6 @@ describe('MCP Mocking in Test Executor', () => {
   });
 
   test('should throw error for unregistered server in mock mode', async () => {
-    const MockMcpClient = require('../../dist/mock-mcp-client');
     const mockClient = new MockMcpClient();
     
     // Try to connect to unregistered server
@@ -92,7 +90,6 @@ describe('MCP Mocking in Test Executor', () => {
   });
 
   test('should throw error for server without command in mock mode', async () => {
-    const MockMcpClient = require('../../dist/mock-mcp-client');
     const mockClient = new MockMcpClient();
     
     // Register server without command
@@ -105,12 +102,7 @@ describe('MCP Mocking in Test Executor', () => {
   });
   
   test('should verify MockMcpClient is used in TestWorkflowExecutor', () => {
-    // This test verifies that TestWorkflowExecutor uses MockMcpClient
-    // by checking the implementation
-    const TestExecutor = require('../../dist/test-executor').TestExecutor;
-    const MockMcpClient = require('../../dist/mock-mcp-client');
-    
-    // Verify MockMcpClient is available and can be instantiated
+    // This test verifies that MockMcpClient is available and can be instantiated
     const mockClient = new MockMcpClient();
     expect(mockClient).toBeDefined();
     expect(typeof mockClient.registerServer).toBe('function');
