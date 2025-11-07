@@ -7,6 +7,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 - ✨ **AI-Powered Generation**: Create workflows from natural language descriptions
 - 🌐 **Web UI**: Browse and manage workflows through a beautiful web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
+- 🖼️ **Multimodal Support**: Process images, text files, PDFs, and Word documents in your workflows
 - 🔌 **MCP Server Integration**: Connect to Model Context Protocol (MCP) servers for extended capabilities
 - 📋 **YAML-Based Workflows**: Define workflows using simple, readable YAML syntax
 - 🔄 **State Machine**: Control workflow execution with state transitions
@@ -380,7 +381,7 @@ See [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) for detailed documentation on
 The workflow engine supports the following state types:
 
 #### 1. Prompt State
-Sends a prompt to Ollama and stores the response.
+Sends a prompt to Ollama and stores the response. Supports multimodal inputs with images and text files.
 
 ```yaml
 state_name:
@@ -389,6 +390,7 @@ state_name:
   prompt_file: "prompts/my-prompt.md"          # Optional: Load prompt from file (mutually exclusive with prompt)
   model: "gemma3:4b"                           # Optional: Override default_model
   save_as: "variable_name"                     # Optional: Save response to context
+  files: ["path/to/image.png", "data.txt"]     # Optional: Array of file paths for multimodal inputs
   mcp_servers: ["server1", "server2"]          # Optional: MCP servers for this state
   use_rag: true                                # Optional: true (default RAG) or "rag_name" (named RAG)
   rag:                                         # Optional: Inline RAG configuration
@@ -403,6 +405,19 @@ state_name:
     - state: "state_option_2"
       description: "Description of when to choose this state"
 ```
+
+**Multimodal File Support:**
+
+The `files` parameter allows you to attach files to prompts for multimodal analysis:
+
+- **Images** (`.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`): Automatically encoded as base64 and sent to vision-capable models (e.g., `llava`, `bakllava`)
+- **Text files** (`.txt`, `.md`, `.json`, `.yaml`, `.csv`): Content is appended to the prompt
+- **PDF files** (`.pdf`): Not yet supported - convert to text or images first
+- **Word documents** (`.doc`, `.docx`): Not yet supported - convert to text or PDF first
+
+Files can use variable interpolation: `files: ["{{run_directory}}/image.png"]`
+
+**Note:** When using images, ensure you're using a vision-capable model like `llava` or `bakllava` in Ollama.
 
 **RAG Options:**
 - `use_rag: true` - Use default workflow-level RAG
@@ -823,6 +838,138 @@ states:
 
 In this example, the LLM analyzes the research focus response and autonomously decides whether to search the web first or create a research plan, making the workflow more adaptive and intelligent.
 
+## Multimodal Support
+
+AI Workflow CLI supports multimodal inputs, allowing you to process images, text files, and other document types in your workflows. This enables powerful use cases like image analysis, document processing, and combining visual and textual information.
+
+### Supported File Types
+
+- **Images**: `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.bmp`
+  - Automatically encoded as base64 and sent to vision-capable models
+  - Requires models like `llava` or `bakllava` from Ollama
+  
+- **Text Files**: `.txt`, `.md`, `.json`, `.yaml`, `.yml`, `.csv`
+  - Content is read and appended to the prompt
+  - Works with any text-capable model
+
+- **PDF Files**: `.pdf` (⚠️ Not yet implemented)
+  - Convert to text or images before processing
+  
+- **Word Documents**: `.doc`, `.docx` (⚠️ Not yet implemented)
+  - Convert to text or PDF before processing
+
+### Using Multimodal Inputs
+
+Add a `files` array to any prompt state to include files:
+
+```yaml
+states:
+  analyze_image:
+    type: "prompt"
+    prompt: "What's in this image?"
+    model: "llava"  # Vision-capable model required for images
+    files:
+      - "path/to/image.png"
+      - "data/context.txt"
+    save_as: "analysis"
+    next: "end"
+```
+
+Files can use variable interpolation:
+
+```yaml
+files:
+  - "{{run_directory}}/screenshot.png"
+  - "examples/data/{{filename}}"
+```
+
+### Multimodal Workflow Examples
+
+#### Image Analysis
+
+```yaml
+name: "Image Analyzer"
+description: "Analyze images using vision models"
+default_model: "llava"
+start_state: "analyze"
+
+states:
+  analyze:
+    type: "prompt"
+    prompt: "Describe this image in detail and identify any text or objects."
+    files:
+      - "examples/multimodal-demo/test-image.png"
+    save_as: "description"
+    next: "end"
+```
+
+#### Text File Processing
+
+```yaml
+name: "Document Summarizer"
+description: "Summarize multiple documents"
+default_model: "gemma3:4b"
+start_state: "summarize"
+
+states:
+  summarize:
+    type: "prompt"
+    prompt: "Summarize the key points from these documents:"
+    files:
+      - "docs/report1.txt"
+      - "docs/report2.md"
+      - "data/metrics.json"
+    save_as: "summary"
+    next: "end"
+```
+
+#### Combined Multimodal Analysis
+
+```yaml
+name: "Multimodal Analyzer"
+description: "Analyze text and images together"
+default_model: "llava"
+start_state: "analyze_context"
+
+states:
+  analyze_context:
+    type: "prompt"
+    prompt: "First, review these text documents:"
+    files:
+      - "docs/context.txt"
+      - "data/info.json"
+    save_as: "text_context"
+    next: "analyze_image"
+  
+  analyze_image:
+    type: "prompt"
+    prompt: "Now analyze this image considering the context: {{text_context}}"
+    files:
+      - "images/screenshot.png"
+    save_as: "image_analysis"
+    next: "end"
+```
+
+### Getting Vision Models
+
+To use image analysis features, you need a vision-capable model:
+
+```bash
+# Pull the llava model (recommended for vision tasks)
+ollama pull llava
+
+# Or use bakllava for a different vision model
+ollama pull bakllava
+```
+
+### Tips for Multimodal Workflows
+
+1. **Use vision models for images**: Models like `llava` are specifically designed for image understanding
+2. **Combine file types**: You can mix images and text files in the same `files` array
+3. **Process files sequentially**: For complex analysis, process different file types in separate states
+4. **Use context variables**: Save analysis results and reference them in subsequent states
+5. **Check file paths**: File paths are relative to the workflow file or can be absolute
+
 ## Test Scenarios
 
 Test scenarios allow you to validate that workflows behave as expected by running them with predefined inputs and checking assertions against the outputs.
@@ -950,6 +1097,11 @@ The `examples/` directory contains sample workflows organized by feature:
 ### Basic Examples
 - **simple-qa.yaml**: Basic question-answering workflow - great for getting started
 - **user-input-demo.yaml**: Demonstrates the input state for collecting user information
+
+### Multimodal Examples
+- **image-analysis.yaml**: Analyze images using vision-capable AI models (requires `llava` or similar)
+- **text-file-analysis.yaml**: Process and analyze multiple text files in a single workflow
+- **multimodal-analysis.yaml**: Combine text and image analysis in a comprehensive workflow
 
 ### MCP Integration Examples
 - **comprehensive-mcp-integration.yaml**: Complete guide to all MCP server configuration methods (standard, NPX simplified, and custom-tools)
