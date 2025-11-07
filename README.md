@@ -4,6 +4,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama integration. Def
 
 ## Features
 
+- ✨ **AI-Powered Generation**: Create workflows from natural language descriptions
 - 🌐 **Web UI**: Browse and manage workflows through a beautiful web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
 - 🔌 **MCP Server Integration**: Connect to Model Context Protocol (MCP) servers for extended capabilities
@@ -61,6 +62,28 @@ ai-workflow run examples/simple-qa.yaml
 ```
 
 ## Usage
+
+### Generate a Workflow
+
+Create a new workflow YAML file by describing what you want in natural language:
+
+```bash
+ai-workflow generate [options]
+
+Options:
+  -u, --ollama-url <url>  Ollama API URL (default: "http://localhost:11434")
+  -o, --output <path>     Output file path for the generated workflow
+  -m, --model <model>     Model to use for generation (default: "gemma3:4b")
+```
+
+Example:
+```bash
+ai-workflow generate
+ai-workflow generate --output my-workflow.yaml
+ai-workflow generate --model mistral
+```
+
+When you run this command, you'll be prompted to describe the workflow you want to create. The AI will generate a complete workflow YAML file based on your description, which you can then customize and run.
 
 ### Serve Web UI
 
