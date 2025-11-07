@@ -11,7 +11,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -26,7 +28,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -47,7 +51,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -81,7 +87,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -96,7 +104,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -117,7 +127,9 @@ describe('Graceful Stop Mechanism', () => {
         start_state: 'test',
         states: {
           test: {
-            type: 'end'
+            type: 'prompt',
+            prompt: 'Test prompt',
+            next: 'end'
           }
         }
       };
@@ -161,9 +173,6 @@ states:
     prompt: "Enter more"
     save_as: "input2"
     next: "end"
-  
-  end:
-    type: "end"
 `;
       
       const fs = require('fs');
