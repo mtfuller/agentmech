@@ -1,4 +1,4 @@
-import { TestScenarioResult, AssertionResult } from './test-executor';
+import { TestScenarioResult, AssertionResult } from './executor';
 import * as fs from 'fs';
 
 /**

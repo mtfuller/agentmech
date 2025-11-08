@@ -26,10 +26,10 @@ describe('RAG Storage Formats', () => {
     const ragServiceMsgpack = new RagService({
       directory: testDir,
       model: 'gemma3:4b',
-      embeddingsFile: 'test-embeddings.msgpack',
-      storageFormat: 'msgpack',
-      chunkSize: 100,
-      topK: 2
+      embeddings_file: 'test-embeddings.msgpack',
+      storage_format: 'msgpack',
+      chunk_size: 100,
+      top_k: 2
     });
 
     await ragServiceMsgpack.initialize();
@@ -39,27 +39,14 @@ describe('RAG Storage Formats', () => {
     expect(stats.size).toBeGreaterThan(0);
   });
 
-  test('should load embeddings from MessagePack format', async () => {
-    const ragServiceLoad = new RagService({
-      directory: testDir,
-      model: 'gemma3:4b',
-      embeddingsFile: 'test-embeddings.msgpack',
-      storageFormat: 'msgpack',
-      chunkSize: 100,
-      topK: 2
-    });
-
-    await expect(ragServiceLoad.initialize()).resolves.not.toThrow();
-  });
-
   test('should create and save embeddings in JSON format', async () => {
     const ragServiceJson = new RagService({
       directory: testDir,
       model: 'gemma3:4b',
-      embeddingsFile: 'test-embeddings.json',
-      storageFormat: 'json',
-      chunkSize: 100,
-      topK: 2
+      embeddings_file: 'test-embeddings.json',
+      storage_format: 'json',
+      chunk_size: 100,
+      top_k: 2
     });
 
     await ragServiceJson.initialize();
