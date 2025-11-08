@@ -25,21 +25,21 @@ try {
   process.exit(1);
 }
 
-// Read all HTML files from source directory
+// Read all HTML and CSS files from source directory
 let files;
 try {
-  files = fs.readdirSync(srcDir).filter(file => file.endsWith('.html'));
+  files = fs.readdirSync(srcDir).filter(file => file.endsWith('.html') || file.endsWith('.css'));
 } catch (error) {
   console.error(`Error reading source directory: ${error.message}`);
   process.exit(1);
 }
 
 if (files.length === 0) {
-  console.warn('Warning: No HTML files found in src/views/');
+  console.warn('Warning: No HTML or CSS files found in src/views/');
   process.exit(0);
 }
 
-// Copy each HTML file
+// Copy each file
 let successCount = 0;
 let errorCount = 0;
 
@@ -62,4 +62,4 @@ if (errorCount > 0) {
   process.exit(1);
 }
 
-console.log(`Successfully copied ${successCount} HTML file(s)`);
+console.log(`Successfully copied ${successCount} file(s)`);

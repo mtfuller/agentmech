@@ -44,6 +44,20 @@ class WebServer {
       res.send(this.getExecutionHtml());
     });
 
+    // Serve CSS files
+    this.app.get('/styles/:fileName', (req: Request, res: Response) => {
+      const cssFileName = req.params.fileName;
+      
+      // Security: Only allow specific CSS filenames (whitelist)
+      const allowedFiles = ['styles.css', 'index.css', 'execution.css'];
+      if (!allowedFiles.includes(cssFileName)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      res.setHeader('Content-Type', 'text/css');
+      res.send(this.getCssFile(cssFileName));
+    });
+
     // API: List all workflows
     this.app.get('/api/workflows', (req: Request, res: Response) => {
       try {
@@ -284,6 +298,31 @@ class WebServer {
     </div>
 </body>
 </html>`;
+    }
+  }
+
+  /**
+   * Get a CSS file content
+   * Reads from dist/views/ (after build script copies from src/views/)
+   * Note: Path is constructed from trusted sources (__dirname + hardcoded path + whitelisted filename),
+   * not from user input, so no path traversal vulnerability exists.
+   */
+  private getCssFile(fileName: string): string {
+    try {
+      const cssPath = path.join(__dirname, '..', 'views', fileName);
+      return fs.readFileSync(cssPath, 'utf-8');
+    } catch (error: any) {
+      console.error(`Failed to load ${fileName}:`, error.message);
+      return `/* Error loading ${fileName}: ${error.message} */
+body::before {
+  content: "Error loading stylesheet. Please ensure the application was built correctly.";
+  display: block;
+  background: #ffebee;
+  color: #c62828;
+  padding: 20px;
+  text-align: center;
+  font-weight: bold;
+}`;
     }
   }
 

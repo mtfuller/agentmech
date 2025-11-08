@@ -1,0 +1,117 @@
+/* Styles specific to the index page */
+
+.workflows-container {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.workflow-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.workflow-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.workflow-card.invalid {
+    border-color: #ff6b6b;
+    opacity: 0.7;
+}
+
+.workflow-name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.workflow-description {
+    color: #666;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.workflow-file {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: #999;
+    background: #f5f5f5;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.workflow-actions {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-run {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-run:hover {
+    background: #218838;
+}
+
+.btn-details {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.3s ease;
+}
+
+.btn-details:hover {
+    background: #5568d3;
+}
+
+.workflow-error {
+    color: #ff6b6b;
+    font-size: 14px;
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff5f5;
+    border-radius: 4px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.badge.valid {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge.invalid {
+    background: #f8d7da;
+    color: #721c24;
+}
