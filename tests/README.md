@@ -1,6 +1,6 @@
-# AI Workflow CLI - Test Suite
+# AgentMech - Test Suite
 
-This directory contains the test suite for the AI Workflow CLI, organized by feature for better maintainability and clarity.
+This directory contains the test suite for AgentMech, organized by feature for better maintainability and clarity.
 
 ## Test Organization
 

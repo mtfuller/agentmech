@@ -1,10 +1,10 @@
 {
-  "name": "ai-workflow-cli",
+  "name": "agentmech",
   "version": "1.0.0",
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
   "main": "dist/cli/cli.js",
   "bin": {
-    "ai-workflow": "./dist/cli/cli.js"
+    "agentmech": "./dist/cli/cli.js"
   },
   "scripts": {
     "build": "tsc && npm run copy-views",

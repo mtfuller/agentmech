@@ -40,12 +40,12 @@ export function generateRunDirectoryName(workflowName: string, timestamp?: strin
 /**
  * Create a unique run directory for a workflow
  * @param workflowName - Name of the workflow
- * @param baseDir - Optional base directory (defaults to ~/.ai-workflow-cli/runs)
+ * @param baseDir - Optional base directory (defaults to ~/.agentmech/runs)
  * @returns RunDirectoryInfo with path and metadata
  */
 export function createRunDirectory(workflowName: string, baseDir?: string): RunDirectoryInfo {
   // Default base directory in user's home
-  const defaultBaseDir = path.join(os.homedir(), '.ai-workflow-cli', 'runs');
+  const defaultBaseDir = path.join(os.homedir(), '.agentmech', 'runs');
   const runsBaseDir = baseDir || defaultBaseDir;
   
   // Generate timestamp once for consistency

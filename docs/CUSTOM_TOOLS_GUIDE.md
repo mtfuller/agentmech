@@ -4,7 +4,7 @@ This guide explains how to create and use custom JavaScript tools in your AI wor
 
 ## Overview
 
-The AI Workflow CLI allows you to define your own tools as JavaScript functions and use them in your workflows through the Model Context Protocol (MCP). This enables you to extend workflow capabilities with custom logic, data transformations, external API calls, and more.
+AgentMech allows you to define your own tools as JavaScript functions and use them in your workflows through the Model Context Protocol (MCP). This enables you to extend workflow capabilities with custom logic, data transformations, external API calls, and more.
 
 ## Quick Start
 
@@ -100,7 +100,7 @@ states:
 ### 4. Run Your Workflow
 
 ```bash
-ai-workflow run my-workflow.yaml
+agentmech run my-workflow.yaml
 ```
 
 ## Tool File Structure

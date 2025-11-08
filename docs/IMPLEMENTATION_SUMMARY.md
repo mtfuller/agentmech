@@ -80,7 +80,7 @@ states:
 ### 3. Run Workflow
 
 ```bash
-ai-workflow run my-workflow.yaml
+agentmech run my-workflow.yaml
 ```
 
 ## Files Added

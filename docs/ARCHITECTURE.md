@@ -1,6 +1,6 @@
 # Architecture and Code Organization
 
-This document describes the organization and structure of the AI Workflow CLI codebase.
+This document describes the organization and structure of the AgentMech codebase.
 
 ## Directory Structure
 

@@ -1,6 +1,6 @@
 # Usage Guide
 
-This guide demonstrates how to use the AI Workflow CLI tool with practical examples.
+This guide demonstrates how to use the AgentMech tool with practical examples.
 
 ## Setup
 
@@ -21,7 +21,7 @@ This guide demonstrates how to use the AI Workflow CLI tool with practical examp
 
 4. **Install Dependencies**
    ```bash
-   cd ai-workflow-cli
+   cd agentmech
    npm install
    ```
 
@@ -450,7 +450,7 @@ states:
 npm start run examples/multi-rag-qa.yaml
 ```
 
-This comprehensive example demonstrates all three RAG approaches: default workflow-level, named configurations, and inline state-level RAG with a pre-configured knowledge base about the AI Workflow CLI itself.
+This comprehensive example demonstrates all three RAG approaches: default workflow-level, named configurations, and inline state-level RAG with a pre-configured knowledge base about AgentMech itself.
 
 ### Custom Ollama URL
 
