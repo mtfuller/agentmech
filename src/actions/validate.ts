@@ -11,7 +11,7 @@ export async function validate(workflowFile: string) {
         console.log('\n✓ Workflow is valid!');
         console.log(`  Name: ${workflow.name}`);
         console.log(`  States: ${Object.keys(workflow.states).length}`);
-        console.log(`  Start state: ${workflow.start_state}`);
+        console.log(`  Start state: ${workflow.startState}`);
         
     } catch (error: any) {
         console.error(`\n✗ Validation failed: ${error.message}`);

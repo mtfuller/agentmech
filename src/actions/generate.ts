@@ -124,7 +124,7 @@ Generate ONLY the YAML content, nothing else:`;
         console.log('✓ Workflow is valid!');
         console.log(`  Name: ${workflow.name}`);
         console.log(`  States: ${Object.keys(workflow.states).length}`);
-        console.log(`  Start state: ${workflow.start_state}\n`);
+        console.log(`  Start state: ${workflow.startState}\n`);
         
         console.log('You can now run the workflow with:');
         console.log(`  agentmech run ${outputPath}\n`);

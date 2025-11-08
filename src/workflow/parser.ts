@@ -1,61 +1,58 @@
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
+import { McpServerConfig, State, Workflow } from './workflow';
+import { RAGConfig } from '../rag/rag-service';
 
 const END_STATE = 'end';
 
-
-
-interface NextOption {
-  state: string;
-  description: string;
-}
-
-interface McpServerConfig {
-  type?: 'npx' | 'custom-tools';  // Optional type for simplified configs
+interface MCPServerSpec {
+  type?: string;  // Optional type for simplified configs
   command?: string;  // Made optional when type is specified
   package?: string;  // For npx type: package name
-  toolsDirectory?: string;  // For custom-tools type: directory path
+  tools_directory?: string;  // For custom-tools type: directory path
   args?: string[];
   env?: Record<string, string>;
 }
 
-interface RagConfig {
+interface RAGSpec {
   directory: string;
   model?: string;
   embeddings_file?: string;
   chunk_size?: number;
   top_k?: number;
-  storage_format?: 'json' | 'msgpack';
+  storage_format?: string;
 }
 
-interface State {
+interface StateSpec {
   type: string;
   prompt?: string;
   prompt_file?: string;
   workflow_ref?: string;
   next?: string;
-  next_options?: NextOption[];  // LLM-driven state selection
+  next_options?: {
+    state: string;
+    description: string;
+  }[];
   model?: string;
   save_as?: string;
   options?: Record<string, any>;
   mcp_servers?: string[];
-  use_rag?: boolean | string;  // true for default, or name of rag config
-  rag?: RagConfig;  // inline RAG configuration
+  use_rag?: string;  // true for default, or name of rag config
+  rag?: RAGSpec;  // inline RAG configuration
   default_value?: string;  // default value for input state
   on_error?: string;  // Fallback state to transition to on error (state-level)
 }
 
-interface Workflow {
+interface WorkflowSpec {
   name: string;
   description?: string;
-  start_state: string;
   default_model?: string;
-  mcp_servers?: Record<string, McpServerConfig>;
-  rag?: RagConfig;  // Backward compatibility: default RAG config
-  rags?: Record<string, RagConfig>;  // Named RAG configurations
+  start_state: string;
+  states: Record<string, StateSpec>;
+  mcp_servers?: Record<string, MCPServerSpec>;
+  rag?: Record<string, RAGSpec>;  // Named RAG configurations
   on_error?: string;  // Fallback state to transition to on error (workflow-level)
-  states: Record<string, State>;
 }
 
 class WorkflowParser {
@@ -80,17 +77,22 @@ class WorkflowParser {
       newVisitedFiles.add(absolutePath);
       
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      const workflow = yaml.load(fileContent) as Workflow;
-      
-      // Normalize MCP server configurations
-      this.normalizeMcpServerConfigs(workflow, filePath);
-      
-      // Resolve external file references
+      const workflow = yaml.load(fileContent) as WorkflowSpec;
+
       this.resolveExternalReferences(workflow, filePath, newVisitedFiles);
-      
+
       this.validateWorkflow(workflow);
-      
-      return workflow;
+
+      return {
+        name: workflow.name,
+        description: workflow.description,
+        defaultModel: workflow.default_model,
+        startState: workflow.start_state,
+        states: this.buildStates(workflow.states),
+        mcpServers: this.buildMCPServers(workflow.mcp_servers),
+        rag: this.buildRAGConfigs(workflow.rag),
+        onError: workflow.on_error
+      } as Workflow;
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error(`Workflow file not found: ${filePath}`);
@@ -99,66 +101,143 @@ class WorkflowParser {
     }
   }
 
+  static buildStates(states: Record<string, StateSpec>) {
+    const builtStates: Record<string, State> = {};
+    for (const [stateName, stateSpec] of Object.entries(states)) {
+
+      let prompt = stateSpec.prompt || '';
+      if (stateSpec.prompt_file) {
+        prompt = fs.readFileSync(stateSpec.prompt_file, 'utf8');
+      }
+
+      let rag: RAGConfig | undefined;
+      if (stateSpec.rag) {
+        rag = {
+          directory: stateSpec.rag.directory || '',
+          model: stateSpec.rag.model,
+          embeddingsFile: stateSpec.rag.embeddings_file,
+          chunkSize: stateSpec.rag.chunk_size,
+          topK: stateSpec.rag.top_k,
+          storageFormat: stateSpec.rag.storage_format === 'msgpack' ? 'msgpack' : 'json',
+        } as RAGConfig;
+      }
+
+      builtStates[stateName] = {
+        type: stateSpec.type,
+        prompt: prompt,
+        workflowRef: stateSpec.workflow_ref,
+        next: stateSpec.next,
+        nextOptions: stateSpec.next_options,
+        model: stateSpec.model,
+        saveAs: stateSpec.save_as,
+        options: stateSpec.options,
+        mcpServers: stateSpec.mcp_servers,
+        useRag: stateSpec.use_rag,
+        rag: rag,
+        defaultValue: stateSpec.default_value,
+        onError: stateSpec.on_error
+      };
+    }
+    return builtStates;
+  }
+
+  static buildMCPServers(mcp_servers: Record<string, MCPServerSpec> | undefined) {
+    if (!mcp_servers) {
+      return {};
+    }
+
+    const builtMcpServers: Record<string, McpServerConfig> = {};
+    for (const [serverName, serverSpec] of Object.entries(mcp_servers)) {
+      builtMcpServers[serverName] = {
+        command: serverSpec.command || '',
+        args: serverSpec.args || [],
+        env: serverSpec.env || {}
+      };
+    }
+    
+    return builtMcpServers;
+  }
+
+  static buildRAGConfigs(rag: Record<string, RAGSpec> | undefined) {
+    if (!rag) {
+      return {};
+    }
+
+    const builtRAGConfigs: Record<string, RAGConfig> = {};
+    for (const [serviceName, serviceSpec] of Object.entries(rag)) {
+      builtRAGConfigs[serviceName] = {
+        directory: serviceSpec.directory || '',
+        model: serviceSpec.model || '',
+        embeddingsFile: serviceSpec.embeddings_file || '',
+        chunkSize: serviceSpec.chunk_size || 0,
+        topK: serviceSpec.top_k || 0,
+        storageFormat: serviceSpec.storage_format === 'msgpack' ? 'msgpack' : 'json',
+      };
+    }
+
+    return builtRAGConfigs;
+  }
+
   /**
    * Normalize MCP server configurations by converting simplified types to standard format
    * @param workflow - The workflow object
    * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
    */
-  static normalizeMcpServerConfigs(workflow: Workflow, workflowFilePath: string): void {
-    if (!workflow.mcp_servers) {
-      return;
-    }
+  // static normalizeMcpServerConfigs(workflow: WorkflowSpec, workflowFilePath: string): void {
+  //   if (!workflow.mcp_servers) {
+  //     return;
+  //   }
 
-    const workflowDir = path.dirname(workflowFilePath);
+  //   const workflowDir = path.dirname(workflowFilePath);
 
-    for (const [serverName, config] of Object.entries(workflow.mcp_servers)) {
-      if (config.type === 'npx') {
-        // NPX type: automatic npx invocation with package name
-        if (!config.package) {
-          throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
-        }
+  //   for (const [serverName, config] of Object.entries(workflow.mcp_servers)) {
+  //     if (config.type === 'npx') {
+  //       // NPX type: automatic npx invocation with package name
+  //       if (!config.package) {
+  //         throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
+  //       }
 
-        // Convert to standard format
-        const packageArgs = ['-y', config.package];
-        if (config.args && config.args.length > 0) {
-          packageArgs.push(...config.args);
-        }
+  //       // Convert to standard format
+  //       const packageArgs = ['-y', config.package];
+  //       if (config.args && config.args.length > 0) {
+  //         packageArgs.push(...config.args);
+  //       }
 
-        config.command = 'npx';
-        config.args = packageArgs;
+  //       config.command = 'npx';
+  //       config.args = packageArgs;
         
-        // Remove the type-specific fields after normalization
-        delete config.type;
-        delete config.package;
-      } else if (config.type === 'custom-tools') {
-        // Custom tools type: automatic path to custom-mcp-server.js
-        if (!config.toolsDirectory) {
-          throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
-        }
+  //       // Remove the type-specific fields after normalization
+  //       delete config.type;
+  //       delete config.package;
+  //     } else if (config.type === 'custom-tools') {
+  //       // Custom tools type: automatic path to custom-mcp-server.js
+  //       if (!config.toolsDirectory) {
+  //         throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
+  //       }
 
-        // Resolve tools directory relative to workflow file
-        const resolvedToolsDir = path.resolve(workflowDir, config.toolsDirectory);
+  //       // Resolve tools directory relative to workflow file
+  //       const resolvedToolsDir = path.resolve(workflowDir, config.toolsDirectory);
         
-        // Basic validation to prevent obvious path traversal attempts
-        // Note: This is a basic check. The OS-level permissions and spawn() security
-        // provide the actual security boundary.
-        const normalizedPath = path.normalize(resolvedToolsDir);
-        if (normalizedPath.includes('..') && !path.isAbsolute(config.toolsDirectory)) {
-          console.warn(`Warning: MCP server "${serverName}" uses relative path with '..' which may traverse directories: ${config.toolsDirectory}`);
-        }
+  //       // Basic validation to prevent obvious path traversal attempts
+  //       // Note: This is a basic check. The OS-level permissions and spawn() security
+  //       // provide the actual security boundary.
+  //       const normalizedPath = path.normalize(resolvedToolsDir);
+  //       if (normalizedPath.includes('..') && !path.isAbsolute(config.toolsDirectory)) {
+  //         console.warn(`Warning: MCP server "${serverName}" uses relative path with '..' which may traverse directories: ${config.toolsDirectory}`);
+  //       }
 
-        // Convert to standard format
-        // The custom-mcp-server.js is expected to be in dist/ from the project root
-        // We use the standard location that's consistent with how the tool is distributed
-        config.command = 'node';
-        config.args = ['dist/custom-mcp-server.js', resolvedToolsDir];
+  //       // Convert to standard format
+  //       // The custom-mcp-server.js is expected to be in dist/ from the project root
+  //       // We use the standard location that's consistent with how the tool is distributed
+  //       config.command = 'node';
+  //       config.args = ['dist/custom-mcp-server.js', resolvedToolsDir];
         
-        // Remove the type-specific fields after normalization
-        delete config.type;
-        delete config.toolsDirectory;
-      }
-    }
-  }
+  //       // Remove the type-specific fields after normalization
+  //       delete config.type;
+  //       delete config.toolsDirectory;
+  //     }
+  //   }
+  // }
 
   /**
    * Resolve external file references in the workflow
@@ -166,7 +245,7 @@ class WorkflowParser {
    * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
    * @param visitedFiles - Set of already visited files to detect cycles
    */
-  static resolveExternalReferences(workflow: Workflow, workflowFilePath: string, visitedFiles: Set<string> = new Set()): void {
+  static resolveExternalReferences(workflow: WorkflowSpec, workflowFilePath: string, visitedFiles: Set<string> = new Set()): void {
     const workflowDir = path.dirname(workflowFilePath);
     
     for (const [stateName, state] of Object.entries(workflow.states)) {
@@ -215,18 +294,18 @@ class WorkflowParser {
           }
           
           // Replace the workflow_ref state with a transition to the referenced workflow's start state
-          const referencedStartState = statePrefix + referencedWorkflow.start_state;
+          const referencedStartState = statePrefix + referencedWorkflow.startState;
           state.type = 'transition';
           state.next = referencedStartState;
           delete state.workflow_ref;
-          
-          // Also copy over default_model and mcp_servers if not already present
-          if (referencedWorkflow.default_model && !workflow.default_model) {
-            workflow.default_model = referencedWorkflow.default_model;
+
+          // Also copy over defaultModel and mcpServers if not already present
+          if (referencedWorkflow.defaultModel && !workflow.default_model) {
+            workflow.default_model = referencedWorkflow.defaultModel;
           }
-          if (referencedWorkflow.mcp_servers) {
+          if (referencedWorkflow.mcpServers) {
             workflow.mcp_servers = workflow.mcp_servers || {};
-            for (const [serverName, config] of Object.entries(referencedWorkflow.mcp_servers)) {
+            for (const [serverName, config] of Object.entries(referencedWorkflow.mcpServers)) {
               if (!workflow.mcp_servers[serverName]) {
                 workflow.mcp_servers[serverName] = config;
               }
@@ -244,7 +323,7 @@ class WorkflowParser {
    * @param workflow - The workflow object to validate
    * @throws {Error} If workflow is invalid
    */
-  static validateWorkflow(workflow: Workflow): void {
+  static validateWorkflow(workflow: WorkflowSpec): void {
     if (!workflow) {
       throw new Error('Workflow is empty');
     }
@@ -270,22 +349,22 @@ class WorkflowParser {
       throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);
     }
 
-    // Validate RAG configuration if present
-    if (workflow.rag) {
-      this.validateRagConfig(workflow.rag);
-    }
+    // // Validate RAG configuration if present
+    // if (workflow.rag) {
+    //   this.validateRagConfig(workflow.rag);
+    // }
 
-    // Validate named RAG configurations if present
-    if (workflow.rags) {
-      for (const [ragName, ragConfig] of Object.entries(workflow.rags)) {
-        this.validateRagConfig(ragConfig);
-      }
-    }
+    // // Validate named RAG configurations if present
+    // if (workflow.rags) {
+    //   for (const [ragName, ragConfig] of Object.entries(workflow.rags)) {
+    //     this.validateRagConfig(ragConfig);
+    //   }
+    // }
 
-    // Validate MCP servers configuration if present
-    if (workflow.mcp_servers) {
-      this.validateMcpServers(workflow.mcp_servers);
-    }
+    // // Validate MCP servers configuration if present
+    // if (workflow.mcp_servers) {
+    //   this.validateMcpServers(workflow.mcp_servers);
+    // }
 
     // Validate workflow-level fallback state if present
     if (workflow.on_error) {
@@ -296,7 +375,7 @@ class WorkflowParser {
 
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag, workflow.rags);
+      this.validateState(stateName, state, workflow.states, workflow.mcp_servers);
     }
   }
 
@@ -306,92 +385,92 @@ class WorkflowParser {
    * New snake_case field names take precedence when both are provided.
    * @param ragConfig - RAG configuration (will be mutated)
    */
-  static normalizeRagConfig(ragConfig: RagConfig): void {
-    // Support both old (camelCase) and new (snake_case) field names
-    // Warn about deprecated usage
-    if (ragConfig.embeddings_file && !ragConfig.embeddings_file) {
-      console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
-      ragConfig.embeddings_file = ragConfig.embeddings_file;
-    }
-    if (ragConfig.chunk_size && !ragConfig.chunk_size) {
-      console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
-      ragConfig.chunk_size = ragConfig.chunk_size;
-    }
-    if (ragConfig.top_k && !ragConfig.top_k) {
-      console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
-      ragConfig.top_k = ragConfig.top_k;
-    }
-    if (ragConfig.storage_format && !ragConfig.storage_format) {
-      console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
-      ragConfig.storage_format = ragConfig.storage_format;
-    }
-  }
+  // static normalizeRagConfig(ragConfig: RAGSpec): void {
+  //   // Support both old (camelCase) and new (snake_case) field names
+  //   // Warn about deprecated usage
+  //   if (ragConfig.embeddings_file && !ragConfig.embeddings_file) {
+  //     console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
+  //     ragConfig.embeddings_file = ragConfig.embeddings_file;
+  //   }
+  //   if (ragConfig.chunk_size && !ragConfig.chunk_size) {
+  //     console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
+  //     ragConfig.chunk_size = ragConfig.chunk_size;
+  //   }
+  //   if (ragConfig.top_k && !ragConfig.top_k) {
+  //     console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
+  //     ragConfig.top_k = ragConfig.top_k;
+  //   }
+  //   if (ragConfig.storage_format && !ragConfig.storage_format) {
+  //     console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
+  //     ragConfig.storage_format = ragConfig.storage_format;
+  //   }
+  // }
 
   /**
    * Validate RAG configuration
    * @param ragConfig - RAG configuration
    */
-  static validateRagConfig(ragConfig: RagConfig): void {
-    if (!ragConfig.directory) {
-      throw new Error('RAG configuration must have a directory');
-    }
-    if (typeof ragConfig.directory !== 'string') {
-      throw new Error('RAG directory must be a string');
-    }
-    if (ragConfig.model && typeof ragConfig.model !== 'string') {
-      throw new Error('RAG model must be a string');
-    }
+  // static validateRagConfig(ragConfig: RAGSpec): void {
+  //   if (!ragConfig.directory) {
+  //     throw new Error('RAG configuration must have a directory');
+  //   }
+  //   if (typeof ragConfig.directory !== 'string') {
+  //     throw new Error('RAG directory must be a string');
+  //   }
+  //   if (ragConfig.model && typeof ragConfig.model !== 'string') {
+  //     throw new Error('RAG model must be a string');
+  //   }
     
-    if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
-      throw new Error('RAG embeddings_file must be a string');
-    }
+  //   if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
+  //     throw new Error('RAG embeddings_file must be a string');
+  //   }
     
-    if (ragConfig.chunk_size && (typeof ragConfig.chunk_size !== 'number' || ragConfig.chunk_size <= 0)) {
-      throw new Error('RAG chunk_size must be a positive number');
-    }
+  //   if (ragConfig.chunk_size && (typeof ragConfig.chunk_size !== 'number' || ragConfig.chunk_size <= 0)) {
+  //     throw new Error('RAG chunk_size must be a positive number');
+  //   }
     
-    if (ragConfig.top_k && (typeof ragConfig.top_k !== 'number' || ragConfig.top_k <= 0)) {
-      throw new Error('RAG top_k must be a positive number');
-    }
-  }
+  //   if (ragConfig.top_k && (typeof ragConfig.top_k !== 'number' || ragConfig.top_k <= 0)) {
+  //     throw new Error('RAG top_k must be a positive number');
+  //   }
+  // }
 
   /**
    * Validate MCP servers configuration
    * @param mcpServers - MCP servers configuration
    */
-  static validateMcpServers(mcpServers: Record<string, McpServerConfig>): void {
-    for (const [serverName, config] of Object.entries(mcpServers)) {
-      // Check if using simplified type configuration
-      if (config.type) {
-        if (config.type === 'npx') {
-          if (!config.package || typeof config.package !== 'string') {
-            throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
-          }
-        } else if (config.type === 'custom-tools') {
-          if (!config.toolsDirectory || typeof config.toolsDirectory !== 'string') {
-            throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
-          }
-        } else {
-          throw new Error(`MCP server "${serverName}" has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
-        }
-      } else {
-        // Standard configuration requires command
-        if (!config.command) {
-          throw new Error(`MCP server "${serverName}" must have a command`);
-        }
-        if (typeof config.command !== 'string') {
-          throw new Error(`MCP server "${serverName}" command must be a string`);
-        }
-      }
+  // static validateMcpServers(mcpServers: Record<string, MCPServerSpec>): void {
+  //   for (const [serverName, config] of Object.entries(mcpServers)) {
+  //     // Check if using simplified type configuration
+  //     if (config.type) {
+  //       if (config.type === 'npx') {
+  //         if (!config.package || typeof config.package !== 'string') {
+  //           throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
+  //         }
+  //       } else if (config.type === 'custom-tools') {
+  //         if (!config.toolsDirectory || typeof config.toolsDirectory !== 'string') {
+  //           throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
+  //         }
+  //       } else {
+  //         throw new Error(`MCP server "${serverName}" has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
+  //       }
+  //     } else {
+  //       // Standard configuration requires command
+  //       if (!config.command) {
+  //         throw new Error(`MCP server "${serverName}" must have a command`);
+  //       }
+  //       if (typeof config.command !== 'string') {
+  //         throw new Error(`MCP server "${serverName}" command must be a string`);
+  //       }
+  //     }
       
-      if (config.args && !Array.isArray(config.args)) {
-        throw new Error(`MCP server "${serverName}" args must be an array`);
-      }
-      if (config.env && typeof config.env !== 'object') {
-        throw new Error(`MCP server "${serverName}" env must be an object`);
-      }
-    }
-  }
+  //     if (config.args && !Array.isArray(config.args)) {
+  //       throw new Error(`MCP server "${serverName}" args must be an array`);
+  //     }
+  //     if (config.env && typeof config.env !== 'object') {
+  //       throw new Error(`MCP server "${serverName}" env must be an object`);
+  //     }
+  //   }
+  // }
 
   /**
    * Validate a single state
@@ -402,7 +481,7 @@ class WorkflowParser {
    * @param ragConfig - Default RAG configuration if present
    * @param namedRags - Named RAG configurations if present
    */
-  static validateState(name: string, state: State, allStates: Record<string, State>, mcpServers?: Record<string, McpServerConfig>, ragConfig?: RagConfig, namedRags?: Record<string, RagConfig>): void {
+  static validateState(name: string, state: StateSpec, allStates: Record<string, StateSpec>, mcpServers?: Record<string, MCPServerSpec>, ragConfig?: RAGSpec): void {
     if (!state.type) {
       throw new Error(`State "${name}" must have a type`);
     }
@@ -420,8 +499,6 @@ class WorkflowParser {
       throw new Error(`Input state "${name}" must have a prompt field`);
     }
 
-
-    
     if (state.type === 'workflow_ref' && !state.workflow_ref) {
       throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
     }
@@ -443,40 +520,6 @@ class WorkflowParser {
           throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
         }
       }
-    }
-
-    // Validate inline RAG configuration
-    if (state.rag) {
-      this.validateRagConfig(state.rag);
-      if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use RAG with prompt type states`);
-      }
-    }
-
-    // Validate RAG usage
-    if (state.use_rag !== undefined && state.use_rag !== false) {
-      if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use RAG with prompt type states`);
-      }
-
-      if (typeof state.use_rag === 'boolean') {
-        // use_rag: true - requires default rag config
-        if (state.use_rag && !ragConfig && !state.rag) {
-          throw new Error(`State "${name}" uses RAG but workflow has no rag configuration defined`);
-        }
-      } else if (typeof state.use_rag === 'string') {
-        // use_rag: "name" - references named rag config
-        if (!namedRags || !namedRags[state.use_rag]) {
-          throw new Error(`State "${name}" references non-existent RAG configuration "${state.use_rag}"`);
-        }
-      } else {
-        throw new Error(`State "${name}" use_rag must be a boolean or string`);
-      }
-    }
-
-    // Check for conflicting RAG configurations
-    if (state.rag && state.use_rag) {
-      throw new Error(`State "${name}" cannot have both inline 'rag' and 'use_rag' configurations`);
     }
 
     // Validate state-level fallback state if present
@@ -519,8 +562,6 @@ class WorkflowParser {
     if (state.next && !allStates[state.next] && state.next !== END_STATE) {
       throw new Error(`State "${name}" references non-existent next state "${state.next}"`);
     }
-
-
   }
 }
 

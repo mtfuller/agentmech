@@ -1,60 +1,59 @@
 import OllamaClient = require('../ollama/ollama-client');
 import McpClient = require('../mcp/mcp-client');
-import RagService = require('../rag/rag-service');
+import { RAGService } from '../rag/rag-service';
 import { Response } from 'express';
+import { Workflow, State, NextOption, McpServerConfig } from '../workflow/workflow';
 
 const END_STATE = 'end';
 const INPUT_TIMEOUT_MS = 300000; // 5 minutes
 
+// interface NextOption {
+//   state: string;
+//   description: string;
+// }
 
+// interface McpServerConfig {
+//   command?: string;  // Optional for type-based configs, but always set after normalization
+//   args?: string[];
+//   env?: Record<string, string>;
+// }
 
-interface NextOption {
-  state: string;
-  description: string;
-}
+// interface RagConfig {
+//   directory: string;
+//   model?: string;
+//   embeddingsFile?: string;
+//   chunkSize?: number;
+//   topK?: number;
+// }
 
-interface McpServerConfig {
-  command?: string;  // Optional for type-based configs, but always set after normalization
-  args?: string[];
-  env?: Record<string, string>;
-}
+// interface State {
+//   type: string;
+//   prompt?: string;
+//   prompt_file?: string;
+//   workflow_ref?: string;
+//   next?: string;
+//   next_options?: NextOption[];  // LLM-driven state selection
+//   model?: string;
+//   save_as?: string;
+//   options?: Record<string, any>;
+//   mcp_servers?: string[];
+//   use_rag?: boolean | string;  // true for default, or name of rag config
+//   rag?: RagConfig;  // inline RAG configuration
+//   default_value?: string;  // default value for input state
+//   on_error?: string;  // Fallback state to transition to on error (state-level)
+// }
 
-interface RagConfig {
-  directory: string;
-  model?: string;
-  embeddingsFile?: string;
-  chunkSize?: number;
-  topK?: number;
-}
-
-interface State {
-  type: string;
-  prompt?: string;
-  prompt_file?: string;
-  workflow_ref?: string;
-  next?: string;
-  next_options?: NextOption[];  // LLM-driven state selection
-  model?: string;
-  save_as?: string;
-  options?: Record<string, any>;
-  mcp_servers?: string[];
-  use_rag?: boolean | string;  // true for default, or name of rag config
-  rag?: RagConfig;  // inline RAG configuration
-  default_value?: string;  // default value for input state
-  on_error?: string;  // Fallback state to transition to on error (state-level)
-}
-
-interface Workflow {
-  name: string;
-  description?: string;
-  start_state: string;
-  default_model?: string;
-  mcp_servers?: Record<string, McpServerConfig>;
-  rag?: RagConfig;  // Backward compatibility: default RAG config
-  rags?: Record<string, RagConfig>;  // Named RAG configurations
-  on_error?: string;  // Fallback state to transition to on error (workflow-level)
-  states: Record<string, State>;
-}
+// interface Workflow {
+//   name: string;
+//   description?: string;
+//   start_state: string;
+//   default_model?: string;
+//   mcp_servers?: Record<string, McpServerConfig>;
+//   rag?: RagConfig;  // Backward compatibility: default RAG config
+//   rags?: Record<string, RagConfig>;  // Named RAG configurations
+//   on_error?: string;  // Fallback state to transition to on error (workflow-level)
+//   states: Record<string, State>;
+// }
 
 interface ExecutionEvent {
   type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped' | 'prompt_sent';
@@ -66,8 +65,8 @@ class WebWorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
-  private ragService?: RagService;
-  private namedRagServices: Map<string, RagService>;
+  private ragService?: RAGService;
+  private namedRagServices: Map<string, RAGService>;
   private context: Record<string, any>;
   private history: string[];
   private sseResponse?: Response;
@@ -89,11 +88,6 @@ class WebWorkflowExecutor {
     // Add run directory to context if provided
     if (runDirectory) {
       this.context['run_directory'] = runDirectory;
-    }
-    
-    // Initialize default RAG service if configured
-    if (workflow.rag) {
-      this.ragService = new RagService(workflow.rag, ollamaUrl);
     }
   }
 
@@ -197,13 +191,13 @@ class WebWorkflowExecutor {
 
       // Auto-inject filesystem MCP server if run directory is provided and not already configured
       if (this.runDirectory) {
-        // Initialize mcp_servers if not present
-        if (!this.workflow.mcp_servers) {
-          this.workflow.mcp_servers = {};
+        // Initialize mcpServers if not present
+        if (!this.workflow.mcpServers) {
+          this.workflow.mcpServers = {};
         }
         
         // Check if filesystem server is already configured
-        const hasFilesystemServer = Object.entries(this.workflow.mcp_servers).some(
+        const hasFilesystemServer = Object.entries(this.workflow.mcpServers).some(
           ([name, config]) => {
             // Check if it's explicitly named 'filesystem' or uses the filesystem package
             return name === 'filesystem' || 
@@ -217,25 +211,26 @@ class WebWorkflowExecutor {
             type: 'log',
             message: `Auto-configuring filesystem MCP server with run directory: ${this.runDirectory}`
           });
-          this.workflow.mcp_servers['filesystem'] = {
+          this.workflow.mcpServers['filesystem'] = {
             command: 'npx',
-            args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory]
+            args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory],
+            env: {}
           };
         }
       }
 
       // Initialize MCP servers if configured
-      if (this.workflow.mcp_servers) {
+      if (this.workflow.mcpServers) {
         this.sendEvent({
           type: 'log',
           message: 'Initializing MCP servers...'
         });
-        for (const [serverName, config] of Object.entries(this.workflow.mcp_servers)) {
+        for (const [serverName, config] of Object.entries(this.workflow.mcpServers)) {
           this.mcpClient.registerServer(serverName, config);
         }
         this.sendEvent({
           type: 'log',
-          message: `Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)`
+          message: `Registered ${Object.keys(this.workflow.mcpServers).length} MCP server(s)`
         });
       }
 
@@ -253,13 +248,13 @@ class WebWorkflowExecutor {
       }
 
       // Initialize named RAG services if configured
-      if (this.workflow.rags) {
+      if (this.workflow.rag) {
         this.sendEvent({
           type: 'log',
           message: 'Initializing named RAG systems...'
         });
-        for (const [ragName, ragConfig] of Object.entries(this.workflow.rags)) {
-          const ragService = new RagService(ragConfig, 'http://localhost:11434');
+        for (const [ragName, ragConfig] of Object.entries(this.workflow.rag)) {
+          const ragService = new RAGService(ragConfig, 'http://localhost:11434');
           await ragService.initialize();
           this.namedRagServices.set(ragName, ragService);
           this.sendEvent({
@@ -269,7 +264,7 @@ class WebWorkflowExecutor {
         }
       }
 
-      let currentState: string | null = this.workflow.start_state;
+      let currentState: string | null = this.workflow.startState;
 
       while (currentState && currentState !== END_STATE && !this.stopRequested) {
         const state: State = this.workflow.states[currentState];
@@ -290,22 +285,22 @@ class WebWorkflowExecutor {
           });
           
           // Check for state-level fallback first
-          if (state.on_error) {
+          if (state.onError) {
             this.sendEvent({
               type: 'log',
-              message: `Transitioning to fallback state (state-level): ${state.on_error}`
+              message: `Transitioning to fallback state (state-level): ${state.onError}`
             });
-            currentState = state.on_error;
+            currentState = state.onError;
             continue; // Continue the workflow with the fallback state
           }
           
           // Check for workflow-level fallback
-          if (this.workflow.on_error) {
+          if (this.workflow.onError) {
             this.sendEvent({
               type: 'log',
-              message: `Transitioning to fallback state (workflow-level): ${this.workflow.on_error}`
+              message: `Transitioning to fallback state (workflow-level): ${this.workflow.onError}`
             });
-            currentState = this.workflow.on_error;
+            currentState = this.workflow.onError;
             continue; // Continue the workflow with the fallback state
           }
           
@@ -381,7 +376,7 @@ class WebWorkflowExecutor {
     });
 
     // Determine which RAG service to use
-    let ragServiceToUse: RagService | undefined = undefined;
+    let ragServiceToUse: RAGService | undefined = undefined;
     
     // Priority: inline rag > use_rag (named/default) 
     if (state.rag) {
@@ -390,19 +385,19 @@ class WebWorkflowExecutor {
         type: 'log',
         message: 'Initializing inline RAG configuration...'
       });
-      ragServiceToUse = new RagService(state.rag, 'http://localhost:11434');
+      ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
       await ragServiceToUse.initialize();
-    } else if (state.use_rag) {
-      if (typeof state.use_rag === 'string') {
+    } else if (state.useRag) {
+      if (typeof state.useRag === 'string') {
         // Named RAG reference
-        ragServiceToUse = this.namedRagServices.get(state.use_rag);
+        ragServiceToUse = this.namedRagServices.get(state.useRag);
         if (ragServiceToUse) {
           this.sendEvent({
             type: 'log',
-            message: `Using RAG configuration: ${state.use_rag}`
+            message: `Using RAG configuration: ${state.useRag}`
           });
         }
-      } else if (state.use_rag === true) {
+      } else if (state.useRag === true) {
         // Default RAG
         ragServiceToUse = this.ragService;
         if (ragServiceToUse) {
@@ -434,13 +429,13 @@ class WebWorkflowExecutor {
     }
 
     // Connect to MCP servers if specified for this state
-    if (state.mcp_servers && state.mcp_servers.length > 0) {
+    if (state.mcpServers && state.mcpServers.length > 0) {
       this.sendEvent({
         type: 'log',
-        message: `Connecting to MCP servers: ${state.mcp_servers.join(', ')}`
+        message: `Connecting to MCP servers: ${state.mcpServers.join(', ')}`
       });
       
-      for (const serverName of state.mcp_servers) {
+      for (const serverName of state.mcpServers) {
         try {
           await this.mcpClient.connectServer(serverName);
           this.sendEvent({
@@ -456,7 +451,7 @@ class WebWorkflowExecutor {
       }
     }
 
-    const model = state.model || this.workflow.default_model || 'gemma3:4b';
+    const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
     this.sendEvent({
       type: 'log',
       message: `Using model: ${model}`
@@ -484,13 +479,13 @@ class WebWorkflowExecutor {
       });
 
       // Store response in context if variable is specified
-      if (state.save_as) {
-        this.context[state.save_as] = response;
+      if (state.saveAs) {
+        this.context[state.saveAs] = response;
       }
 
-      // Handle LLM-driven state selection if next_options is defined
-      if (state.next_options && state.next_options.length > 0) {
-        return await this.selectNextState(state.next_options, response, model);
+      // Handle LLM-driven state selection if nextOptions is defined
+      if (state.nextOptions && state.nextOptions.length > 0) {
+        return await this.selectNextState(state.nextOptions, response, model);
       }
 
       return state.next || END_STATE;
@@ -513,7 +508,7 @@ class WebWorkflowExecutor {
     }
 
     // Send input request event with optional default value
-    const defaultValue = state.default_value ? this.interpolateVariables(state.default_value) : undefined;
+    const defaultValue = state.defaultValue ? this.interpolateVariables(state.defaultValue) : undefined;
     
     // Request input from user
     const userInput = await new Promise<string>((resolve, reject) => {
@@ -538,13 +533,13 @@ class WebWorkflowExecutor {
 
     // Use default value if no input provided (matching CLI behavior)
     let finalInput = userInput.trim();
-    if (!finalInput && state.default_value) {
-      finalInput = this.interpolateVariables(state.default_value);
+    if (!finalInput && state.defaultValue) {
+      finalInput = this.interpolateVariables(state.defaultValue);
     }
 
     // Store input in context if variable is specified
-    if (state.save_as) {
-      this.context[state.save_as] = finalInput;
+    if (state.saveAs) {
+      this.context[state.saveAs] = finalInput;
     }
 
     this.sendEvent({
