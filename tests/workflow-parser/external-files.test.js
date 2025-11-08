@@ -1,4 +1,4 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
 const path = require('path');
 const fs = require('fs');
 const yaml = require('js-yaml');

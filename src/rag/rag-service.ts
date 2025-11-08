@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { encode, decode } from '@msgpack/msgpack';
-import OllamaClient = require('./ollama-client');
+import OllamaClient = require('../ollama/ollama-client');
 
 interface DocumentChunk {
   id: string;

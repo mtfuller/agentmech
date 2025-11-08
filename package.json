@@ -4,12 +4,13 @@
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
   "main": "dist/cli/cli.js",
   "bin": {
-    "agentmech": "./dist/cli/cli.js"
+    "agentmech": "./dist/cli.js"
   },
   "scripts": {
+    "clean": "rm -rf dist",
     "build": "tsc && npm run copy-views",
     "copy-views": "node scripts/copy-views.js",
-    "start": "node dist/cli/cli.js",
+    "start": "node dist/cli.js",
     "test": "npm run build && jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -1,4 +1,4 @@
-const { TestExecutor } = require('../../dist/testing/test-executor');
+const { TestExecutor } = require('../../dist/test-scenario/executor');
 
 describe('Contains Assertion Options', () => {
   let executor;

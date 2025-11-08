@@ -1,4 +1,4 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
 
 describe('Input State Validation', () => {
   test('should accept valid input state', () => {

@@ -1,6 +1,6 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
-const WorkflowExecutor = require('../../dist/core/workflow-executor');
-const WebWorkflowExecutor = require('../../dist/web/web-workflow-executor');
+const WorkflowParser = require('../../dist/workflow/parser');
+const WorkflowExecutor = require('../../dist/workflow/executor');
+const WebWorkflowExecutor = require('../../dist/web/workflow-executor');
 const Tracer = require('../../dist/utils/tracer');
 
 describe('Graceful Stop Mechanism', () => {

@@ -2,7 +2,7 @@
  * Integration test for custom tools workflow validation
  */
 
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
 const path = require('path');
 
 describe('Custom Tools Workflow Integration', () => {

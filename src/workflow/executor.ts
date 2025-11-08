@@ -1,8 +1,8 @@
 import * as readline from 'readline';
 import * as path from 'path';
-import OllamaClient = require('../integrations/ollama-client');
-import McpClient = require('../integrations/mcp-client');
-import RagService = require('../integrations/rag-service');
+import OllamaClient = require('../ollama/ollama-client');
+import McpClient = require('../mcp/mcp-client');
+import RagService = require('../rag/rag-service');
 import Tracer = require('../utils/tracer');
 import FileHandler = require('../utils/file-handler');
 

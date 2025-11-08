@@ -1,4 +1,4 @@
-const TestScenarioParser = require('../../dist/testing/test-scenario-parser').TestScenarioParser;
+const TestScenarioParser = require('../../dist/test-scenario/parser').TestScenarioParser;
 const path = require('path');
 
 describe('Test Scenario Parser', () => {

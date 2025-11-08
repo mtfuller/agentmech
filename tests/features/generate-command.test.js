@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
 
 describe('Generate Command', () => {
   const testOutputDir = path.join(__dirname, '../../tmp-test-outputs');
@@ -21,7 +21,7 @@ describe('Generate Command', () => {
   });
 
   test('should display help for generate command', () => {
-    const output = execSync('node dist/cli/cli.js generate --help', {
+    const output = execSync('node dist/cli.js generate --help', {
       cwd: path.join(__dirname, '../..'),
       encoding: 'utf8'
     });
@@ -33,7 +33,7 @@ describe('Generate Command', () => {
   });
 
   test('generate command should be listed in main help', () => {
-    const output = execSync('node dist/cli/cli.js --help', {
+    const output = execSync('node dist/cli.js --help', {
       cwd: path.join(__dirname, '../..'),
       encoding: 'utf8'
     });
@@ -47,7 +47,7 @@ describe('Generate Command', () => {
   // It will be skipped in environments where Ollama is not available
   test('should generate and validate workflow with Ollama', async () => {
     const outputFile = path.join(testOutputDir, 'test-generated-workflow.yaml');
-    const cliPath = path.join(__dirname, '../..', 'dist/cli/cli.js');
+    const cliPath = path.join(__dirname, '../..', 'dist/cli.js');
     
     // This is a manual test that requires user interaction
     // In a real test environment, you would mock the readline interface
