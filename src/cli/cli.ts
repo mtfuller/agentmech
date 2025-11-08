@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import WorkflowParser = require('../core/workflow-parser');
-import WorkflowExecutor = require('../core/workflow-executor');
+import WorkflowParser = require('../workflow/parser');
+import WorkflowExecutor = require('../workflow/executor');
 import OllamaClient = require('../integrations/ollama-client');
 import Tracer = require('../utils/tracer');
-import WebServer = require('../web/web-server');
+import WebServer = require('../web/server');
 import { TestScenarioParser } from '../testing/test-scenario-parser';
 import { TestExecutor } from '../testing/test-executor';
 import { TestReportGenerator } from '../testing/test-report-generator';

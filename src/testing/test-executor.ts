@@ -1,5 +1,5 @@
-import WorkflowParser = require('../core/workflow-parser');
-import WorkflowExecutor = require('../core/workflow-executor');
+import WorkflowParser = require('../workflow/parser');
+import WorkflowExecutor = require('../workflow/executor');
 import { TestScenario, TestAssertion, TestInput } from './test-scenario-parser';
 import Tracer = require('../utils/tracer');
 

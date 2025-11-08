@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import WorkflowParser = require('./workflow-parser');
+import WorkflowParser = require('./parser');
 
 interface WorkflowInfo {
   name: string;
