@@ -25,7 +25,7 @@ export interface State {
   rag?: RAGConfig;  // inline RAG configuration
   defaultValue?: string;  // default value for input state
   onError?: string;  // Fallback state to transition to on error (state-level)
-  files?: string[];  // Array of file paths for multimodal inputs (images, PDFs, text files, etc.)
+  files: string[];  // Array of file paths for multimodal inputs (images, PDFs, text files, etc.)
 }
 
 export interface Workflow {

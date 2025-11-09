@@ -42,6 +42,7 @@ interface StateSpec {
   rag?: RAGSpec;  // inline RAG configuration
   default_value?: string;  // default value for input state
   on_error?: string;  // Fallback state to transition to on error (state-level)
+  files: string[];  // List of files to include in the state
 }
 
 interface WorkflowSpec {
@@ -135,7 +136,8 @@ class WorkflowParser {
         useRag: stateSpec.use_rag,
         rag: rag,
         defaultValue: stateSpec.default_value,
-        onError: stateSpec.on_error
+        onError: stateSpec.on_error,
+        files: stateSpec.files || []
       };
     }
     return builtStates;

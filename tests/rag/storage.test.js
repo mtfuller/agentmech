@@ -1,4 +1,4 @@
-const RagService = require('../../dist/rag/rag-service');
+const RAGService = require('../../dist/rag/rag-service');
 const fs = require('fs');
 const path = require('path');
 
@@ -23,7 +23,7 @@ describe('RAG Storage Formats', () => {
   });
 
   test('should create and save embeddings in MessagePack format', async () => {
-    const ragServiceMsgpack = new RagService({
+    const ragServiceMsgpack = new RAGService.RAGService({
       directory: testDir,
       model: 'gemma3:4b',
       embeddings_file: 'test-embeddings.msgpack',
@@ -40,7 +40,7 @@ describe('RAG Storage Formats', () => {
   });
 
   test('should create and save embeddings in JSON format', async () => {
-    const ragServiceJson = new RagService({
+    const ragServiceJson = new RAGService.RAGService({
       directory: testDir,
       model: 'gemma3:4b',
       embeddings_file: 'test-embeddings.json',
@@ -86,7 +86,7 @@ describe('RAG Storage Formats', () => {
     fs.copyFileSync(testDocPath, migrationDocPath);
 
     // Initialize with msgpack format - should detect and migrate JSON
-    const ragServiceMigration = new RagService({
+    const ragServiceMigration = new RAGService.RAGService({
       directory: migrationDir,
       model: 'gemma3:4b',
       embeddingsFile: 'embeddings.msgpack',

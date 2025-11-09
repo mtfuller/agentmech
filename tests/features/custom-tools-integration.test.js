@@ -12,11 +12,11 @@ describe('Custom Tools Workflow Integration', () => {
       const workflow = WorkflowParser.parseFile(workflowPath);
       
       expect(workflow.name).toBe('Data Processing Assistant');
-      expect(workflow.mcp_servers).toBeDefined();
-      expect(workflow.mcp_servers.custom_tools).toBeDefined();
+      expect(workflow.mcpServers).toBeDefined();
+      expect(workflow.mcpServers.custom_tools).toBeDefined();
       // Parser expands simplified config to standard format
       // Either type: custom-tools or expanded command/args format is acceptable
-      const mcpConfig = workflow.mcp_servers.custom_tools;
+      const mcpConfig = workflow.mcpServers.custom_tools;
       const hasSimplifiedConfig = mcpConfig.type === 'custom-tools' && mcpConfig.toolsDirectory;
       const hasExpandedConfig = mcpConfig.command && mcpConfig.args;
       expect(hasSimplifiedConfig || hasExpandedConfig).toBeTruthy();
@@ -27,8 +27,8 @@ describe('Custom Tools Workflow Integration', () => {
       const workflow = WorkflowParser.parseFile(workflowPath);
       
       expect(workflow.name).toBe('Data Processing Assistant');
-      expect(workflow.mcp_servers).toBeDefined();
-      expect(workflow.mcp_servers.custom_tools).toBeDefined();
+      expect(workflow.mcpServers).toBeDefined();
+      expect(workflow.mcpServers.custom_tools).toBeDefined();
       expect(workflow.states).toBeDefined();
       expect(Object.keys(workflow.states).length).toBeGreaterThan(0);
     });
@@ -39,8 +39,8 @@ describe('Custom Tools Workflow Integration', () => {
       
       const processDataState = workflow.states.process_data;
       expect(processDataState).toBeDefined();
-      expect(processDataState.mcp_servers).toBeDefined();
-      expect(processDataState.mcp_servers).toContain('custom_tools');
+      expect(processDataState.mcpServers).toBeDefined();
+      expect(processDataState.mcpServers).toContain('custom_tools');
     });
 
     test('should handle workflow with custom tools MCP server reference', () => {
@@ -49,7 +49,7 @@ describe('Custom Tools Workflow Integration', () => {
       
       // Check that states properly reference the custom_tools server
       const statesWithMcp = Object.values(workflow.states).filter(
-        state => state.mcp_servers && state.mcp_servers.includes('custom_tools')
+        state => state.mcpServers && state.mcpServers.includes('custom_tools')
       );
       
       expect(statesWithMcp.length).toBeGreaterThan(0);

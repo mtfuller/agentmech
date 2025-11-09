@@ -9,8 +9,8 @@ describe('Basic Workflow Validation', () => {
 
   test('should validate workflow structure', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/complete-story-builder.yaml'));
-    expect(workflow.start_state).toBeDefined();
-    expect(workflow.states[workflow.start_state]).toBeDefined();
+    expect(workflow.startState).toBeDefined();
+    expect(workflow.states[workflow.startState]).toBeDefined();
   });
 
   test('should detect missing start_state', () => {

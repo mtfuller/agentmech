@@ -37,7 +37,7 @@ describe('Multimodal Workflow Integration', () => {
       const workflow = WorkflowParser.parseFile(workflowPath);
       
       expect(workflow.name).toBe('Multimodal Image Analysis');
-      expect(workflow.default_model).toBe('llava');
+      expect(workflow.defaultModel).toBe('llava');
       expect(workflow.states.analyze_image).toBeDefined();
       expect(workflow.states.analyze_image.files).toEqual([
         'examples/multimodal-demo/test-image.png'

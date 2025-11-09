@@ -3,17 +3,8 @@ description: "Demonstrates all three RAG approaches: default workflow-level, nam
 default_model: "gemma3:4b"
 start_state: "choose_rag_type"
 
-# Default RAG configuration (workflow-level) - used when use_rag: true
-rag:
-  directory: "./examples/knowledge-base"
-  model: "gemma3:4b"
-  embeddingsFile: "embeddings.msgpack"
-  storageFormat: "msgpack"
-  chunkSize: 500
-  topK: 3
-
 # Named RAG configurations - each with its own knowledge base
-rags:
+rag:
   product_kb:
     directory: "./examples/knowledge-base"
     model: "gemma3:4b"

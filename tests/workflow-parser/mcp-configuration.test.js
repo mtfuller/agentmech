@@ -135,11 +135,11 @@ states:
       const workflow = WorkflowParser.parseFile(workflowPath);
       
       // Check that it was normalized
-      expect(workflow.mcp_servers.filesystem.command).toBe('npx');
-      expect(workflow.mcp_servers.filesystem.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
-      expect(workflow.mcp_servers.filesystem.type).toBeUndefined();
-      expect(workflow.mcp_servers.filesystem.package).toBeUndefined();
-      
+      expect(workflow.mcpServers.filesystem.command).toBe('npx');
+      expect(workflow.mcpServers.filesystem.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
+      expect(workflow.mcpServers.filesystem.type).toBeUndefined();
+      expect(workflow.mcpServers.filesystem.package).toBeUndefined();
+
       // Cleanup
       fs.unlinkSync(workflowPath);
     });
@@ -200,14 +200,14 @@ states:
       const workflow = WorkflowParser.parseFile(workflowPath);
       
       // Check that it was normalized
-      expect(workflow.mcp_servers.custom_tools.command).toBe('node');
-      expect(workflow.mcp_servers.custom_tools.args).toHaveLength(2);
-      expect(workflow.mcp_servers.custom_tools.args[0]).toBe('dist/custom-mcp-server.js');
+      expect(workflow.mcpServers.custom_tools.command).toBe('node');
+      expect(workflow.mcpServers.custom_tools.args).toHaveLength(2);
+      expect(workflow.mcpServers.custom_tools.args[0]).toBe('dist/custom-mcp-server.js');
       // Second arg should be the resolved absolute path to the tools directory
-      expect(workflow.mcp_servers.custom_tools.args[1]).toContain('custom-tools');
-      expect(workflow.mcp_servers.custom_tools.type).toBeUndefined();
-      expect(workflow.mcp_servers.custom_tools.toolsDirectory).toBeUndefined();
-      
+      expect(workflow.mcpServers.custom_tools.args[1]).toContain('custom-tools');
+      expect(workflow.mcpServers.custom_tools.type).toBeUndefined();
+      expect(workflow.mcpServers.custom_tools.toolsDirectory).toBeUndefined();
+
       // Cleanup
       fs.unlinkSync(workflowPath);
     });

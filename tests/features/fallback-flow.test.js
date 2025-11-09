@@ -5,13 +5,13 @@ describe('Fallback Flow (Error Handling)', () => {
   test('should parse workflow with state-level fallback', () => {
     // Use mixed-fallback.yaml which demonstrates both state-level and workflow-level fallback
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/mixed-fallback.yaml'));
-    expect(workflow.states.state_with_specific_fallback.on_error).toBe('specific_error_handler');
+    expect(workflow.states.state_with_specific_fallback.onError).toBe('specific_error_handler');
   });
 
   test('should parse workflow with workflow-level fallback', () => {
     // Use mixed-fallback.yaml which has workflow-level fallback
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/mixed-fallback.yaml'));
-    expect(workflow.on_error).toBe('global_fallback');
+    expect(workflow.onError).toBe('global_fallback');
   });
 
   test('should detect invalid state-level fallback reference', () => {
@@ -94,8 +94,8 @@ describe('Fallback Flow (Error Handling)', () => {
 
   test('should parse workflow with mixed fallback configurations', () => {
     const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/mixed-fallback.yaml'));
-    expect(workflow.on_error).toBe('global_fallback');
-    expect(workflow.states.state_with_specific_fallback.on_error).toBe('specific_error_handler');
+    expect(workflow.onError).toBe('global_fallback');
+    expect(workflow.states.state_with_specific_fallback.onError).toBe('specific_error_handler');
   });
 });
 
