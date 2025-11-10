@@ -15,8 +15,8 @@ export async function run(workflowFile: string, options: RunOptions) {
       // Parse the workflow file
       const workflowPath = path.resolve(workflowFile);
       console.log(`Loading workflow from: ${workflowPath}`);
-      
-      const workflow = WorkflowParser.parseFile(workflowPath);
+
+      const workflow = WorkflowParser.parseFile({filePath: workflowPath, workflowDir: '', visitedFiles: new Set()});
       console.log(`Workflow "${workflow.name}" loaded successfully`);
       
       // Create unique run directory for this workflow execution

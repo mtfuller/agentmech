@@ -34,7 +34,6 @@ states:
       User chose: {{rag_type}}
       
       Explain which RAG approach will be demonstrated:
-      - default: Uses workflow-level 'rag:' configuration with 'use_rag: true'
       - named: Uses named RAG configs from 'rags:' section with 'use_rag: "name"'
       - inline: Uses state-level inline 'rag:' configuration
       - all: Demonstrates all three approaches in sequence
@@ -51,7 +50,7 @@ states:
   default_rag_example:
     type: "prompt"
     prompt: "What are the main features of AI Workflow CLI?"
-    use_rag: true  # Uses default workflow-level RAG configuration
+    use_rag: "technical_kb"
     save_as: "default_answer"
     next: "named_rag_example"
   
@@ -88,10 +87,9 @@ states:
     prompt: |
       Summarize what we demonstrated:
       
-      1. Default RAG (use_rag: true): {{default_answer}}
-      2. Named RAG for products: {{product_answer}}
-      3. Named RAG for technical: {{technical_answer}}
-      4. Inline RAG: {{inline_answer}}
+      1. Named RAG for products: {{product_answer}}
+      2. Named RAG for technical: {{technical_answer}}
+      3. Inline RAG: {{inline_answer}}
       
       Explain the benefits of each approach briefly.
     save_as: "rag_summary"

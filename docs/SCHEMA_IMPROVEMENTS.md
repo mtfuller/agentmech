@@ -73,7 +73,7 @@ However, this is NOT validated in the parser! The valid types are only: `prompt`
 - Workflow-level `rag:` (default)
 - Workflow-level `rags:` (named configurations)
 - State-level inline `rag:`
-- State-level `use_rag: true` or `use_rag: "name"`
+- State-level `use_rag: "name"`
 
 **Recommendation**: 
 - This flexibility is actually good, but needs clearer documentation hierarchy

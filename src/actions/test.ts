@@ -30,7 +30,7 @@ export async function test(testFile: string, options: TestOptions) {
       }
       
       // Parse workflow to get its name
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({filePath: workflowPath, workflowDir: '', visitedFiles: new Set()});
       console.log(`Testing workflow: ${workflow.name}`);
       console.log(`Test scenarios: ${testSuite.test_scenarios.length}\n`);
       

@@ -79,8 +79,8 @@ class WebServer {
         if (!resolvedPath.startsWith(resolvedDir)) {
           return res.status(403).json({ error: 'Access denied' });
         }
-        
-        const workflow = WorkflowParser.parseFile(filePath);
+
+        const workflow = WorkflowParser.parseFile({filePath, workflowDir: '', visitedFiles: new Set()});
         res.json(workflow);
       } catch (error: any) {
         res.status(404).json({ error: error.message });
@@ -100,7 +100,7 @@ class WebServer {
       
       try {
         // Parse and create executor
-        const workflow = WorkflowParser.parseFile(filePath);
+        const workflow = WorkflowParser.parseFile({filePath, workflowDir: '', visitedFiles: new Set()});
         const sessionId = `${req.params.fileName}-${Date.now()}`;
         
         // Create unique run directory for this workflow execution

@@ -2,58 +2,17 @@ import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
 import { McpServerConfig, State, Workflow } from './workflow';
+import { WorkflowSpec, StateSpec, MCPServerSpec, RAGSpec } from './spec';
 import { RAGConfig } from '../rag/rag-service';
+import { WorkflowValidator } from './validator';
 
 const END_STATE = 'end';
 
-interface MCPServerSpec {
-  type?: string;  // Optional type for simplified configs
-  command?: string;  // Made optional when type is specified
-  package?: string;  // For npx type: package name
-  tools_directory?: string;  // For custom-tools type: directory path
-  args?: string[];
-  env?: Record<string, string>;
-}
-
-interface RAGSpec {
-  directory: string;
-  model?: string;
-  embeddings_file?: string;
-  chunk_size?: number;
-  top_k?: number;
-  storage_format?: string;
-}
-
-interface StateSpec {
-  type: string;
-  prompt?: string;
-  prompt_file?: string;
-  workflow_ref?: string;
-  next?: string;
-  next_options?: {
-    state: string;
-    description: string;
-  }[];
-  model?: string;
-  save_as?: string;
-  options?: Record<string, any>;
-  mcp_servers?: string[];
-  use_rag?: string;  // true for default, or name of rag config
-  rag?: RAGSpec;  // inline RAG configuration
-  default_value?: string;  // default value for input state
-  on_error?: string;  // Fallback state to transition to on error (state-level)
-  files: string[];  // List of files to include in the state
-}
-
-interface WorkflowSpec {
-  name: string;
-  description?: string;
-  default_model?: string;
-  start_state: string;
-  states: Record<string, StateSpec>;
-  mcp_servers?: Record<string, MCPServerSpec>;
-  rag?: Record<string, RAGSpec>;  // Named RAG configurations
-  on_error?: string;  // Fallback state to transition to on error (workflow-level)
+interface ParserContext {
+  workflowSpec?: WorkflowSpec;
+  workflowDir: string;
+  filePath: string;
+  visitedFiles: Set<string>;
 }
 
 class WorkflowParser {
@@ -63,104 +22,254 @@ class WorkflowParser {
    * @param visitedFiles - Set of already visited files to detect cycles
    * @returns Parsed workflow object
    */
-  static parseFile(filePath: string, visitedFiles: Set<string> = new Set()): Workflow {
+  static parseFile(context: ParserContext): Workflow {
     try {
       // Resolve to absolute path for cycle detection
-      const absolutePath = path.resolve(filePath);
-      
+      const absolutePath = path.resolve(context.filePath);
+
       // Check for circular references
-      if (visitedFiles.has(absolutePath)) {
+      if (context.visitedFiles.has(absolutePath)) {
         throw new Error(`Circular workflow reference detected: ${absolutePath}`);
       }
-      
+
       // Add current file to visited set
-      const newVisitedFiles = new Set(visitedFiles);
+      const newVisitedFiles = new Set(context.visitedFiles);
       newVisitedFiles.add(absolutePath);
-      
-      const fileContent = fs.readFileSync(filePath, 'utf8');
-      const workflow = yaml.load(fileContent) as WorkflowSpec;
 
-      this.resolveExternalReferences(workflow, filePath, newVisitedFiles);
+      const fileContent = fs.readFileSync(absolutePath, 'utf8');
+      const workflowDir = path.dirname(absolutePath);
+      const workflowSpec = yaml.load(fileContent) as WorkflowSpec;
 
-      this.validateWorkflow(workflow);
+      return this.parseWorkflowSpec(workflowSpec, {
+        workflowSpec,
+        workflowDir,
+        filePath: absolutePath,
+        visitedFiles: newVisitedFiles
+      });
 
-      return {
-        name: workflow.name,
-        description: workflow.description,
-        defaultModel: workflow.default_model,
-        startState: workflow.start_state,
-        states: this.buildStates(workflow.states),
-        mcpServers: this.buildMCPServers(workflow.mcp_servers),
-        rag: this.buildRAGConfigs(workflow.rag),
-        onError: workflow.on_error
-      } as Workflow;
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        throw new Error(`Workflow file not found: ${filePath}`);
+        throw new Error(`Workflow file not found: ${context.filePath}`);
       }
       throw new Error(`Failed to parse workflow: ${error.message}`);
     }
   }
 
-  static buildStates(states: Record<string, StateSpec>) {
-    const builtStates: Record<string, State> = {};
-    for (const [stateName, stateSpec] of Object.entries(states)) {
+  static parseWorkflowSpec(workflow: WorkflowSpec, context: ParserContext): Workflow {
+    WorkflowValidator.validateWorkflowSpec(workflow);
 
-      let prompt = stateSpec.prompt || '';
-      if (stateSpec.prompt_file) {
-        prompt = fs.readFileSync(stateSpec.prompt_file, 'utf8');
+    let states: Record<string, State> = {};
+    if (workflow.states) {
+      for (const [stateName, stateSpec] of Object.entries(workflow.states)) {
+        const parsedStates = this.parseStateSpec(stateName, stateSpec, context);
+        states = { ...states, ...parsedStates };
+      }
+    }
+
+    let mcpServers: Record<string, McpServerConfig> = {};
+    if (workflow.mcp_servers) {
+      for (const [serverName, serverSpec] of Object.entries(workflow.mcp_servers)) {
+        mcpServers[serverName] = this.parseMCPServersSpec(serverSpec, context);
+      }
+    }
+
+    let rag: Record<string, RAGConfig> = {};
+    if (workflow.rag) {
+      rag = this.parseRAGSpec(workflow.rag);
+    }
+
+    return {
+      name: workflow.name,
+      description: workflow.description,
+      defaultModel: workflow.default_model,
+      startState: workflow.start_state,
+      states,
+      mcpServers,
+      rag,
+      onError: workflow.on_error
+    } as Workflow;
+  }
+
+  static parseStateSpec(name: string, spec: StateSpec, context: ParserContext): Record<string, State> {
+      const builtStates: Record<string, State> = {};
+
+      // Resolve prompt_file reference
+      let prompt = spec.prompt || '';
+      if (spec.prompt_file) {
+        const promptFilePath = path.resolve(context.workflowDir, spec.prompt_file);
+        try {
+          prompt = fs.readFileSync(promptFilePath, 'utf8');
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            throw new Error(`Prompt file not found: ${promptFilePath}`);
+          }
+          throw new Error(`Failed to read prompt file: ${error.message}`);
+        }
       }
 
+      if (spec.workflow_ref) {
+        const referencedWorkflowPath = path.resolve(context.workflowDir, spec.workflow_ref);
+        try {
+          const referencedWorkflow = this.parseFile({
+            filePath: referencedWorkflowPath,
+            visitedFiles: context.visitedFiles,
+            workflowDir: ''
+          });
+
+          // Import all states from the referenced workflow
+          const statePrefix = name + '_ref_';
+          for (const [refStateName, refState] of Object.entries(referencedWorkflow.states)) {
+            const newStateName = statePrefix + refStateName;
+            builtStates[newStateName] = { ...refState };
+
+            // Update next references to point to prefixed states
+            if (builtStates[newStateName].next && builtStates[newStateName].next !== END_STATE) {
+              builtStates[newStateName].next = statePrefix + builtStates[newStateName].next;
+            }
+
+            // Update nextOptions references to point to prefixed states
+            if (builtStates[newStateName].nextOptions) {
+              builtStates[newStateName].nextOptions = builtStates[newStateName].nextOptions!.map(option => ({
+                ...option,
+                state: option.state === END_STATE ? END_STATE : statePrefix + option.state
+              }));
+            }
+
+            // Update onError references to point to prefixed states
+            if (builtStates[newStateName].onError && builtStates[newStateName].onError !== END_STATE) {
+              builtStates[newStateName].onError = statePrefix + builtStates[newStateName].onError;
+            }
+          }
+
+          // Replace the workflow_ref state with a transition to the referenced workflow's start state
+          const referencedStartState = statePrefix + referencedWorkflow.startState;
+
+          // Add the transition state
+          builtStates[name] = {
+            type: 'transition',
+            prompt: '',
+            next: referencedStartState,
+            files: []
+          };
+
+          if (!context.workflowSpec) {
+            throw new Error(`Workflow reference "${name}" cannot be resolved because the parent workflow spec is not available in context`);
+          }
+
+          // Also copy over defaultModel, mcpServers, and RAG configs if not already present
+          if (referencedWorkflow.defaultModel && !context.workflowSpec.default_model) {
+            context.workflowSpec.default_model = referencedWorkflow.defaultModel;
+          }
+
+          if (referencedWorkflow.mcpServers) {
+            context.workflowSpec.mcp_servers = context.workflowSpec.mcp_servers || {};
+            for (const [serverName, config] of Object.entries(referencedWorkflow.mcpServers)) {
+              if (!context.workflowSpec.mcp_servers[serverName]) {
+                context.workflowSpec.mcp_servers[serverName] = config;
+              }
+            }
+          }
+
+          if (referencedWorkflow.rag) {
+            context.workflowSpec.rag = context.workflowSpec.rag || {};
+            for (const [ragName, config] of Object.entries(referencedWorkflow.rag)) {
+              if (!context.workflowSpec.rag[ragName]) {
+                context.workflowSpec.rag[ragName] = config;
+              }
+            }
+          }
+        } catch (error: any) {
+          throw new Error(`Failed to load referenced workflow for state "${name}": ${error.message}`);
+        }
+      }
+
+      // Build RAG config if present
       let rag: RAGConfig | undefined;
-      if (stateSpec.rag) {
+      if (spec.rag) {
         rag = {
-          directory: stateSpec.rag.directory || '',
-          model: stateSpec.rag.model,
-          embeddingsFile: stateSpec.rag.embeddings_file,
-          chunkSize: stateSpec.rag.chunk_size,
-          topK: stateSpec.rag.top_k,
-          storageFormat: stateSpec.rag.storage_format === 'msgpack' ? 'msgpack' : 'json',
+          directory: spec.rag.directory || '',
+          model: spec.rag.model,
+          embeddingsFile: spec.rag.embeddings_file,
+          chunkSize: spec.rag.chunk_size,
+          topK: spec.rag.top_k,
+          storageFormat: spec.rag.storage_format === 'msgpack' ? 'msgpack' : 'json',
         } as RAGConfig;
       }
 
-      builtStates[stateName] = {
-        type: stateSpec.type,
+      builtStates[name] = {
+        type: spec.type,
         prompt: prompt,
-        workflowRef: stateSpec.workflow_ref,
-        next: stateSpec.next,
-        nextOptions: stateSpec.next_options,
-        model: stateSpec.model,
-        saveAs: stateSpec.save_as,
-        options: stateSpec.options,
-        mcpServers: stateSpec.mcp_servers,
-        useRag: stateSpec.use_rag,
-        rag: rag,
-        defaultValue: stateSpec.default_value,
-        onError: stateSpec.on_error,
-        files: stateSpec.files || []
-      };
-    }
-    return builtStates;
+        workflowRef: spec.workflow_ref,
+        next: spec.next,
+        nextOptions: spec.next_options,
+        model: spec.model,
+        saveAs: spec.save_as,
+        options: spec.options,
+        mcpServers: spec.mcp_servers,
+        useRag: spec.use_rag,
+        rag,
+        defaultValue: spec.default_value,
+        onError: spec.on_error,
+        files: spec.files || []
+      }
+
+      return builtStates;
   }
 
-  static buildMCPServers(mcp_servers: Record<string, MCPServerSpec> | undefined) {
-    if (!mcp_servers) {
-      return {};
-    }
+  static parseMCPServersSpec(serverSpec: MCPServerSpec, context: ParserContext): McpServerConfig {
+    if (serverSpec.type === 'npx') {
+      // NPX type: automatic npx invocation with package name
+      if (!serverSpec.package) {
+        throw new Error(`MCP server with type "npx" must have a "package" field`);
+      }
 
-    const builtMcpServers: Record<string, McpServerConfig> = {};
-    for (const [serverName, serverSpec] of Object.entries(mcp_servers)) {
-      builtMcpServers[serverName] = {
+      // Convert to standard format
+      const packageArgs = ['-y', serverSpec.package];
+      if (serverSpec.args && serverSpec.args.length > 0) {
+        packageArgs.push(...serverSpec.args);
+      }
+
+      return {
+        command: 'npx',
+        args: packageArgs,
+        env: serverSpec.env || {}
+      };
+    } else if (serverSpec.type === 'custom-tools') {
+      // Custom tools type: automatic path to custom-mcp-server.js
+      if (!serverSpec.tools_directory) {
+        throw new Error(`MCP server with type "custom-tools" must have a "tools_directory" field`);
+      }
+
+      // Resolve tools directory relative to workflow file
+      const resolvedToolsDir = path.resolve(context.workflowDir, serverSpec.tools_directory);
+
+      // Basic validation to prevent obvious path traversal attempts
+      // Note: This is a basic check. The OS-level permissions and spawn() security
+      // provide the actual security boundary.
+      const normalizedPath = path.normalize(resolvedToolsDir);
+      if (normalizedPath.includes('..') && !path.isAbsolute(serverSpec.tools_directory)) {
+        console.warn(`Warning: MCP server uses relative path with '..' which may traverse directories: ${serverSpec.tools_directory}`);
+      }
+
+      // Convert to standard format
+      // The custom-mcp-server.js is expected to be in dist/ from the project root
+      // We use the standard location that's consistent with how the tool is distributed
+      return {
+        command: 'node',
+        args: ['dist/custom-mcp-server.js', resolvedToolsDir],
+        env: serverSpec.env || {}
+      };
+    } else {
+      // Standard configuration
+      return {
         command: serverSpec.command || '',
         args: serverSpec.args || [],
         env: serverSpec.env || {}
       };
     }
-    
-    return builtMcpServers;
   }
 
-  static buildRAGConfigs(rag: Record<string, RAGSpec> | undefined) {
+  static parseRAGSpec(rag: Record<string, RAGSpec> | undefined) {
     if (!rag) {
       return {};
     }
@@ -178,392 +287,6 @@ class WorkflowParser {
     }
 
     return builtRAGConfigs;
-  }
-
-  /**
-   * Normalize MCP server configurations by converting simplified types to standard format
-   * @param workflow - The workflow object
-   * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
-   */
-  // static normalizeMcpServerConfigs(workflow: WorkflowSpec, workflowFilePath: string): void {
-  //   if (!workflow.mcp_servers) {
-  //     return;
-  //   }
-
-  //   const workflowDir = path.dirname(workflowFilePath);
-
-  //   for (const [serverName, config] of Object.entries(workflow.mcp_servers)) {
-  //     if (config.type === 'npx') {
-  //       // NPX type: automatic npx invocation with package name
-  //       if (!config.package) {
-  //         throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
-  //       }
-
-  //       // Convert to standard format
-  //       const packageArgs = ['-y', config.package];
-  //       if (config.args && config.args.length > 0) {
-  //         packageArgs.push(...config.args);
-  //       }
-
-  //       config.command = 'npx';
-  //       config.args = packageArgs;
-        
-  //       // Remove the type-specific fields after normalization
-  //       delete config.type;
-  //       delete config.package;
-  //     } else if (config.type === 'custom-tools') {
-  //       // Custom tools type: automatic path to custom-mcp-server.js
-  //       if (!config.toolsDirectory) {
-  //         throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
-  //       }
-
-  //       // Resolve tools directory relative to workflow file
-  //       const resolvedToolsDir = path.resolve(workflowDir, config.toolsDirectory);
-        
-  //       // Basic validation to prevent obvious path traversal attempts
-  //       // Note: This is a basic check. The OS-level permissions and spawn() security
-  //       // provide the actual security boundary.
-  //       const normalizedPath = path.normalize(resolvedToolsDir);
-  //       if (normalizedPath.includes('..') && !path.isAbsolute(config.toolsDirectory)) {
-  //         console.warn(`Warning: MCP server "${serverName}" uses relative path with '..' which may traverse directories: ${config.toolsDirectory}`);
-  //       }
-
-  //       // Convert to standard format
-  //       // The custom-mcp-server.js is expected to be in dist/ from the project root
-  //       // We use the standard location that's consistent with how the tool is distributed
-  //       config.command = 'node';
-  //       config.args = ['dist/custom-mcp-server.js', resolvedToolsDir];
-        
-  //       // Remove the type-specific fields after normalization
-  //       delete config.type;
-  //       delete config.toolsDirectory;
-  //     }
-  //   }
-  // }
-
-  /**
-   * Resolve external file references in the workflow
-   * @param workflow - The workflow object
-   * @param workflowFilePath - Path to the workflow file (for resolving relative paths)
-   * @param visitedFiles - Set of already visited files to detect cycles
-   */
-  static resolveExternalReferences(workflow: WorkflowSpec, workflowFilePath: string, visitedFiles: Set<string> = new Set()): void {
-    const workflowDir = path.dirname(workflowFilePath);
-    
-    for (const [stateName, state] of Object.entries(workflow.states)) {
-      // Resolve prompt_file reference
-      if (state.prompt_file) {
-        // Check for conflicting prompt definitions
-        if (state.prompt) {
-          throw new Error(`State "${stateName}" has both prompt and prompt_file fields. Use only one.`);
-        }
-        
-        const promptFilePath = path.resolve(workflowDir, state.prompt_file);
-        try {
-          state.prompt = fs.readFileSync(promptFilePath, 'utf8');
-          // Keep prompt_file for reference but prompt now contains the content
-        } catch (error: any) {
-          if (error.code === 'ENOENT') {
-            throw new Error(`Prompt file not found for state "${stateName}": ${promptFilePath}`);
-          }
-          throw new Error(`Failed to read prompt file for state "${stateName}": ${error.message}`);
-        }
-      }
-      
-      // Resolve workflow_ref reference
-      if (state.workflow_ref) {
-        // Validate workflow_ref state before transformation
-        if (state.type !== 'workflow_ref') {
-          throw new Error(`State "${stateName}" has workflow_ref field but type is "${state.type}" instead of "workflow_ref"`);
-        }
-        
-        const referencedWorkflowPath = path.resolve(workflowDir, state.workflow_ref);
-        try {
-          const referencedWorkflow = this.parseFile(referencedWorkflowPath, visitedFiles);
-          
-          // Import all states from the referenced workflow
-          const statePrefix = stateName + '_ref_';
-          for (const [refStateName, refState] of Object.entries(referencedWorkflow.states)) {
-            const newStateName = statePrefix + refStateName;
-            workflow.states[newStateName] = { ...refState };
-            
-            // Update next references to point to prefixed states
-            if (workflow.states[newStateName].next && workflow.states[newStateName].next !== END_STATE) {
-              workflow.states[newStateName].next = statePrefix + workflow.states[newStateName].next;
-            }
-            
-
-          }
-          
-          // Replace the workflow_ref state with a transition to the referenced workflow's start state
-          const referencedStartState = statePrefix + referencedWorkflow.startState;
-          state.type = 'transition';
-          state.next = referencedStartState;
-          delete state.workflow_ref;
-
-          // Also copy over defaultModel and mcpServers if not already present
-          if (referencedWorkflow.defaultModel && !workflow.default_model) {
-            workflow.default_model = referencedWorkflow.defaultModel;
-          }
-          if (referencedWorkflow.mcpServers) {
-            workflow.mcp_servers = workflow.mcp_servers || {};
-            for (const [serverName, config] of Object.entries(referencedWorkflow.mcpServers)) {
-              if (!workflow.mcp_servers[serverName]) {
-                workflow.mcp_servers[serverName] = config;
-              }
-            }
-          }
-        } catch (error: any) {
-          throw new Error(`Failed to load referenced workflow for state "${stateName}": ${error.message}`);
-        }
-      }
-    }
-  }
-
-  /**
-   * Validate workflow structure
-   * @param workflow - The workflow object to validate
-   * @throws {Error} If workflow is invalid
-   */
-  static validateWorkflow(workflow: WorkflowSpec): void {
-    if (!workflow) {
-      throw new Error('Workflow is empty');
-    }
-
-    if (!workflow.name) {
-      throw new Error('Workflow must have a name');
-    }
-
-    if (!workflow.states || typeof workflow.states !== 'object') {
-      throw new Error('Workflow must have a states object');
-    }
-
-    if (!workflow.start_state) {
-      throw new Error('Workflow must specify a start_state');
-    }
-
-    if (!workflow.states[workflow.start_state]) {
-      throw new Error(`Start state "${workflow.start_state}" not found in states`);
-    }
-
-    // Validate that "end" is not explicitly defined (it's a reserved state)
-    if (workflow.states[END_STATE]) {
-      throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);
-    }
-
-    // // Validate RAG configuration if present
-    // if (workflow.rag) {
-    //   this.validateRagConfig(workflow.rag);
-    // }
-
-    // // Validate named RAG configurations if present
-    // if (workflow.rags) {
-    //   for (const [ragName, ragConfig] of Object.entries(workflow.rags)) {
-    //     this.validateRagConfig(ragConfig);
-    //   }
-    // }
-
-    // // Validate MCP servers configuration if present
-    // if (workflow.mcp_servers) {
-    //   this.validateMcpServers(workflow.mcp_servers);
-    // }
-
-    // Validate workflow-level fallback state if present
-    if (workflow.on_error) {
-      if (!workflow.states[workflow.on_error] && workflow.on_error !== END_STATE) {
-        throw new Error(`Workflow on_error references non-existent state "${workflow.on_error}"`);
-      }
-    }
-
-    // Validate each state
-    for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states, workflow.mcp_servers);
-    }
-  }
-
-  /**
-   * Normalize RAG configuration field names (support both old camelCase and new snake_case)
-   * This method mutates the input object to ensure both old and new field names are present.
-   * New snake_case field names take precedence when both are provided.
-   * @param ragConfig - RAG configuration (will be mutated)
-   */
-  // static normalizeRagConfig(ragConfig: RAGSpec): void {
-  //   // Support both old (camelCase) and new (snake_case) field names
-  //   // Warn about deprecated usage
-  //   if (ragConfig.embeddings_file && !ragConfig.embeddings_file) {
-  //     console.warn('Warning: "embeddingsFile" is deprecated. Please use "embeddings_file" instead.');
-  //     ragConfig.embeddings_file = ragConfig.embeddings_file;
-  //   }
-  //   if (ragConfig.chunk_size && !ragConfig.chunk_size) {
-  //     console.warn('Warning: "chunkSize" is deprecated. Please use "chunk_size" instead.');
-  //     ragConfig.chunk_size = ragConfig.chunk_size;
-  //   }
-  //   if (ragConfig.top_k && !ragConfig.top_k) {
-  //     console.warn('Warning: "topK" is deprecated. Please use "top_k" instead.');
-  //     ragConfig.top_k = ragConfig.top_k;
-  //   }
-  //   if (ragConfig.storage_format && !ragConfig.storage_format) {
-  //     console.warn('Warning: "storageFormat" is deprecated. Please use "storage_format" instead.');
-  //     ragConfig.storage_format = ragConfig.storage_format;
-  //   }
-  // }
-
-  /**
-   * Validate RAG configuration
-   * @param ragConfig - RAG configuration
-   */
-  // static validateRagConfig(ragConfig: RAGSpec): void {
-  //   if (!ragConfig.directory) {
-  //     throw new Error('RAG configuration must have a directory');
-  //   }
-  //   if (typeof ragConfig.directory !== 'string') {
-  //     throw new Error('RAG directory must be a string');
-  //   }
-  //   if (ragConfig.model && typeof ragConfig.model !== 'string') {
-  //     throw new Error('RAG model must be a string');
-  //   }
-    
-  //   if (ragConfig.embeddings_file && typeof ragConfig.embeddings_file !== 'string') {
-  //     throw new Error('RAG embeddings_file must be a string');
-  //   }
-    
-  //   if (ragConfig.chunk_size && (typeof ragConfig.chunk_size !== 'number' || ragConfig.chunk_size <= 0)) {
-  //     throw new Error('RAG chunk_size must be a positive number');
-  //   }
-    
-  //   if (ragConfig.top_k && (typeof ragConfig.top_k !== 'number' || ragConfig.top_k <= 0)) {
-  //     throw new Error('RAG top_k must be a positive number');
-  //   }
-  // }
-
-  /**
-   * Validate MCP servers configuration
-   * @param mcpServers - MCP servers configuration
-   */
-  // static validateMcpServers(mcpServers: Record<string, MCPServerSpec>): void {
-  //   for (const [serverName, config] of Object.entries(mcpServers)) {
-  //     // Check if using simplified type configuration
-  //     if (config.type) {
-  //       if (config.type === 'npx') {
-  //         if (!config.package || typeof config.package !== 'string') {
-  //           throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
-  //         }
-  //       } else if (config.type === 'custom-tools') {
-  //         if (!config.toolsDirectory || typeof config.toolsDirectory !== 'string') {
-  //           throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "toolsDirectory" field`);
-  //         }
-  //       } else {
-  //         throw new Error(`MCP server "${serverName}" has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
-  //       }
-  //     } else {
-  //       // Standard configuration requires command
-  //       if (!config.command) {
-  //         throw new Error(`MCP server "${serverName}" must have a command`);
-  //       }
-  //       if (typeof config.command !== 'string') {
-  //         throw new Error(`MCP server "${serverName}" command must be a string`);
-  //       }
-  //     }
-      
-  //     if (config.args && !Array.isArray(config.args)) {
-  //       throw new Error(`MCP server "${serverName}" args must be an array`);
-  //     }
-  //     if (config.env && typeof config.env !== 'object') {
-  //       throw new Error(`MCP server "${serverName}" env must be an object`);
-  //     }
-  //   }
-  // }
-
-  /**
-   * Validate a single state
-   * @param name - State name
-   * @param state - State configuration
-   * @param allStates - All states for reference validation
-   * @param mcpServers - MCP servers available in workflow
-   * @param ragConfig - Default RAG configuration if present
-   * @param namedRags - Named RAG configurations if present
-   */
-  static validateState(name: string, state: StateSpec, allStates: Record<string, StateSpec>, mcpServers?: Record<string, MCPServerSpec>, ragConfig?: RAGSpec): void {
-    if (!state.type) {
-      throw new Error(`State "${name}" must have a type`);
-    }
-
-    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition'];
-    if (!validTypes.includes(state.type)) {
-      throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
-    }
-
-    if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
-      throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
-    }
-
-    if (state.type === 'input' && !state.prompt) {
-      throw new Error(`Input state "${name}" must have a prompt field`);
-    }
-
-    if (state.type === 'workflow_ref' && !state.workflow_ref) {
-      throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
-    }
-    
-    if (state.type === 'transition' && !state.next) {
-      throw new Error(`Transition state "${name}" must have a next field`);
-    }
-
-    // Validate MCP server references
-    if (state.mcp_servers) {
-      if (!Array.isArray(state.mcp_servers)) {
-        throw new Error(`State "${name}" mcp_servers must be an array`);
-      }
-      if (!mcpServers) {
-        throw new Error(`State "${name}" references MCP servers but workflow has no mcp_servers defined`);
-      }
-      for (const serverName of state.mcp_servers) {
-        if (!mcpServers[serverName]) {
-          throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
-        }
-      }
-    }
-
-    // Validate state-level fallback state if present
-    if (state.on_error) {
-      if (!allStates[state.on_error] && state.on_error !== END_STATE) {
-        throw new Error(`State "${name}" on_error references non-existent state "${state.on_error}"`);
-      }
-    }
-
-    // Validate next_options (LLM-driven state selection)
-    if (state.next_options) {
-      if (!Array.isArray(state.next_options)) {
-        throw new Error(`State "${name}" next_options must be an array`);
-      }
-      if (state.next_options.length < 2) {
-        throw new Error(`State "${name}" next_options must have at least 2 options`);
-      }
-      for (const option of state.next_options) {
-        if (!option.state || typeof option.state !== 'string' || option.state.trim() === '') {
-          throw new Error(`State "${name}" next_options must have a non-empty 'state' field`);
-        }
-        if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
-          throw new Error(`State "${name}" next_options must have a non-empty 'description' field`);
-        }
-        if (!allStates[option.state] && option.state !== END_STATE) {
-          throw new Error(`State "${name}" next_options references non-existent state "${option.state}"`);
-        }
-      }
-      // Check for conflicting next and next_options
-      if (state.next) {
-        throw new Error(`State "${name}" cannot have both 'next' and 'next_options' fields`);
-      }
-      // next_options can only be used with prompt states (where LLM makes the decision)
-      if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use next_options with prompt type states`);
-      }
-    }
-
-    // Validate transitions
-    if (state.next && !allStates[state.next] && state.next !== END_STATE) {
-      throw new Error(`State "${name}" references non-existent next state "${state.next}"`);
-    }
   }
 }
 

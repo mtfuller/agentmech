@@ -120,7 +120,7 @@ Generate ONLY the YAML content, nothing else:`;
       // Validate the generated workflow
       console.log('Validating generated workflow...\n');
       try {
-        const workflow = WorkflowParser.parseFile(outputPath);
+        const workflow = WorkflowParser.parseFile({filePath: outputPath, workflowDir: '', visitedFiles: new Set()});
         console.log('✓ Workflow is valid!');
         console.log(`  Name: ${workflow.name}`);
         console.log(`  States: ${Object.keys(workflow.states).length}`);

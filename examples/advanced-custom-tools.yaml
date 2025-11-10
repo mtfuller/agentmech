@@ -8,7 +8,7 @@ start_state: "get_task"
 mcp_servers:
   custom_tools:
     type: custom-tools
-    toolsDirectory: "examples/custom-tools"
+    tools_directory: "examples/custom-tools"
   
   # Method 2: Standard configuration (for reference, commented out)
   # custom_tools:

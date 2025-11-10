@@ -124,15 +124,16 @@ mcp_servers:
 **RAG (Retrieval-Augmented Generation)** - Add knowledge base context
 ```yaml
 rag:
-  directory: "./knowledge-base"
-  chunk_size: 500
-  top_k: 3
+  testing:
+    directory: "./knowledge-base"
+    chunk_size: 500
+    top_k: 3
 
 states:
   answer:
     type: "prompt"
     prompt: "{{question}}"
-    use_rag: true  # Uses RAG context
+    use_rag: "testing"  # Uses RAG context
     next: "end"
 ```
 

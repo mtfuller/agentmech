@@ -28,7 +28,7 @@ mcp_servers:
   # Method 4: Custom JavaScript tools with simplified config
   custom_tools:
     type: custom-tools
-    toolsDirectory: "examples/custom-tools"
+    tools_directory: "examples/custom-tools"
 
 states:
   choose_mcp_type:
@@ -129,7 +129,7 @@ states:
       ```yaml
       custom_tools:
         type: custom-tools
-        toolsDirectory: "examples/custom-tools"
+        tools_directory: "examples/custom-tools"
       ```
       
       Use the calculator tool to add 15 and 27, then use the text-transform tool

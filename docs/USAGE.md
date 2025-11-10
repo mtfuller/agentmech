@@ -413,18 +413,19 @@ default_model: "gemma3:4b"
 start_state: "ask"
 
 rag:
-  directory: "./knowledge-base"         # Directory with your documents
-  model: "gemma3:4b"                    # Model for generating embeddings
-  embeddingsFile: "embeddings.msgpack"  # Cache file for embeddings (default format)
-  storageFormat: "msgpack"              # Storage format: "msgpack" (default) or "json"
-  chunkSize: 500                        # Size of text chunks (in characters)
-  topK: 3                               # Number of relevant chunks to retrieve
+  kb:
+    directory: "./knowledge-base"         # Directory with your documents
+    model: "gemma3:4b"                    # Model for generating embeddings
+    embeddingsFile: "embeddings.msgpack"  # Cache file for embeddings (default format)
+    storageFormat: "msgpack"              # Storage format: "msgpack" (default) or "json"
+    chunkSize: 500                        # Size of text chunks (in characters)
+    topK: 3                               # Number of relevant chunks to retrieve
 
 states:
   ask:
     type: "prompt"
     prompt: "What is your question?"
-    use_rag: true  # Enable RAG for this prompt
+    use_rag: "kb"  # Enable RAG for this prompt
     next: "end"
 ```
 
@@ -438,7 +439,7 @@ states:
 
 2. **Subsequent Runs**: Loads embeddings from the cache file (much faster)
 
-3. **During Execution**: When a prompt with `use_rag: true` is executed:
+3. **During Execution**: When a prompt with `use_rag: "kb"` is executed:
    - Generates an embedding for the prompt
    - Finds the most similar chunks from the knowledge base
    - Appends relevant context to the prompt
@@ -625,7 +626,6 @@ npm start run /full/path/to/workflow.yaml
 - External prompt file not found (check path is relative to workflow file)
 - Referenced workflow file not found
 - RAG configured but directory missing
-- `use_rag: true` without RAG configuration
 
 ### Issue: RAG embeddings taking too long
 
