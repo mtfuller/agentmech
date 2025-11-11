@@ -3,13 +3,14 @@
  */
 
 const WorkflowParser = require('../../dist/workflow/parser');
+const { WorkflowValidator } = require('../../dist/workflow/validator');
 const path = require('path');
 
 describe('Custom Tools Workflow Integration', () => {
   describe('Workflow Validation', () => {
     test('should parse and validate advanced-custom-tools workflow', () => {
       const workflowPath = path.join(__dirname, '../../examples/advanced-custom-tools.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Data Processing Assistant');
       expect(workflow.mcpServers).toBeDefined();
@@ -24,7 +25,7 @@ describe('Custom Tools Workflow Integration', () => {
 
     test('should parse and validate advanced-custom-tools workflow', () => {
       const workflowPath = path.join(__dirname, '../../examples/advanced-custom-tools.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Data Processing Assistant');
       expect(workflow.mcpServers).toBeDefined();
@@ -35,8 +36,8 @@ describe('Custom Tools Workflow Integration', () => {
 
     test('should validate custom MCP server configuration', () => {
       const workflowPath = path.join(__dirname, '../../examples/advanced-custom-tools.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
-      
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
+
       const processDataState = workflow.states.process_data;
       expect(processDataState).toBeDefined();
       expect(processDataState.mcpServers).toBeDefined();
@@ -45,7 +46,7 @@ describe('Custom Tools Workflow Integration', () => {
 
     test('should handle workflow with custom tools MCP server reference', () => {
       const workflowPath = path.join(__dirname, '../../examples/advanced-custom-tools.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       // Check that states properly reference the custom_tools server
       const statesWithMcp = Object.values(workflow.states).filter(
@@ -80,7 +81,7 @@ states:
       const workflow = yaml.load(workflowContent);
       
       expect(() => {
-        WorkflowParser.validateWorkflow(workflow);
+        WorkflowValidator.validateWorkflowSpec(workflow);
       }).not.toThrow();
     });
 
@@ -107,7 +108,7 @@ states:
       const workflow = yaml.load(workflowContent);
       
       expect(() => {
-        WorkflowParser.validateWorkflow(workflow);
+        WorkflowValidator.validateWorkflowSpec(workflow);
       }).toThrow(/non-existent MCP server/);
     });
   });

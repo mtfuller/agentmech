@@ -6,7 +6,7 @@ describe('Multimodal Workflow Integration', () => {
   describe('Text File Analysis Workflow', () => {
     test('should parse workflow with files parameter', () => {
       const workflowPath = path.join(__dirname, '..', '..', 'examples', 'text-file-analysis.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Text File Analysis');
       expect(workflow.states.analyze_files).toBeDefined();
@@ -34,7 +34,7 @@ describe('Multimodal Workflow Integration', () => {
   describe('Image Analysis Workflow', () => {
     test('should parse workflow with image files parameter', () => {
       const workflowPath = path.join(__dirname, '..', '..', 'examples', 'image-analysis.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Multimodal Image Analysis');
       expect(workflow.defaultModel).toBe('llava');
@@ -60,7 +60,7 @@ describe('Multimodal Workflow Integration', () => {
   describe('Multimodal Combined Workflow', () => {
     test('should parse workflow with multiple file types', () => {
       const workflowPath = path.join(__dirname, '..', '..', 'examples', 'multimodal-analysis.yaml');
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Multimodal Text and Image Analysis');
       expect(workflow.states.analyze_data).toBeDefined();

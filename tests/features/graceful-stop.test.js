@@ -186,7 +186,7 @@ states:
       const workflowPath = path.join(tmpDir, 'stop-test.yaml');
       fs.writeFileSync(workflowPath, workflowYaml);
       
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Stop Test');
       expect(workflow.states.step1.type).toBe('input');

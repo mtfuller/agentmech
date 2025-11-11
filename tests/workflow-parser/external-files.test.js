@@ -5,13 +5,15 @@ const yaml = require('js-yaml');
 
 describe('External File Handling', () => {
   test('should parse workflow with external prompt file', () => {
-    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/external-prompt-file.yaml'));
+    const filePath = path.join(__dirname, '../../examples/external-prompt-file.yaml');
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath, visitedFiles: new Set()});
     expect(workflow.states.generate_story.prompt).toBeDefined();
     expect(workflow.states.generate_story.prompt).toContain('time traveler');
   });
 
   test('should parse workflow with workflow reference', () => {
-    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/workflow-reference.yaml'));
+    const filePath = path.join(__dirname, '../../examples/workflow-reference.yaml');
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath, visitedFiles: new Set()});
     // Should have imported states from greeting-workflow.yaml
     // The referenced workflow should have its states prefixed
     expect(workflow.states['start_greeting_ref_greet']).toBeDefined();
@@ -35,7 +37,7 @@ describe('External File Handling', () => {
     
     try {
       expect(() => {
-        WorkflowParser.parseFile(tmpWorkflow);
+        WorkflowParser.parseFile({workflowDir: '', filePath: tmpWorkflow, visitedFiles: new Set()});
       }).toThrow('Prompt file not found');
     } finally {
       fs.unlinkSync(tmpWorkflow);
@@ -74,7 +76,7 @@ describe('External File Handling', () => {
     
     try {
       expect(() => {
-        WorkflowParser.parseFile(tmpWorkflowA);
+        WorkflowParser.parseFile({workflowDir: '', filePath: tmpWorkflowA, visitedFiles: new Set()});
       }).toThrow('Circular workflow reference');
     } finally {
       fs.unlinkSync(tmpWorkflowA);
@@ -100,7 +102,7 @@ describe('External File Handling', () => {
     
     try {
       expect(() => {
-        WorkflowParser.parseFile(tmpWorkflow);
+        WorkflowParser.parseFile({workflowDir: '', filePath: tmpWorkflow, visitedFiles: new Set()});
       }).toThrow('both prompt and prompt_file');
     } finally {
       fs.unlinkSync(tmpWorkflow);

@@ -45,7 +45,7 @@ states:
   });
   
   it('should add run_directory to context when provided', () => {
-    const workflow = WorkflowParser.parseFile(testWorkflowPath);
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: testWorkflowPath, visitedFiles: new Set()});
     const runDir = path.join(testBaseDir, 'run-dir');
     fs.mkdirSync(runDir, { recursive: true });
     
@@ -58,7 +58,7 @@ states:
   });
   
   it('should auto-inject filesystem MCP server when run directory is provided', async () => {
-    const workflow = WorkflowParser.parseFile(testWorkflowPath);
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: testWorkflowPath, visitedFiles: new Set()});
     const runDir = path.join(testBaseDir, 'run-dir');
     fs.mkdirSync(runDir, { recursive: true });
     

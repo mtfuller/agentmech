@@ -83,6 +83,10 @@ export class WorkflowValidator {
       throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
     }
 
+    if (state.type === 'prompt' && state.prompt && state.prompt_file) {
+      throw new Error(`Prompt state "${name}" cannot have both prompt and prompt_file fields`);
+    }
+
     if (state.type === 'input' && !state.prompt) {
       throw new Error(`Input state "${name}" must have a prompt field`);
     }
