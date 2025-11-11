@@ -93,20 +93,74 @@ describe('FileHandler', () => {
         .rejects.toThrow('File not found');
     });
     
-    test('should throw error for PDF files (not yet implemented)', async () => {
+    test('should process PDF files and extract text', async () => {
+      const PDFDocument = require('pdfkit');
       const testFile = path.join(testDir, 'test.pdf');
-      fs.writeFileSync(testFile, 'fake pdf content');
       
-      await expect(FileHandler.processFile(testFile))
-        .rejects.toThrow('PDF processing not yet implemented');
+      // Create a proper PDF using pdfkit
+      await new Promise((resolve, reject) => {
+        const doc = new PDFDocument();
+        const stream = fs.createWriteStream(testFile);
+        
+        doc.pipe(stream);
+        doc.fontSize(12).text('Hello PDF World', 100, 100);
+        doc.end();
+        
+        stream.on('finish', resolve);
+        stream.on('error', reject);
+      });
+      
+      const result = await FileHandler.processFile(testFile);
+      
+      expect(result.type).toBe('pdf');
+      expect(result.filename).toBe('test.pdf');
+      expect(result.mimeType).toBe('application/pdf');
+      expect(typeof result.content).toBe('string');
+      expect(result.content).toContain('Hello PDF World');
     });
     
-    test('should throw error for Word documents (not yet implemented)', async () => {
+    test('should process Word documents and extract text', async () => {
       const testFile = path.join(testDir, 'test.docx');
-      fs.writeFileSync(testFile, 'fake docx content');
+      // Create a minimal valid DOCX (ZIP with required structure)
+      const JSZip = require('jszip');
+      const zip = new JSZip();
       
-      await expect(FileHandler.processFile(testFile))
-        .rejects.toThrow('Word document processing not yet implemented');
+      // Add minimal DOCX structure
+      zip.file('[Content_Types].xml', 
+        '<?xml version="1.0"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' +
+        '</Types>'
+      );
+      
+      zip.file('_rels/.rels',
+        '<?xml version="1.0"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>' +
+        '</Relationships>'
+      );
+      
+      zip.file('word/document.xml',
+        '<?xml version="1.0"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+        '<w:body>' +
+        '<w:p><w:r><w:t>Hello World</w:t></w:r></w:p>' +
+        '</w:body>' +
+        '</w:document>'
+      );
+      
+      const buffer = await zip.generateAsync({ type: 'nodebuffer' });
+      fs.writeFileSync(testFile, buffer);
+      
+      const result = await FileHandler.processFile(testFile);
+      
+      expect(result.type).toBe('word');
+      expect(result.filename).toBe('test.docx');
+      expect(result.mimeType).toBe('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      expect(typeof result.content).toBe('string');
+      expect(result.content).toContain('Hello World');
     });
     
     test('should throw error for unsupported file types', async () => {
@@ -135,10 +189,10 @@ describe('FileHandler', () => {
     
     test('should continue processing when one file fails', async () => {
       const testFile1 = path.join(testDir, 'test1.txt');
-      const testFile2 = path.join(testDir, 'test2.pdf');
+      const testFile2 = path.join(testDir, 'test2.xyz'); // unsupported file type
       
       fs.writeFileSync(testFile1, 'Text file content');
-      fs.writeFileSync(testFile2, 'fake pdf');
+      fs.writeFileSync(testFile2, 'unsupported content');
       
       const results = await FileHandler.processFiles([testFile1, testFile2]);
       
