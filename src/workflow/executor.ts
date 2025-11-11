@@ -7,7 +7,14 @@ import { Workflow, State, NextOption } from './workflow';
 import Tracer = require('../utils/tracer');
 import FileHandler = require('../utils/file-handler');
 
+// Constants for state types and special state names
 const END_STATE = 'end';
+const STATE_TYPE = {
+  PROMPT: 'prompt',
+  INPUT: 'input',
+  TRANSITION: 'transition',
+  END: 'end'
+} as const;
 
 class WorkflowExecutor {
   private workflow: Workflow;
@@ -51,6 +58,97 @@ class WorkflowExecutor {
       });
     }
     return this.rl;
+  }
+
+  /**
+   * Process multimodal files (images, text files, etc.) for a state
+   * @param filePaths - Array of file paths to process
+   * @returns Object containing processed images and text contents
+   */
+  private async processMultimodalFiles(filePaths: string[]): Promise<{ images: string[], textContents: string[] }> {
+    const images: string[] = [];
+    const textContents: string[] = [];
+
+    if (!filePaths || filePaths.length === 0) {
+      return { images, textContents };
+    }
+
+    console.log(`\nProcessing ${filePaths.length} file(s) for multimodal input...`);
+
+    for (const filePath of filePaths) {
+      try {
+        const resolvedPath = this.interpolateVariables(filePath);
+        const processedFile = await FileHandler.processFile(resolvedPath);
+
+        console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
+
+        if (processedFile.type === 'image') {
+          images.push(processedFile.content);
+        } else if (processedFile.type === 'text') {
+          textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
+        }
+      } catch (error: any) {
+        console.warn(`⚠ Warning: ${error.message}`);
+        // Continue processing other files
+      }
+    }
+
+    if (images.length > 0) {
+      console.log(`📷 Attached ${images.length} image(s) to the prompt`);
+    }
+
+    return { images, textContents };
+  }
+
+  /**
+   * Prepare prompt with RAG context if configured
+   * @param prompt - Original prompt text
+   * @param state - State configuration
+   * @returns Promise resolving to prompt with RAG context added
+   */
+  private async preparePromptWithRAG(prompt: string, state: State): Promise<string> {
+    let ragServiceToUse: RAGService | undefined = undefined;
+
+    // Priority: inline rag > use_rag (named/default)
+    if (state.rag) {
+      console.log('\nInitializing inline RAG configuration...');
+      ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
+      await ragServiceToUse.initialize();
+    }
+
+    // Add RAG context if a service is available
+    if (ragServiceToUse) {
+      console.log('Retrieving relevant context from RAG...');
+      const relevantChunks = await ragServiceToUse.search(prompt);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks);
+
+      if (ragContext) {
+        console.log('RAG context added to prompt');
+        return prompt + ragContext;
+      }
+    }
+
+    return prompt;
+  }
+
+  /**
+   * Connect to MCP servers configured for a state
+   * @param state - State configuration
+   */
+  private async connectMCPServers(state: State): Promise<void> {
+    if (!state.mcpServers || state.mcpServers.length === 0) {
+      return;
+    }
+
+    console.log(`\nConnecting to MCP servers: ${state.mcpServers.join(', ')}`);
+    for (const serverName of state.mcpServers) {
+      try {
+        await this.mcpClient.connectServer(serverName);
+        console.log(`✓ Connected to MCP server: ${serverName}`);
+      } catch (error: any) {
+        console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
+      }
+    }
   }
 
   /**
@@ -203,13 +301,13 @@ class WorkflowExecutor {
    */
   async executeState(stateName: string, state: State): Promise<string> {
     switch (state.type) {
-      case 'prompt':
+      case STATE_TYPE.PROMPT:
         return await this.executePromptState(stateName, state);
-      case 'input':
+      case STATE_TYPE.INPUT:
         return await this.executeInputState(stateName, state);
-      case 'transition':
+      case STATE_TYPE.TRANSITION:
         return await this.executeTransitionState(stateName, state);
-      case END_STATE:
+      case STATE_TYPE.END:
         return END_STATE;
       default:
         throw new Error(`Unknown state type: ${state.type}`);
@@ -238,79 +336,19 @@ class WorkflowExecutor {
     let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
     
-    // Process files if provided (for multimodal support)
-    let images: string[] = [];
-    let textContents: string[] = [];
+    // Process multimodal files if provided
+    const { images, textContents } = await this.processMultimodalFiles(state.files);
     
-    if (state.files && state.files.length > 0) {
-      console.log(`\nProcessing ${state.files.length} file(s) for multimodal input...`);
-      
-      for (const filePath of state.files) {
-        try {
-          const resolvedPath = this.interpolateVariables(filePath);
-          const processedFile = await FileHandler.processFile(resolvedPath);
-          
-          console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
-          
-          if (processedFile.type === 'image') {
-            images.push(processedFile.content);
-          } else if (processedFile.type === 'text') {
-            textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
-          }
-        } catch (error: any) {
-          console.warn(`⚠ Warning: ${error.message}`);
-          // Continue processing other files
-        }
-      }
-      
-      // Append text file contents to the prompt
-      if (textContents.length > 0) {
-        prompt = prompt + '\n\n' + textContents.join('\n');
-      }
-      
-      if (images.length > 0) {
-        console.log(`📷 Attached ${images.length} image(s) to the prompt`);
-      }
+    // Append text file contents to the prompt
+    if (textContents.length > 0) {
+      prompt = prompt + '\n\n' + textContents.join('\n');
     }
     
-    // Determine which RAG service to use
-    let ragServiceToUse: RAGService | undefined = undefined;
-    
-    // Priority: inline rag > use_rag (named/default) 
-    if (state.rag) {
-      // Inline RAG configuration
-      console.log('\nInitializing inline RAG configuration...');
-      ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
-      await ragServiceToUse.initialize();
-    }
-    
-    // Add RAG context if a service is available
-    if (ragServiceToUse) {
-      console.log('Retrieving relevant context from RAG...');
-      const relevantChunks = await ragServiceToUse.search(prompt);
-      const ragContext = ragServiceToUse.formatContext(relevantChunks);
-      
-      if (ragContext) {
-        prompt = prompt + ragContext;
-        console.log('RAG context added to prompt');
-      }
-    }
+    // Add RAG context if configured
+    prompt = await this.preparePromptWithRAG(prompt, state);
     
     // Connect to MCP servers if specified for this state
-    if (state.mcpServers && state.mcpServers.length > 0) {
-      console.log(`\nConnecting to MCP servers: ${state.mcpServers.join(', ')}`);
-      for (const serverName of state.mcpServers) {
-        try {
-          await this.mcpClient.connectServer(serverName);
-          console.log(`✓ Connected to MCP server: ${serverName}`);
-        } catch (error: any) {
-          console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
-        }
-      }
-      
-      // Note: Full MCP protocol communication for querying tools/resources is not yet implemented.
-      // The infrastructure is in place for future integration with MCP servers via JSON-RPC over stdio.
-    }
+    await this.connectMCPServers(state);
     
     const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
     console.log(`\nUsing model: ${model}`);

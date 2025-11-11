@@ -110,7 +110,7 @@ describe('MCP Server Configuration', () => {
           },
           states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
         });
-      }).toThrow(/must have a "package" field/);
+      }).toThrow(/must have a package field/);
     });
 
     test('should normalize NPX type to standard command format', () => {
@@ -176,7 +176,7 @@ states:
           },
           states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
         });
-      }).toThrow(/must have a "tools_directory" field/);
+      }).toThrow(/must have a tools_directory field/);
     });
 
     test('should normalize custom-tools type to standard command format', () => {

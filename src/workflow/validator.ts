@@ -4,31 +4,58 @@ const END_STATE = 'end';
 
 export class WorkflowValidator {
   /**
-   * Parse a workflow YAML file
-   * @param filePath - Path to the YAML file
-   * @param visitedFiles - Set of already visited files to detect cycles
-   * @returns Parsed workflow object
+   * Validate that a required field is present
+   * @param value - Value to check
+   * @param fieldName - Name of the field
+   * @param context - Context for error message (e.g., "Workflow" or "State 'foo'")
+   * @throws Error if value is missing
+   */
+  private static validateRequiredField(value: any, fieldName: string, context: string): void {
+    if (!value) {
+      throw new Error(`${context} must have a ${fieldName}`);
+    }
+  }
+
+  /**
+   * Validate that a field has the expected type
+   * @param value - Value to check
+   * @param expectedType - Expected JavaScript type ('string', 'object', 'number', etc.)
+   * @param fieldName - Name of the field
+   * @param context - Context for error message (e.g., "Workflow" or "State 'foo'")
+   * @throws Error if type doesn't match
+   */
+  private static validateFieldType(value: any, expectedType: string, fieldName: string, context: string): void {
+    if (typeof value !== expectedType) {
+      throw new Error(`${context} ${fieldName} must be a ${expectedType}`);
+    }
+  }
+
+  /**
+   * Validate that a state reference exists
+   * @param stateName - Name of the referenced state
+   * @param allStates - All available states
+   * @param fieldName - Name of the field containing the reference
+   * @param context - Context for error message
+   * @throws Error if state doesn't exist (unless it's the special END_STATE)
+   */
+  private static validateStateReference(stateName: string, allStates: Record<string, StateSpec>, fieldName: string, context: string): void {
+    if (!allStates[stateName] && stateName !== END_STATE) {
+      throw new Error(`${context} ${fieldName} references non-existent state "${stateName}"`);
+    }
+  }
+
+  /**
+   * Validate a workflow YAML specification
+   * @param workflow - Workflow specification to validate
+   * @throws Error if validation fails
    */
   static validateWorkflowSpec(workflow: WorkflowSpec): void {
-    if (!workflow) {
-      throw new Error('Workflow is empty');
-    }
-
-    if (!workflow.name) {
-      throw new Error('Workflow must have a name');
-    }
-
-    if (!workflow.states || typeof workflow.states !== 'object') {
-      throw new Error('Workflow must have a states object');
-    }
-
-    if (!workflow.start_state) {
-      throw new Error('Workflow must specify a start_state');
-    }
-
-    if (!workflow.states[workflow.start_state]) {
-      throw new Error(`Start state "${workflow.start_state}" not found in states`);
-    }
+    this.validateRequiredField(workflow, 'workflow', 'Configuration');
+    this.validateRequiredField(workflow.name, 'name', 'Workflow');
+    this.validateRequiredField(workflow.states, 'states object', 'Workflow');
+    this.validateFieldType(workflow.states, 'object', 'states', 'Workflow');
+    this.validateRequiredField(workflow.start_state, 'start_state', 'Workflow');
+    this.validateStateReference(workflow.start_state, workflow.states, 'start_state', 'Workflow');
 
     // Validate that "end" is not explicitly defined (it's a reserved state)
     if (workflow.states[END_STATE]) {
@@ -70,13 +97,13 @@ export class WorkflowValidator {
    * @param namedRags - Named RAG configurations if present
    */
   static validateState(name: string, state: StateSpec, allStates: Record<string, StateSpec>, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
-    if (!state.type) {
-      throw new Error(`State "${name}" must have a type`);
-    }
+    const stateContext = `State "${name}"`;
+    
+    this.validateRequiredField(state.type, 'type', stateContext);
 
     const validTypes = ['prompt', 'input', 'workflow_ref', 'transition'];
     if (!validTypes.includes(state.type)) {
-      throw new Error(`State "${name}" has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
+      throw new Error(`${stateContext} has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
 
     if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
@@ -87,29 +114,29 @@ export class WorkflowValidator {
       throw new Error(`Prompt state "${name}" cannot have both prompt and prompt_file fields`);
     }
 
-    if (state.type === 'input' && !state.prompt) {
-      throw new Error(`Input state "${name}" must have a prompt field`);
+    if (state.type === 'input') {
+      this.validateRequiredField(state.prompt, 'prompt field', `Input state "${name}"`);
     }
 
-    if (state.type === 'workflow_ref' && !state.workflow_ref) {
-      throw new Error(`Workflow reference state "${name}" must have a workflow_ref field`);
+    if (state.type === 'workflow_ref') {
+      this.validateRequiredField(state.workflow_ref, 'workflow_ref field', `Workflow reference state "${name}"`);
     }
 
-    if (state.type === 'transition' && !state.next) {
-      throw new Error(`Transition state "${name}" must have a next field`);
+    if (state.type === 'transition') {
+      this.validateRequiredField(state.next, 'next field', `Transition state "${name}"`);
     }
 
     // Validate MCP server references
     if (state.mcp_servers) {
       if (!Array.isArray(state.mcp_servers)) {
-        throw new Error(`State "${name}" mcp_servers must be an array`);
+        throw new Error(`${stateContext} mcp_servers must be an array`);
       }
       if (!mcpServers) {
-        throw new Error(`State "${name}" references MCP servers but workflow has no mcp_servers defined`);
+        throw new Error(`${stateContext} references MCP servers but workflow has no mcp_servers defined`);
       }
       for (const serverName of state.mcp_servers) {
         if (!mcpServers[serverName]) {
-          throw new Error(`State "${name}" references non-existent MCP server "${serverName}"`);
+          throw new Error(`${stateContext} references non-existent MCP server "${serverName}"`);
         }
       }
     }
@@ -118,66 +145,62 @@ export class WorkflowValidator {
     if (state.rag) {
       this.validateRAGSpec(state.rag);
       if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use RAG with prompt type states`);
+        throw new Error(`${stateContext} can only use RAG with prompt type states`);
       }
     }
 
     // Validate RAG usage
     if (state.use_rag !== undefined) {
       if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use RAG with prompt type states`);
+        throw new Error(`${stateContext} can only use RAG with prompt type states`);
       }
 
       // use_rag: "name" - references named rag config
       if (!namedRags || !namedRags[state.use_rag]) {
-        throw new Error(`State "${name}" references non-existent RAG configuration "${state.use_rag}"`);
+        throw new Error(`${stateContext} references non-existent RAG configuration "${state.use_rag}"`);
       }
     }
 
     // Check for conflicting RAG configurations
     if (state.rag && state.use_rag) {
-      throw new Error(`State "${name}" cannot have both inline 'rag' and 'use_rag' configurations`);
+      throw new Error(`${stateContext} cannot have both inline 'rag' and 'use_rag' configurations`);
     }
 
     // Validate state-level fallback state if present
     if (state.on_error) {
-      if (!allStates[state.on_error] && state.on_error !== END_STATE) {
-        throw new Error(`State "${name}" on_error references non-existent state "${state.on_error}"`);
-      }
+      this.validateStateReference(state.on_error, allStates, 'on_error', stateContext);
     }
 
     // Validate next_options (LLM-driven state selection)
     if (state.next_options) {
       if (!Array.isArray(state.next_options)) {
-        throw new Error(`State "${name}" next_options must be an array`);
+        throw new Error(`${stateContext} next_options must be an array`);
       }
       if (state.next_options.length < 2) {
-        throw new Error(`State "${name}" next_options must have at least 2 options`);
+        throw new Error(`${stateContext} next_options must have at least 2 options`);
       }
       for (const option of state.next_options) {
         if (!option.state || typeof option.state !== 'string' || option.state.trim() === '') {
-          throw new Error(`State "${name}" next_options must have a non-empty 'state' field`);
+          throw new Error(`${stateContext} next_options must have a non-empty 'state' field`);
         }
         if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
-          throw new Error(`State "${name}" next_options must have a non-empty 'description' field`);
+          throw new Error(`${stateContext} next_options must have a non-empty 'description' field`);
         }
-        if (!allStates[option.state] && option.state !== END_STATE) {
-          throw new Error(`State "${name}" next_options references non-existent state "${option.state}"`);
-        }
+        this.validateStateReference(option.state, allStates, 'next_options', stateContext);
       }
       // Check for conflicting next and next_options
       if (state.next) {
-        throw new Error(`State "${name}" cannot have both 'next' and 'next_options' fields`);
+        throw new Error(`${stateContext} cannot have both 'next' and 'next_options' fields`);
       }
       // next_options can only be used with prompt states (where LLM makes the decision)
       if (state.type !== 'prompt') {
-        throw new Error(`State "${name}" can only use next_options with prompt type states`);
+        throw new Error(`${stateContext} can only use next_options with prompt type states`);
       }
     }
 
     // Validate transitions
-    if (state.next && !allStates[state.next] && state.next !== END_STATE) {
-      throw new Error(`State "${name}" references non-existent next state "${state.next}"`);
+    if (state.next) {
+      this.validateStateReference(state.next, allStates, 'next', stateContext);
     }
   }
 
@@ -188,59 +211,58 @@ export class WorkflowValidator {
    */
   static validateMCPServers(mcpServers: Record<string, MCPServerSpec>): void {
     for (const [serverName, config] of Object.entries(mcpServers)) {
+      const serverContext = `MCP server "${serverName}"`;
+      
       // Check if using simplified type configuration
       if (config.type) {
         if (config.type === 'npx') {
-          if (!config.package || typeof config.package !== 'string') {
-            throw new Error(`MCP server "${serverName}" with type "npx" must have a "package" field`);
-          }
+          this.validateRequiredField(config.package, 'package field', `${serverContext} with type "npx"`);
+          this.validateFieldType(config.package!, 'string', 'package', serverContext);
         } else if (config.type === 'custom-tools') {
-          if (!config.tools_directory || typeof config.tools_directory !== 'string') {
-            throw new Error(`MCP server "${serverName}" with type "custom-tools" must have a "tools_directory" field`);
-          }
+          this.validateRequiredField(config.tools_directory, 'tools_directory field', `${serverContext} with type "custom-tools"`);
+          this.validateFieldType(config.tools_directory!, 'string', 'tools_directory', serverContext);
         } else {
-          throw new Error(`MCP server "${serverName}" has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
+          throw new Error(`${serverContext} has invalid type "${config.type}". Must be "npx" or "custom-tools"`);
         }
       } else {
         // Standard configuration requires command
-        if (!config.command) {
-          throw new Error(`MCP server "${serverName}" must have a command`);
-        }
-        if (typeof config.command !== 'string') {
-          throw new Error(`MCP server "${serverName}" command must be a string`);
-        }
+        this.validateRequiredField(config.command, 'command', serverContext);
+        this.validateFieldType(config.command!, 'string', 'command', serverContext);
       }
 
       if (config.args && !Array.isArray(config.args)) {
-        throw new Error(`MCP server "${serverName}" args must be an array`);
+        throw new Error(`${serverContext} args must be an array`);
       }
       if (config.env && typeof config.env !== 'object') {
-        throw new Error(`MCP server "${serverName}" env must be an object`);
+        throw new Error(`${serverContext} env must be an object`);
       }
     }
   }
 
   static validateRAGSpec(ragSpec: RAGSpec): void {
-    if (!ragSpec.directory) {
-      throw new Error('RAG configuration must have a directory');
-    }
-    if (typeof ragSpec.directory !== 'string') {
-      throw new Error('RAG directory must be a string');
-    }
-    if (ragSpec.model && typeof ragSpec.model !== 'string') {
-      throw new Error('RAG model must be a string');
+    const ragContext = 'RAG configuration';
+    
+    this.validateRequiredField(ragSpec.directory, 'directory', ragContext);
+    this.validateFieldType(ragSpec.directory, 'string', 'directory', ragContext);
+    
+    if (ragSpec.model) {
+      this.validateFieldType(ragSpec.model, 'string', 'model', ragContext);
     }
     
-    if (ragSpec.embeddings_file && typeof ragSpec.embeddings_file !== 'string') {
-      throw new Error('RAG embeddings_file must be a string');
+    if (ragSpec.embeddings_file) {
+      this.validateFieldType(ragSpec.embeddings_file, 'string', 'embeddings_file', ragContext);
     }
     
-    if (ragSpec.chunk_size && (typeof ragSpec.chunk_size !== 'number' || ragSpec.chunk_size <= 0)) {
-      throw new Error('RAG chunk_size must be a positive number');
+    if (ragSpec.chunk_size) {
+      if (typeof ragSpec.chunk_size !== 'number' || ragSpec.chunk_size <= 0) {
+        throw new Error('RAG chunk_size must be a positive number');
+      }
     }
     
-    if (ragSpec.top_k && (typeof ragSpec.top_k !== 'number' || ragSpec.top_k <= 0)) {
-      throw new Error('RAG top_k must be a positive number');
+    if (ragSpec.top_k) {
+      if (typeof ragSpec.top_k !== 'number' || ragSpec.top_k <= 0) {
+        throw new Error('RAG top_k must be a positive number');
+      }
     }
   }
 }

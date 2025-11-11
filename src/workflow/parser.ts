@@ -17,9 +17,59 @@ interface ParserContext {
 
 class WorkflowParser {
   /**
+   * Read a prompt file from disk
+   * @param promptFilePath - Path to the prompt file (relative or absolute)
+   * @param workflowDir - Directory containing the workflow file
+   * @returns Content of the prompt file
+   */
+  private static readPromptFile(promptFilePath: string, workflowDir: string): string {
+    const resolvedPath = path.resolve(workflowDir, promptFilePath);
+    try {
+      return fs.readFileSync(resolvedPath, 'utf8');
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        throw new Error(`Prompt file not found: ${resolvedPath}`);
+      }
+      throw new Error(`Failed to read prompt file: ${error.message}`);
+    }
+  }
+
+  /**
+   * Resolve the prompt text for a state (from inline or file)
+   * @param spec - State specification
+   * @param context - Parser context
+   * @returns Resolved prompt text
+   */
+  private static resolvePrompt(spec: StateSpec, context: ParserContext): string {
+    if (spec.prompt_file) {
+      return this.readPromptFile(spec.prompt_file, context.workflowDir);
+    }
+    return spec.prompt || '';
+  }
+
+  /**
+   * Build a RAG configuration from a state spec
+   * @param spec - State specification
+   * @returns RAG configuration or undefined
+   */
+  private static buildRAGConfig(spec: StateSpec): RAGConfig | undefined {
+    if (!spec.rag) {
+      return undefined;
+    }
+
+    return {
+      directory: spec.rag.directory || '',
+      model: spec.rag.model,
+      embeddingsFile: spec.rag.embeddings_file,
+      chunkSize: spec.rag.chunk_size,
+      topK: spec.rag.top_k,
+      storageFormat: spec.rag.storage_format === 'msgpack' ? 'msgpack' : 'json',
+    } as RAGConfig;
+  }
+
+  /**
    * Parse a workflow YAML file
-   * @param filePath - Path to the YAML file
-   * @param visitedFiles - Set of already visited files to detect cycles
+   * @param context - Parser context containing file path and visited files
    * @returns Parsed workflow object
    */
   static parseFile(context: ParserContext): Workflow {
@@ -93,19 +143,8 @@ class WorkflowParser {
   static parseStateSpec(name: string, spec: StateSpec, context: ParserContext): Record<string, State> {
       const builtStates: Record<string, State> = {};
 
-      // Resolve prompt_file reference
-      let prompt = spec.prompt || '';
-      if (spec.prompt_file) {
-        const promptFilePath = path.resolve(context.workflowDir, spec.prompt_file);
-        try {
-          prompt = fs.readFileSync(promptFilePath, 'utf8');
-        } catch (error: any) {
-          if (error.code === 'ENOENT') {
-            throw new Error(`Prompt file not found: ${promptFilePath}`);
-          }
-          throw new Error(`Failed to read prompt file: ${error.message}`);
-        }
-      }
+      // Resolve prompt text from inline or file
+      const prompt = this.resolvePrompt(spec, context);
 
       if (spec.workflow_ref) {
         const referencedWorkflowPath = path.resolve(context.workflowDir, spec.workflow_ref);
@@ -184,17 +223,7 @@ class WorkflowParser {
       }
 
       // Build RAG config if present
-      let rag: RAGConfig | undefined;
-      if (spec.rag) {
-        rag = {
-          directory: spec.rag.directory || '',
-          model: spec.rag.model,
-          embeddingsFile: spec.rag.embeddings_file,
-          chunkSize: spec.rag.chunk_size,
-          topK: spec.rag.top_k,
-          storageFormat: spec.rag.storage_format === 'msgpack' ? 'msgpack' : 'json',
-        } as RAGConfig;
-      }
+      const rag = this.buildRAGConfig(spec);
 
       builtStates[name] = {
         type: spec.type,
@@ -216,56 +245,84 @@ class WorkflowParser {
       return builtStates;
   }
 
+  /**
+   * Parse NPX-type MCP server configuration
+   * @param serverSpec - Server specification
+   * @returns Standard MCP server configuration
+   */
+  private static parseNpxServer(serverSpec: MCPServerSpec): McpServerConfig {
+    if (!serverSpec.package) {
+      throw new Error(`MCP server with type "npx" must have a "package" field`);
+    }
+
+    const packageArgs = ['-y', serverSpec.package];
+    if (serverSpec.args && serverSpec.args.length > 0) {
+      packageArgs.push(...serverSpec.args);
+    }
+
+    return {
+      command: 'npx',
+      args: packageArgs,
+      env: serverSpec.env || {}
+    };
+  }
+
+  /**
+   * Parse custom-tools-type MCP server configuration
+   * @param serverSpec - Server specification
+   * @param context - Parser context
+   * @returns Standard MCP server configuration
+   */
+  private static parseCustomToolsServer(serverSpec: MCPServerSpec, context: ParserContext): McpServerConfig {
+    if (!serverSpec.tools_directory) {
+      throw new Error(`MCP server with type "custom-tools" must have a "tools_directory" field`);
+    }
+
+    // Resolve tools directory relative to workflow file
+    const resolvedToolsDir = path.resolve(context.workflowDir, serverSpec.tools_directory);
+
+    // Basic validation to prevent obvious path traversal attempts
+    // Note: This is a basic check. The OS-level permissions and spawn() security
+    // provide the actual security boundary.
+    const normalizedPath = path.normalize(resolvedToolsDir);
+    if (normalizedPath.includes('..') && !path.isAbsolute(serverSpec.tools_directory)) {
+      console.warn(`Warning: MCP server uses relative path with '..' which may traverse directories: ${serverSpec.tools_directory}`);
+    }
+
+    // The custom-mcp-server.js is expected to be in dist/ from the project root
+    return {
+      command: 'node',
+      args: ['dist/custom-mcp-server.js', resolvedToolsDir],
+      env: serverSpec.env || {}
+    };
+  }
+
+  /**
+   * Parse standard MCP server configuration
+   * @param serverSpec - Server specification
+   * @returns Standard MCP server configuration
+   */
+  private static parseStandardServer(serverSpec: MCPServerSpec): McpServerConfig {
+    return {
+      command: serverSpec.command || '',
+      args: serverSpec.args || [],
+      env: serverSpec.env || {}
+    };
+  }
+
+  /**
+   * Parse MCP server specification and convert to standard configuration
+   * @param serverSpec - Server specification
+   * @param context - Parser context
+   * @returns Standard MCP server configuration
+   */
   static parseMCPServersSpec(serverSpec: MCPServerSpec, context: ParserContext): McpServerConfig {
     if (serverSpec.type === 'npx') {
-      // NPX type: automatic npx invocation with package name
-      if (!serverSpec.package) {
-        throw new Error(`MCP server with type "npx" must have a "package" field`);
-      }
-
-      // Convert to standard format
-      const packageArgs = ['-y', serverSpec.package];
-      if (serverSpec.args && serverSpec.args.length > 0) {
-        packageArgs.push(...serverSpec.args);
-      }
-
-      return {
-        command: 'npx',
-        args: packageArgs,
-        env: serverSpec.env || {}
-      };
+      return this.parseNpxServer(serverSpec);
     } else if (serverSpec.type === 'custom-tools') {
-      // Custom tools type: automatic path to custom-mcp-server.js
-      if (!serverSpec.tools_directory) {
-        throw new Error(`MCP server with type "custom-tools" must have a "tools_directory" field`);
-      }
-
-      // Resolve tools directory relative to workflow file
-      const resolvedToolsDir = path.resolve(context.workflowDir, serverSpec.tools_directory);
-
-      // Basic validation to prevent obvious path traversal attempts
-      // Note: This is a basic check. The OS-level permissions and spawn() security
-      // provide the actual security boundary.
-      const normalizedPath = path.normalize(resolvedToolsDir);
-      if (normalizedPath.includes('..') && !path.isAbsolute(serverSpec.tools_directory)) {
-        console.warn(`Warning: MCP server uses relative path with '..' which may traverse directories: ${serverSpec.tools_directory}`);
-      }
-
-      // Convert to standard format
-      // The custom-mcp-server.js is expected to be in dist/ from the project root
-      // We use the standard location that's consistent with how the tool is distributed
-      return {
-        command: 'node',
-        args: ['dist/custom-mcp-server.js', resolvedToolsDir],
-        env: serverSpec.env || {}
-      };
+      return this.parseCustomToolsServer(serverSpec, context);
     } else {
-      // Standard configuration
-      return {
-        command: serverSpec.command || '',
-        args: serverSpec.args || [],
-        env: serverSpec.env || {}
-      };
+      return this.parseStandardServer(serverSpec);
     }
   }
 
