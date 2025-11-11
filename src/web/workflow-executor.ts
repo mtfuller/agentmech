@@ -369,11 +369,6 @@ class WebWorkflowExecutor {
    */
   private async executePromptState(stateName: string, state: State): Promise<string> {
     let prompt = this.interpolateVariables(state.prompt || '');
-    
-    this.sendEvent({
-      type: 'log',
-      message: `Prompt: ${prompt}`
-    });
 
     // Determine which RAG service to use
     let ragServiceToUse: RAGService | undefined = undefined;
