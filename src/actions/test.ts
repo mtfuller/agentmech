@@ -1,5 +1,5 @@
 import WorkflowParser = require('../workflow/parser');
-import { TestScenarioParser } from '../test-scenario/parser';
+import TestScenarioParser = require('../test-scenario/parser');
 import { TestExecutor } from '../test-scenario/executor';
 import { TestReportGenerator } from '../test-scenario/report';
 import * as path from 'path';
