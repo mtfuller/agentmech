@@ -34,9 +34,10 @@ class WorkflowDiscovery {
       // Read all files in directory
       const files = fs.readdirSync(dirPath);
       
-      // Filter for YAML files
+      // Filter for YAML files, excluding test files
       const yamlFiles = files.filter(file => 
-        file.endsWith('.yaml') || file.endsWith('.yml')
+        (file.endsWith('.yaml') || file.endsWith('.yml')) &&
+        !file.endsWith('.test.yaml') && !file.endsWith('.test.yml')
       );
       
       // Parse each YAML file
