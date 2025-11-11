@@ -1,5 +1,5 @@
 {
-  "name": "agentmech",
+  "name": "@agentmech/agentmech",
   "version": "1.0.0",
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
   "main": "dist/cli.js",
