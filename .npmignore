@@ -1,0 +1,33 @@
+# Source files (we only want dist/)
+src/
+tests/
+examples/
+scripts/
+
+# Configuration files
+tsconfig.json
+jest.config.js
+.gitignore
+.github/
+
+# Build artifacts
+coverage/
+.nyc_output/
+tmp-test-outputs/
+tmp-file-handler-test/
+tmp-rag-test/
+
+# Development files
+*.log
+.DS_Store
+*.swp
+*.swo
+.env
+
+# Git files
+.git/
+.gitattributes
+
+# Package manager files
+node_modules/
+package-lock.json
