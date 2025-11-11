@@ -19,20 +19,31 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 - Node.js (v14 or higher)
 - [Ollama](https://ollama.ai/) installed and running
 
-## Quick Start
+## Installation
+
+### From NPM (Recommended)
 
 ```bash
-# Install
+npm install -g agentmech
+```
+
+### From Source
+
+```bash
 git clone https://github.com/mtfuller/agentmech.git
 cd agentmech
 npm install && npm run build
+```
 
+## Quick Start
+
+```bash
 # Start Ollama (separate terminal)
 ollama serve
 ollama pull gemma3:4b
 
 # Run a workflow
-npm start run examples/simple-qa.yaml
+agentmech run examples/simple-qa.yaml
 ```
 
 ## Commands
@@ -226,6 +237,7 @@ See [examples/](examples/) and [docs/USAGE.md](docs/USAGE.md) for more.
 - [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
 - [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
 - [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
+- [PUBLISHING.md](docs/PUBLISHING.md) - NPM publishing and release process
 
 ## Troubleshooting
 

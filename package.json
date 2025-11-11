@@ -21,10 +21,30 @@
     "workflow",
     "ollama",
     "cli",
-    "automation"
+    "automation",
+    "llm",
+    "rag",
+    "mcp"
   ],
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mtfuller/agentmech.git"
+  },
+  "homepage": "https://github.com/mtfuller/agentmech#readme",
+  "bugs": {
+    "url": "https://github.com/mtfuller/agentmech/issues"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE",
+    "docs/"
+  ],
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "dependencies": {
     "@msgpack/msgpack": "^3.1.2",
     "@types/pdf-parse": "^1.1.5",

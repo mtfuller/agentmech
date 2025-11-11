@@ -1,0 +1,41 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+
+jobs:
+  check-version:
+    name: Check if version was bumped
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get current version
+      id: current
+      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Get base version
+      id: base
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git checkout origin/${{ github.base_ref }} -- package.json
+        echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+        git checkout ${{ github.head_ref }} -- package.json
+    
+    - name: Compare versions
+      run: |
+        echo "Current version: ${{ steps.current.outputs.version }}"
+        echo "Base version: ${{ steps.base.outputs.version }}"
+        if [ "${{ steps.current.outputs.version }}" = "${{ steps.base.outputs.version }}" ]; then
+          echo "⚠️ Version has not been updated in package.json"
+          echo "Please bump the version using: npm version patch|minor|major"
+          exit 1
+        else
+          echo "✅ Version has been updated"
+        fi
