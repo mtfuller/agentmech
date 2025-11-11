@@ -6,7 +6,8 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 
 - ✨ **AI-Powered Generation**: Create workflows from natural language descriptions
 - 🌐 **Web UI**: Browse and manage workflows through a web interface
-- 🤖 **Ollama Integration**: Run AI workflows using local Ollama models
+- 🤖 **Ollama Integration**: Run AI workflows using local Ollama models with streaming support
+- ⚡ **Real-time Streaming**: See LLM responses token-by-token as they're generated
 - 🖼️ **Multimodal Support**: Process images and text files in your workflows
 - 🔌 **MCP Integration**: Connect to Model Context Protocol servers for extended capabilities
 - 🧠 **RAG Support**: Retrieval-Augmented Generation for context-aware responses
@@ -222,6 +223,7 @@ See [examples/](examples/) and [docs/USAGE.md](docs/USAGE.md) for more.
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
 - [USAGE.md](docs/USAGE.md) - Detailed usage examples
+- [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
 - [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
 - [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
 
