@@ -235,7 +235,7 @@ start_state: "first_state"
 
 states:
   first_state:
-    type: "prompt"  # or "choice" or "input"
+    type: "prompt"  # or "input" or "workflow_ref"
     # ... state configuration
     next: "second_state"
   
@@ -416,10 +416,10 @@ rag:
   kb:
     directory: "./knowledge-base"         # Directory with your documents
     model: "all-minilm"                   # Model for generating embeddings (must be: embeddinggemma, qwen3-embedding, or all-minilm)
-    embeddingsFile: "embeddings.msgpack"  # Cache file for embeddings (default format)
-    storageFormat: "msgpack"              # Storage format: "msgpack" (default) or "json"
-    chunkSize: 500                        # Size of text chunks (in characters)
-    topK: 3                               # Number of relevant chunks to retrieve
+    embeddings_file: "embeddings.msgpack"  # Cache file for embeddings (default format)
+    storage_format: "msgpack"              # Storage format: "msgpack" (default) or "json"
+    chunk_size: 500                        # Size of text chunks (in characters)
+    top_k: 3                               # Number of relevant chunks to retrieve
 
 states:
   ask:
@@ -576,19 +576,6 @@ Benefits:
 - Reuse workflows across projects
 - Compose complex workflows from simpler ones
 - Better organization and maintainability
-      - label: "Path B"
-        next: "state_b"
-  
-  state_a:
-    type: "prompt"
-    prompt: "You chose path A"
-    next: "end"
-  
-  state_b:
-    type: "prompt"
-    prompt: "You chose path B"
-    next: "end"
-```
 
 ## Troubleshooting
 
