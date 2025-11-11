@@ -18,15 +18,18 @@ jobs:
     
     - name: Get current version
       id: current
-      run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
     
     - name: Get base version
       id: base
+      env:
+        BASE_REF: ${{ github.base_ref }}
+        HEAD_REF: ${{ github.head_ref }}
       run: |
-        git fetch origin ${{ github.base_ref }}
-        git checkout origin/${{ github.base_ref }} -- package.json
-        echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-        git checkout ${{ github.head_ref }} -- package.json
+        git fetch origin "$BASE_REF"
+        git checkout "origin/$BASE_REF" -- package.json
+        echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+        git checkout "$HEAD_REF" -- package.json
     
     - name: Compare versions
       run: |

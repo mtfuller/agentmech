@@ -64,7 +64,7 @@ jobs:
       run: npm pack
     
     - name: List package contents
-      run: tar -tzf *.tgz | head -20
+      run: tar -tzf ./*.tgz | head -20
     
     - name: Upload package artifact
       uses: actions/upload-artifact@v4
