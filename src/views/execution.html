@@ -60,6 +60,10 @@
         // Counter for generating unique prompt IDs
         let promptCounter = 0;
         
+        // Track the current streaming response element
+        let currentStreamingResponse = null;
+        let streamingResponseText = '';
+        
         function addMessage(type, message, data) {
             const messagesContainer = document.getElementById('chat-messages');
             const messageDiv = document.createElement('div');
@@ -224,6 +228,42 @@
                             break;
                         case 'response':
                             addMessage('response', event.message, event.data);
+                            break;
+                        case 'response_start':
+                            // Create a new streaming response element
+                            const messagesContainer = document.getElementById('chat-messages');
+                            const streamingDiv = document.createElement('div');
+                            streamingDiv.className = 'message response streaming';
+                            streamingDiv.textContent = '';
+                            messagesContainer.appendChild(streamingDiv);
+                            currentStreamingResponse = streamingDiv;
+                            streamingResponseText = '';
+                            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                            break;
+                        case 'response_token':
+                            // Append token to the streaming response
+                            if (currentStreamingResponse) {
+                                streamingResponseText += event.message;
+                                currentStreamingResponse.textContent = streamingResponseText;
+                                const container = document.getElementById('chat-messages');
+                                container.scrollTop = container.scrollHeight;
+                            }
+                            break;
+                        case 'response_end':
+                            // Finalize the streaming response with markdown rendering
+                            if (currentStreamingResponse) {
+                                currentStreamingResponse.classList.remove('streaming');
+                                // Render markdown if libraries are available
+                                if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                                    const rawHtml = marked.parse(streamingResponseText);
+                                    const cleanHtml = DOMPurify.sanitize(rawHtml);
+                                    currentStreamingResponse.innerHTML = cleanHtml;
+                                } else {
+                                    currentStreamingResponse.textContent = streamingResponseText;
+                                }
+                                currentStreamingResponse = null;
+                                streamingResponseText = '';
+                            }
                             break;
                         case 'prompt_sent':
                             addMessage('prompt-details', event.message, event.data);
