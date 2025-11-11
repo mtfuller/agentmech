@@ -40,7 +40,7 @@ mcp_servers:
 
 states:
   state_name:
-    type: "prompt" | "input" | "workflow_ref"
+    type: "prompt" | "input" | "workflow_ref" | "transition"
     mcp_servers: ["server_name"]  # optional
     # ... configuration
     next: "next_state" | "end"  # "end" is reserved - no need to define it
