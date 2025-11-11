@@ -69,6 +69,11 @@ export class WorkflowValidator {
       }
     }
 
+    // Validate variables if present
+    if (workflow.variables) {
+      this.validateVariables(workflow.variables);
+    }
+
     // Validate each state
     for (const [stateName, state] of Object.entries(workflow.states)) {
       this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag);
@@ -266,6 +271,51 @@ export class WorkflowValidator {
     if (ragSpec.top_k) {
       if (typeof ragSpec.top_k !== 'number' || ragSpec.top_k <= 0) {
         throw new Error('RAG top_k must be a positive number');
+      }
+    }
+  }
+
+  /**
+   * Validate workflow variables configuration
+   * @param variables - Variables configuration to validate
+   */
+  static validateVariables(variables: Record<string, any>): void {
+    this.validateFieldType(variables, 'object', 'variables', 'Workflow');
+    
+    for (const [varName, varSpec] of Object.entries(variables)) {
+      const varContext = `Variable "${varName}"`;
+      
+      // Variable names should be simple identifiers (alphanumeric and underscore)
+      if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(varName)) {
+        throw new Error(`${varContext} has invalid name. Variable names must start with a letter or underscore and contain only letters, numbers, and underscores.`);
+      }
+      
+      // Handle shorthand string syntax
+      if (typeof varSpec === 'string') {
+        continue;
+      }
+      
+      // Handle object syntax
+      if (typeof varSpec === 'object' && varSpec !== null) {
+        const hasValue = varSpec.value !== undefined;
+        const hasFile = varSpec.file !== undefined;
+        
+        if (!hasValue && !hasFile) {
+          throw new Error(`${varContext} must have either "value" or "file" property`);
+        }
+        
+        if (hasValue && hasFile) {
+          throw new Error(`${varContext} cannot have both "value" and "file" properties`);
+        }
+        
+        if (hasFile) {
+          this.validateFieldType(varSpec.file, 'string', 'file', varContext);
+          if (varSpec.file.trim() === '') {
+            throw new Error(`${varContext} file path cannot be empty`);
+          }
+        }
+      } else {
+        throw new Error(`${varContext} must be a string or object with "value" or "file" property`);
       }
     }
   }
