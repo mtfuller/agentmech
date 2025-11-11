@@ -36,5 +36,6 @@ export interface Workflow {
   states: Record<string, State>;
   mcpServers?: Record<string, McpServerConfig>;
   rag: Record<string, RAGConfig>;  // Named RAG configurations
+  variables?: Record<string, string>;  // Workflow-level variables for prompt interpolation
   onError?: string;
 }

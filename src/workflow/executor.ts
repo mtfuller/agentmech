@@ -40,6 +40,11 @@ class WorkflowExecutor {
     this.stopRequested = false;
     this.runDirectory = runDirectory;
     
+    // Initialize context with workflow variables
+    if (workflow.variables) {
+      this.context = { ...this.context, ...workflow.variables };
+    }
+    
     // Add run directory to context if provided
     if (runDirectory) {
       this.context['run_directory'] = runDirectory;

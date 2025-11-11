@@ -1,0 +1,23 @@
+name: "Workflow with Variables"
+description: "Example workflow demonstrating variable usage in prompts"
+default_model: "gemma3:4b"
+start_state: "greet"
+
+variables:
+  # Inline variable using shorthand syntax
+  user_name: "Alice"
+  
+  # Inline variable using object syntax
+  topic:
+    value: "artificial intelligence"
+  
+  # Variable loaded from file
+  system_prompt:
+    file: "variables-test/template.txt"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "{{system_prompt}}\n\nHello {{user_name}}! Let's discuss {{topic}}. What would you like to know?"
+    save_as: "greeting_response"
+    next: "end"
