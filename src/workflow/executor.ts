@@ -17,7 +17,7 @@ class WorkflowExecutor {
   private namedRagServices: Map<string, RAGService>;
   private context: Record<string, any>;
   private history: string[];
-  private rl: readline.Interface;
+  private rl?: readline.Interface;
   private tracer: Tracer;
   private stopRequested: boolean;
   private runDirectory?: string;
@@ -38,21 +38,35 @@ class WorkflowExecutor {
     }
     
     this.tracer = tracer || new Tracer(false);
-    
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
   }
 
   /**
-   * Request graceful stop of workflow execution
+   * Get or create the readline interface
+   */
+  private getReadlineInterface(): readline.Interface {
+    if (!this.rl) {
+      this.rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+    }
+    return this.rl;
+  }
+
+  /**
+   * Request graceful stop of workflow execution and clean up resources
    */
   stop(): void {
     if (!this.stopRequested) {
       this.stopRequested = true;
       console.log('\n\n🛑 Stop requested. Workflow will stop after the current state completes...');
       this.tracer.traceContextUpdate('stop_requested', 'true');
+    }
+    
+    // Clean up readline interface to prevent hanging (can be called multiple times safely)
+    if (this.rl) {
+      this.rl.close();
+      this.rl = undefined;
     }
   }
 
@@ -170,9 +184,14 @@ class WorkflowExecutor {
         this.tracer.traceWorkflowComplete();
       }
     } finally {
-      // Clean up MCP connections
+      // Clean up MCP connections and readline interface
       await this.mcpClient.disconnectAll();
-      this.rl.close();
+      
+      // Clean up readline interface if it was created
+      if (this.rl) {
+        this.rl.close();
+        this.rl = undefined;
+      }
     }
   }
 
@@ -438,7 +457,8 @@ class WorkflowExecutor {
    */
   askQuestion(question: string): Promise<string> {
     return new Promise((resolve) => {
-      this.rl.question(question, (answer) => {
+      const rl = this.getReadlineInterface();
+      rl.question(question, (answer) => {
         resolve(answer);
       });
     });

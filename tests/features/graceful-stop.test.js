@@ -20,6 +20,7 @@ describe('Graceful Stop Mechanism', () => {
       
       const executor = new WorkflowExecutor(workflow, 'http://localhost:11434');
       expect(typeof executor.stop).toBe('function');
+      executor.stop(); // Clean up to prevent Jest from hanging
     });
 
     it('should set stopRequested flag when stop is called', () => {
@@ -43,6 +44,7 @@ describe('Graceful Stop Mechanism', () => {
       executor.stop();
       
       expect(executor['stopRequested']).toBe(true);
+      // stop() already cleaned up the readline interface
     });
 
     it('should only log stop message once when stop is called multiple times', () => {
@@ -77,6 +79,7 @@ describe('Graceful Stop Mechanism', () => {
       
       // Should only log once despite multiple calls
       expect(logCount).toBe(1);
+      executor.stop(); // Clean up to prevent Jest from hanging
     });
   });
 
