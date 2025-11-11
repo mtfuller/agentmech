@@ -10,6 +10,8 @@ jobs:
   test:
     name: Test on Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     strategy:
       matrix:
@@ -44,6 +46,8 @@ jobs:
   build-check:
     name: Verify package can be built and packed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - uses: actions/checkout@v4

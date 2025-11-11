@@ -10,6 +10,8 @@ jobs:
   check-version:
     name: Check if version was bumped
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     
     steps:
     - uses: actions/checkout@v4
