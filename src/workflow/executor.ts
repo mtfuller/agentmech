@@ -6,6 +6,7 @@ import { RAGConfig, RAGService } from '../rag/rag-service';
 import { Workflow, State, NextOption } from './workflow';
 import Tracer = require('../utils/tracer');
 import FileHandler = require('../utils/file-handler');
+import CliFormatter from '../utils/cli-formatter';
 
 // Constants for state types and special state names
 const END_STATE = 'end';
@@ -73,14 +74,14 @@ class WorkflowExecutor {
       return { images, textContents };
     }
 
-    console.log(`\nProcessing ${filePaths.length} file(s) for multimodal input...`);
+    console.log('\n' + CliFormatter.loading(`Processing ${filePaths.length} file(s) for multimodal input...`));
 
     for (const filePath of filePaths) {
       try {
         const resolvedPath = this.interpolateVariables(filePath);
         const processedFile = await FileHandler.processFile(resolvedPath);
 
-        console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
+        console.log(CliFormatter.success(`Processed ${processedFile.filename} (${processedFile.type})`));
 
         if (processedFile.type === 'image') {
           images.push(processedFile.content);
@@ -88,13 +89,13 @@ class WorkflowExecutor {
           textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
         }
       } catch (error: any) {
-        console.warn(`⚠ Warning: ${error.message}`);
+        console.warn(CliFormatter.warning(error.message));
         // Continue processing other files
       }
     }
 
     if (images.length > 0) {
-      console.log(`📷 Attached ${images.length} image(s) to the prompt`);
+      console.log(CliFormatter.image(`Attached ${images.length} image(s) to the prompt`));
     }
 
     return { images, textContents };
@@ -111,19 +112,19 @@ class WorkflowExecutor {
 
     // Priority: inline rag > use_rag (named/default)
     if (state.rag) {
-      console.log('\nInitializing inline RAG configuration...');
+      console.log('\n' + CliFormatter.rag('Initializing inline RAG configuration...'));
       ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
       await ragServiceToUse.initialize();
     }
 
     // Add RAG context if a service is available
     if (ragServiceToUse) {
-      console.log('Retrieving relevant context from RAG...');
+      console.log(CliFormatter.rag('Retrieving relevant context from RAG...'));
       const relevantChunks = await ragServiceToUse.search(prompt);
       const ragContext = ragServiceToUse.formatContext(relevantChunks);
 
       if (ragContext) {
-        console.log('RAG context added to prompt');
+        console.log(CliFormatter.success('RAG context added to prompt'));
         return prompt + ragContext;
       }
     }
@@ -140,13 +141,13 @@ class WorkflowExecutor {
       return;
     }
 
-    console.log(`\nConnecting to MCP servers: ${state.mcpServers.join(', ')}`);
+    console.log('\n' + CliFormatter.tool(`Connecting to MCP servers: ${state.mcpServers.join(', ')}`));
     for (const serverName of state.mcpServers) {
       try {
         await this.mcpClient.connectServer(serverName);
-        console.log(`✓ Connected to MCP server: ${serverName}`);
+        console.log(CliFormatter.success(`Connected to MCP server: ${serverName}`));
       } catch (error: any) {
-        console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
+        console.warn(CliFormatter.warning(`Failed to connect to MCP server "${serverName}": ${error.message}`));
       }
     }
   }
@@ -157,7 +158,7 @@ class WorkflowExecutor {
   stop(): void {
     if (!this.stopRequested) {
       this.stopRequested = true;
-      console.log('\n\n🛑 Stop requested. Workflow will stop after the current state completes...');
+      console.log('\n\n' + CliFormatter.stop('Stop requested. Workflow will stop after the current state completes...'));
       this.tracer.traceContextUpdate('stop_requested', 'true');
     }
     
@@ -172,10 +173,12 @@ class WorkflowExecutor {
    * Execute the workflow
    */
   async execute(): Promise<void> {
-    console.log(`\n=== Starting Workflow: ${this.workflow.name} ===\n`);
+    console.log('\n' + CliFormatter.divider('='));
+    console.log(CliFormatter.workflowStart(`Starting Workflow: ${this.workflow.name}`));
+    console.log(CliFormatter.divider('=') + '\n');
     
     if (this.workflow.description) {
-      console.log(`${this.workflow.description}\n`);
+      console.log(CliFormatter.info(this.workflow.description) + '\n');
     }
 
     this.tracer.traceWorkflowStart(this.workflow.name, this.workflow.startState);
@@ -198,7 +201,7 @@ class WorkflowExecutor {
       
       // If no filesystem server configured, auto-inject one
       if (!hasFilesystemServer) {
-        console.log(`Auto-configuring filesystem MCP server with run directory: ${this.runDirectory}`);
+        console.log(CliFormatter.tool(`Auto-configuring filesystem MCP server with run directory: ${CliFormatter.path(this.runDirectory)}`));
         this.workflow.mcpServers['filesystem'] = {
           command: 'npx',
           args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory],
@@ -209,28 +212,28 @@ class WorkflowExecutor {
 
     // Initialize MCP servers if configured
     if (this.workflow.mcpServers) {
-      console.log('Initializing MCP servers...');
+      console.log(CliFormatter.loading('Initializing MCP servers...'));
       for (const [serverName, config] of Object.entries(this.workflow.mcpServers)) {
         this.mcpClient.registerServer(serverName, config);
       }
-      console.log(`Registered ${Object.keys(this.workflow.mcpServers).length} MCP server(s)\n`);
+      console.log(CliFormatter.success(`Registered ${Object.keys(this.workflow.mcpServers).length} MCP server(s)`) + '\n');
     }
 
     // Initialize default RAG if configured
     if (this.ragService) {
-      console.log('Initializing default RAG system...');
+      console.log(CliFormatter.loading('Initializing default RAG system...'));
       await this.ragService.initialize();
       console.log('');
     }
 
     // Initialize named RAG services if configured
     if (this.workflow.rag) {
-      console.log('Initializing named RAG systems...');
+      console.log(CliFormatter.loading('Initializing named RAG systems...'));
       for (const [ragName, ragConfig] of Object.entries(this.workflow.rag)) {
         const ragService = new RAGService(ragConfig, 'http://localhost:11434');
         await ragService.initialize();
         this.namedRagServices.set(ragName, ragService);
-        console.log(`  ✓ Initialized RAG: ${ragName}`);
+        console.log(CliFormatter.success(`Initialized RAG: ${ragName}`));
       }
       console.log('');
     }
@@ -240,7 +243,7 @@ class WorkflowExecutor {
       
       while (currentState && currentState !== END_STATE && !this.stopRequested) {
         const state: State = this.workflow.states[currentState];
-        console.log(`\n--- State: ${currentState} ---`);
+        console.log('\n' + CliFormatter.step(`State: ${CliFormatter.highlight(currentState)}`));
         
         try {
           this.history.push(currentState);
@@ -250,12 +253,12 @@ class WorkflowExecutor {
           this.tracer.traceStateTransition(currentState, nextState || END_STATE, state.type);
           currentState = nextState;
         } catch (error: any) {
-          console.error(`\nError in state "${currentState}": ${error.message}`);
+          console.error('\n' + CliFormatter.error(`Error in state "${currentState}": ${error.message}`));
           this.tracer.traceError('state_execution_error', error.message, { state: currentState });
           
           // Check for state-level fallback first
           if (state.onError) {
-            console.log(`\nTransitioning to fallback state (state-level): ${state.onError}`);
+            console.log('\n' + CliFormatter.warning(`Transitioning to fallback state (state-level): ${state.onError}`));
             this.tracer.traceStateTransition(currentState, state.onError, 'error_fallback');
             currentState = state.onError;
             continue; // Continue the workflow with the fallback state
@@ -263,7 +266,7 @@ class WorkflowExecutor {
           
           // Check for workflow-level fallback
           if (this.workflow.onError) {
-            console.log(`\nTransitioning to fallback state (workflow-level): ${this.workflow.onError}`);
+            console.log('\n' + CliFormatter.warning(`Transitioning to fallback state (workflow-level): ${this.workflow.onError}`));
             this.tracer.traceStateTransition(currentState, this.workflow.onError, 'error_fallback');
             currentState = this.workflow.onError;
             continue; // Continue the workflow with the fallback state
@@ -275,10 +278,14 @@ class WorkflowExecutor {
       }
       
       if (this.stopRequested) {
-        console.log('\n=== Workflow Stopped by User ===\n');
+        console.log('\n' + CliFormatter.divider('='));
+        console.log(CliFormatter.stop('Workflow Stopped by User'));
+        console.log(CliFormatter.divider('=') + '\n');
         this.tracer.traceContextUpdate('workflow_stopped', 'true');
       } else {
-        console.log('\n=== Workflow Completed ===\n');
+        console.log('\n' + CliFormatter.divider('='));
+        console.log(CliFormatter.complete('Workflow Completed'));
+        console.log(CliFormatter.divider('=') + '\n');
         this.tracer.traceWorkflowComplete();
       }
     } finally {
@@ -351,12 +358,12 @@ class WorkflowExecutor {
     await this.connectMCPServers(state);
     
     const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
-    console.log(`\nUsing model: ${model}`);
-    console.log('Generating response...\n');
+    console.log('\n' + CliFormatter.model(`Using model: ${model}`));
+    console.log(CliFormatter.loading('Generating response...') + '\n');
     
     try {
       // Create streaming callback to display tokens as they arrive
-      process.stdout.write('Response: ');
+      process.stdout.write(CliFormatter.ai('Response: '));
       
       const response = await this.ollamaClient.generate(
         model, 
@@ -396,7 +403,7 @@ class WorkflowExecutor {
    */
   async executeInputState(stateName: string, state: State): Promise<string> {
     if (state.prompt) {
-      console.log(`\n${this.interpolateVariables(state.prompt)}`);
+      console.log('\n' + CliFormatter.info(this.interpolateVariables(state.prompt)));
     }
     
     let defaultHint = '';
@@ -411,7 +418,7 @@ class WorkflowExecutor {
     let userInput = answer.trim();
     if (!userInput && state.defaultValue) {
       userInput = this.interpolateVariables(state.defaultValue);
-      console.log(`Using default value: ${userInput}`);
+      console.log(CliFormatter.info(`Using default value: ${userInput}`));
     }
     
     // Store input in context if variable is specified
@@ -433,7 +440,7 @@ class WorkflowExecutor {
    * @returns Next state name
    */
   async selectNextState(nextOptions: NextOption[], previousResponse: string, model: string): Promise<string> {
-    console.log('\n--- LLM selecting next state ---');
+    console.log('\n' + CliFormatter.step('LLM selecting next state'));
     
     // Sanitize and limit the previous response to prevent token overflow and injection
     const maxResponseLength = 500;
@@ -455,7 +462,7 @@ class WorkflowExecutor {
     
     selectionPrompt += `\nRespond with ONLY the number (1-${nextOptions.length}) of the most appropriate next step. Do not include any explanation, just the number.`;
     
-    console.log('Asking LLM to select next state...');
+    console.log(CliFormatter.loading('Asking LLM to select next state...'));
     this.tracer.traceContextUpdate('llm_selection_prompt', selectionPrompt);
     
     try {
@@ -464,7 +471,7 @@ class WorkflowExecutor {
       // Extract the first number found in the response (more robust parsing)
       const numberMatch = selectionResponse.match(/\d+/);
       if (!numberMatch) {
-        console.warn(`LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`);
+        console.warn(CliFormatter.warning(`LLM returned no number in response: "${selectionResponse}". Defaulting to first option.`));
         this.tracer.traceError('invalid_llm_selection', `No number found: ${selectionResponse}`, { defaulting: nextOptions[0].state });
         return nextOptions[0].state;
       }
@@ -472,18 +479,18 @@ class WorkflowExecutor {
       const selectedIndex = parseInt(numberMatch[0]) - 1;
       
       if (selectedIndex < 0 || selectedIndex >= nextOptions.length) {
-        console.warn(`LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`);
+        console.warn(CliFormatter.warning(`LLM returned out-of-range selection: "${selectionResponse}". Defaulting to first option.`));
         this.tracer.traceError('invalid_llm_selection', `Out of range: ${selectionResponse}`, { defaulting: nextOptions[0].state });
         return nextOptions[0].state;
       }
       
       const selectedOption = nextOptions[selectedIndex];
-      console.log(`✓ LLM selected: ${selectedOption.state} - ${selectedOption.description}\n`);
+      console.log(CliFormatter.success(`LLM selected: ${selectedOption.state} - ${selectedOption.description}`) + '\n');
       this.tracer.traceContextUpdate('llm_selected_state', selectedOption.state);
       
       return selectedOption.state;
     } catch (error: any) {
-      console.error(`Error during LLM state selection: ${error.message}. Defaulting to first option.`);
+      console.error(CliFormatter.error(`Error during LLM state selection: ${error.message}. Defaulting to first option.`));
       this.tracer.traceError('llm_selection_error', error.message, { defaulting: nextOptions[0].state });
       return nextOptions[0].state;
     }

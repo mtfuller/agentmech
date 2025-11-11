@@ -3,6 +3,7 @@ import OllamaClient = require('../ollama/ollama-client');
 import * as path from 'path';
 import * as fs from 'fs';
 import * as readline from 'readline';
+import CliFormatter from '../utils/cli-formatter';
 
 const MAX_FILENAME_LENGTH = 50;
 
@@ -27,18 +28,18 @@ export async function generate(options: GenerateOptions) {
     };
 
     try {
-      console.log('\n🤖 AI Workflow Generator\n');
-      console.log('Describe the workflow you want to create. Be as detailed as possible.\n');
+      console.log('\n' + CliFormatter.ai('AI Workflow Generator') + '\n');
+      console.log(CliFormatter.info('Describe the workflow you want to create. Be as detailed as possible.') + '\n');
       
       const description = await askQuestion('Workflow description: ');
       
       if (!description || description.trim() === '') {
-        console.error('\nError: Workflow description cannot be empty');
+        console.error('\n' + CliFormatter.error('Workflow description cannot be empty'));
         rl.close();
         process.exit(1);
       }
 
-      console.log('\nGenerating workflow...\n');
+      console.log('\n' + CliFormatter.loading('Generating workflow...') + '\n');
 
       // Sanitize user description to prevent prompt injection
       // Replace any potential prompt manipulation attempts
@@ -114,30 +115,30 @@ Generate ONLY the YAML content, nothing else:`;
       // Save the generated workflow
       fs.writeFileSync(outputPath, cleanedYaml, 'utf8');
 
-      console.log(`✓ Workflow generated successfully!`);
-      console.log(`  Saved to: ${outputPath}\n`);
+      console.log(CliFormatter.success('Workflow generated successfully!'));
+      console.log(CliFormatter.file(`Saved to: ${CliFormatter.path(outputPath)}`) + '\n');
 
       // Validate the generated workflow
-      console.log('Validating generated workflow...\n');
+      console.log(CliFormatter.loading('Validating generated workflow...') + '\n');
       try {
         const workflow = WorkflowParser.parseFile({filePath: outputPath, workflowDir: '', visitedFiles: new Set()});
-        console.log('✓ Workflow is valid!');
-        console.log(`  Name: ${workflow.name}`);
-        console.log(`  States: ${Object.keys(workflow.states).length}`);
-        console.log(`  Start state: ${workflow.startState}\n`);
+        console.log(CliFormatter.success('Workflow is valid!'));
+        console.log(CliFormatter.dim(`  Name: ${CliFormatter.highlight(workflow.name)}`));
+        console.log(CliFormatter.dim(`  States: ${CliFormatter.number(Object.keys(workflow.states).length)}`));
+        console.log(CliFormatter.dim(`  Start state: ${CliFormatter.highlight(workflow.startState)}`) + '\n');
         
-        console.log('You can now run the workflow with:');
-        console.log(`  agentmech run ${outputPath}\n`);
+        console.log(CliFormatter.info('You can now run the workflow with:'));
+        console.log(CliFormatter.highlight(`  agentmech run ${outputPath}`) + '\n');
       } catch (validationError: any) {
-        console.log('⚠️  Warning: Generated workflow has validation errors:');
-        console.log(`  ${validationError.message}\n`);
-        console.log('You may need to manually edit the workflow file.\n');
+        console.log(CliFormatter.warning('Generated workflow has validation errors:'));
+        console.log(CliFormatter.dim(`  ${validationError.message}`) + '\n');
+        console.log(CliFormatter.info('You may need to manually edit the workflow file.') + '\n');
       }
 
       rl.close();
       
     } catch (error: any) {
-      console.error(`\nError: ${error.message}`);
+      console.error('\n' + CliFormatter.error(error.message));
       rl.close();
       process.exit(1);
     }
