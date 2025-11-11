@@ -1,5 +1,6 @@
 import { TestScenarioResult, AssertionResult } from './executor';
 import * as fs from 'fs';
+import CliFormatter from '../utils/cli-formatter';
 
 /**
  * Test report generator
@@ -16,35 +17,38 @@ export class TestReportGenerator {
     const failedTests = totalTests - passedTests;
     const totalDuration = results.reduce((sum, r) => sum + r.duration, 0);
 
-    console.log('\n' + '='.repeat(60));
-    console.log(`TEST REPORT: ${workflowName}`);
-    console.log('='.repeat(60) + '\n');
+    console.log('\n' + CliFormatter.divider('='));
+    console.log(CliFormatter.header(`TEST REPORT: ${workflowName}`));
+    console.log(CliFormatter.divider('=') + '\n');
 
     // Print individual test results
     results.forEach((result, index) => {
-      const icon = result.passed ? '✓' : '✗';
-      const status = result.passed ? 'PASSED' : 'FAILED';
+      const status = result.passed 
+        ? CliFormatter.testPass('PASSED') 
+        : CliFormatter.testFail('FAILED');
       
-      console.log(`${icon} Test ${index + 1}: ${result.scenario.name} - ${status}`);
+      console.log(`${status} ${CliFormatter.highlight(`Test ${index + 1}: ${result.scenario.name}`)}`);
       
       if (result.scenario.description) {
-        console.log(`  Description: ${result.scenario.description}`);
+        console.log(CliFormatter.dim(`  Description: ${result.scenario.description}`));
       }
       
-      console.log(`  Duration: ${result.duration}ms`);
+      console.log(CliFormatter.time(`  Duration: ${result.duration}ms`));
       
       if (result.error) {
-        console.log(`  Error: ${result.error}`);
+        console.log(CliFormatter.error(`  Error: ${result.error}`));
       }
       
       // Print assertion results
       if (result.assertions.length > 0) {
-        console.log(`  Assertions:`);
+        console.log(CliFormatter.dim('  Assertions:'));
         result.assertions.forEach((assertion, aIndex) => {
-          const assertionIcon = assertion.passed ? '  ✓' : '  ✗';
+          const assertionIcon = assertion.passed 
+            ? CliFormatter.testPass('') 
+            : CliFormatter.testFail('');
           console.log(`    ${assertionIcon} ${assertion.message}`);
           if (assertion.assertion.description) {
-            console.log(`       ${assertion.assertion.description}`);
+            console.log(CliFormatter.dim(`       ${assertion.assertion.description}`));
           }
         });
       }
@@ -53,20 +57,20 @@ export class TestReportGenerator {
     });
 
     // Print summary
-    console.log('-'.repeat(60));
-    console.log('SUMMARY');
-    console.log('-'.repeat(60));
-    console.log(`Total Tests:    ${totalTests}`);
-    console.log(`Passed:         ${passedTests} ✓`);
-    console.log(`Failed:         ${failedTests} ✗`);
-    console.log(`Total Duration: ${totalDuration}ms`);
-    console.log(`Success Rate:   ${((passedTests / totalTests) * 100).toFixed(1)}%`);
-    console.log('-'.repeat(60) + '\n');
+    console.log(CliFormatter.divider('-'));
+    console.log(CliFormatter.header('SUMMARY'));
+    console.log(CliFormatter.divider('-'));
+    console.log(CliFormatter.info(`Total Tests:    ${CliFormatter.number(totalTests)}`));
+    console.log(CliFormatter.success(`Passed:         ${CliFormatter.number(passedTests)}`));
+    console.log(CliFormatter.error(`Failed:         ${CliFormatter.number(failedTests)}`));
+    console.log(CliFormatter.time(`Total Duration: ${totalDuration}ms`));
+    console.log(CliFormatter.highlight(`Success Rate:   ${((passedTests / totalTests) * 100).toFixed(1)}%`));
+    console.log(CliFormatter.divider('-') + '\n');
 
     if (failedTests === 0) {
-      console.log('🎉 All tests passed!\n');
+      console.log(CliFormatter.complete('All tests passed!') + '\n');
     } else {
-      console.log(`⚠️  ${failedTests} test(s) failed\n`);
+      console.log(CliFormatter.warning(`${failedTests} test(s) failed`) + '\n');
     }
   }
 
@@ -114,7 +118,7 @@ export class TestReportGenerator {
     };
 
     fs.writeFileSync(outputPath, JSON.stringify(report, null, 2), 'utf8');
-    console.log(`\nJSON report saved to: ${outputPath}\n`);
+    console.log('\n' + CliFormatter.file(`JSON report saved to: ${CliFormatter.path(outputPath)}`) + '\n');
   }
 
   /**
@@ -175,6 +179,6 @@ export class TestReportGenerator {
     });
 
     fs.writeFileSync(outputPath, markdown, 'utf8');
-    console.log(`\nMarkdown report saved to: ${outputPath}\n`);
+    console.log('\n' + CliFormatter.file(`Markdown report saved to: ${CliFormatter.path(outputPath)}`) + '\n');
   }
 }

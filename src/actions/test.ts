@@ -4,6 +4,7 @@ import { TestExecutor } from '../test-scenario/executor';
 import { TestReportGenerator } from '../test-scenario/report';
 import * as path from 'path';
 import * as fs from 'fs';
+import CliFormatter from '../utils/cli-formatter';
 
 
 interface TestOptions {
@@ -16,7 +17,7 @@ export async function test(testFile: string, options: TestOptions) {
     try {
       // Parse test scenario file
       const testPath = path.resolve(testFile);
-      console.log(`Loading test scenarios from: ${testPath}\n`);
+      console.log(CliFormatter.test(`Loading test scenarios from: ${CliFormatter.path(testPath)}`) + '\n');
       
       const testSuite = TestScenarioParser.parseFile(testPath);
       
@@ -25,14 +26,14 @@ export async function test(testFile: string, options: TestOptions) {
       const workflowPath = path.resolve(testDir, testSuite.workflow);
       
       if (!fs.existsSync(workflowPath)) {
-        console.error(`\nError: Workflow file not found: ${workflowPath}`);
+        console.error('\n' + CliFormatter.error(`Workflow file not found: ${CliFormatter.path(workflowPath)}`));
         process.exit(1);
       }
       
       // Parse workflow to get its name
       const workflow = WorkflowParser.parseFile({filePath: workflowPath, workflowDir: '', visitedFiles: new Set()});
-      console.log(`Testing workflow: ${workflow.name}`);
-      console.log(`Test scenarios: ${testSuite.test_scenarios.length}\n`);
+      console.log(CliFormatter.info(`Testing workflow: ${CliFormatter.highlight(workflow.name)}`));
+      console.log(CliFormatter.info(`Test scenarios: ${CliFormatter.number(testSuite.test_scenarios.length)}`) + '\n');
       
       // Create test executor
       const testExecutor = new TestExecutor(options.ollamaUrl);
@@ -41,13 +42,13 @@ export async function test(testFile: string, options: TestOptions) {
       const results = [];
       for (let i = 0; i < testSuite.test_scenarios.length; i++) {
         const scenario = testSuite.test_scenarios[i];
-        console.log(`Running test ${i + 1}/${testSuite.test_scenarios.length}: ${scenario.name}...`);
+        console.log(CliFormatter.loading(`Running test ${i + 1}/${testSuite.test_scenarios.length}: ${CliFormatter.highlight(scenario.name)}...`));
         
         const result = await testExecutor.executeTestScenario(workflowPath, scenario);
         results.push(result);
         
-        const status = result.passed ? '✓ PASSED' : '✗ FAILED';
-        console.log(`  ${status} (${result.duration}ms)\n`);
+        const status = result.passed ? CliFormatter.testPass('PASSED') : CliFormatter.testFail('FAILED');
+        console.log(`  ${status} ${CliFormatter.time(`(${result.duration}ms)`)}` + '\n');
       }
       
       // Generate report based on format
@@ -68,7 +69,7 @@ export async function test(testFile: string, options: TestOptions) {
       process.exit(allPassed ? 0 : 1);
       
     } catch (error: any) {
-      console.error(`\nError: ${error.message}`);
+      console.error('\n' + CliFormatter.error(error.message));
       process.exit(1);
     }
   }

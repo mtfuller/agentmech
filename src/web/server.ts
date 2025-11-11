@@ -7,6 +7,7 @@ import WorkflowParser = require('../workflow/parser');
 import WorkflowExecutor = require('../workflow/executor');
 import WebWorkflowExecutor = require('./workflow-executor');
 import * as RunDirectory from '../utils/run-directory';
+import CliFormatter from '../utils/cli-formatter';
 
 interface ServeOptions {
   port: number;
@@ -333,11 +334,11 @@ body::before {
     return new Promise((resolve, reject) => {
       try {
         this.server = this.app.listen(this.options.port, () => {
-          console.log(`\n🚀 AI Workflow Web UI is running!`);
-          console.log(`📁 Workflow directory: ${this.options.workflowDir}`);
-          console.log(`🌐 Open your browser to: http://localhost:${this.options.port}`);
-          console.log(`🤖 Ollama URL: ${this.options.ollamaUrl}`);
-          console.log(`\nPress Ctrl+C to stop the server.\n`);
+          console.log('\n' + CliFormatter.workflowStart('AI Workflow Web UI is running!'));
+          console.log(CliFormatter.folder(`Workflow directory: ${CliFormatter.path(this.options.workflowDir)}`));
+          console.log(CliFormatter.server(`Open your browser to: ${CliFormatter.highlight(`http://localhost:${this.options.port}`)}`));
+          console.log(CliFormatter.ai(`Ollama URL: ${CliFormatter.highlight(this.options.ollamaUrl)}`));
+          console.log('\n' + CliFormatter.info('Press Ctrl+C to stop the server.') + '\n');
           resolve();
         });
 

@@ -2,6 +2,7 @@ import * as RunDirectory from '../utils/run-directory';
 import WebServer = require('../web/server');
 import * as path from 'path';
 import * as fs from 'fs';
+import CliFormatter from '../utils/cli-formatter';
 
 interface ServeOptions {
     port: number;
@@ -15,20 +16,20 @@ export async function serve(workflowDir: string, options: ServeOptions) {
 
         // Check if directory exists
         if (!fs.existsSync(resolvedWorkflowDir)) {
-            console.error(`\nError: Directory not found: ${resolvedWorkflowDir}`);
+            console.error('\n' + CliFormatter.error(`Directory not found: ${CliFormatter.path(resolvedWorkflowDir)}`));
             process.exit(1);
         }
 
         const stat = fs.statSync(resolvedWorkflowDir);
         if (!stat.isDirectory()) {
-            console.error(`\nError: Path is not a directory: ${resolvedWorkflowDir}`);
+            console.error('\n' + CliFormatter.error(`Path is not a directory: ${CliFormatter.path(resolvedWorkflowDir)}`));
             process.exit(1);
         }
 
         // Parse port option
         const port = parseInt(options.port.toString(), 10);
         if (isNaN(port) || port < 1 || port > 65535) {
-            console.error(`\nError: Invalid port number: ${options.port}`);
+            console.error('\n' + CliFormatter.error(`Invalid port number: ${options.port}`));
             process.exit(1);
         }
 
@@ -43,19 +44,19 @@ export async function serve(workflowDir: string, options: ServeOptions) {
 
         // Handle graceful shutdown
         process.on('SIGINT', () => {
-            console.log('\n\nShutting down server...');
+            console.log('\n\n' + CliFormatter.stop('Shutting down server...'));
             server.stop();
             process.exit(0);
         });
 
         process.on('SIGTERM', () => {
-            console.log('\n\nShutting down server...');
+            console.log('\n\n' + CliFormatter.stop('Shutting down server...'));
             server.stop();
             process.exit(0);
         });
 
     } catch (error: any) {
-        console.error(`\nError: ${error.message}`);
+        console.error('\n' + CliFormatter.error(error.message));
         process.exit(1);
     }
 }
