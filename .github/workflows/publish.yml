@@ -50,8 +50,6 @@ jobs:
     - name: Verify package contents
       run: |
         npm pack --dry-run
-        echo "Package contents:"
-        npm pack --dry-run 2>&1 | grep -A 100 "package:"
     
     - name: Publish to NPM with provenance
       run: npm publish --provenance --access public
