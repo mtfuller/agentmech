@@ -156,5 +156,139 @@ describe('RAG Configuration Validation', () => {
       });
     }).toThrow();
   });
+
+  test('should accept valid embedding model: embeddinggemma', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            model: 'embeddinggemma'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept valid embedding model: qwen3-embedding', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            model: 'qwen3-embedding'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept valid embedding model: all-minilm', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            model: 'all-minilm'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should reject invalid embedding model', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            model: 'gemma3:4b'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).toThrow('RAG model must be one of: embeddinggemma, qwen3-embedding, all-minilm');
+  });
+
+  test('should reject invalid embedding model in inline RAG', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            rag: {
+              directory: './docs',
+              model: 'invalid-model'
+            },
+            next: 'end'
+          }
+        }
+      });
+    }).toThrow('RAG model must be one of: embeddinggemma, qwen3-embedding, all-minilm');
+  });
+
+  test('should accept RAG without model field', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
 });
 

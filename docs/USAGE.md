@@ -415,7 +415,7 @@ start_state: "ask"
 rag:
   kb:
     directory: "./knowledge-base"         # Directory with your documents
-    model: "gemma3:4b"                    # Model for generating embeddings
+    model: "all-minilm"                   # Model for generating embeddings (must be: embeddinggemma, qwen3-embedding, or all-minilm)
     embeddingsFile: "embeddings.msgpack"  # Cache file for embeddings (default format)
     storageFormat: "msgpack"              # Storage format: "msgpack" (default) or "json"
     chunkSize: 500                        # Size of text chunks (in characters)

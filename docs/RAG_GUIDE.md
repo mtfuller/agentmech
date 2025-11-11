@@ -141,10 +141,12 @@ knowledge-base/
 
 ### 4. Model Selection
 
-Use embedding-capable models:
-- `gemma3:4b` ✅
-- `mistral` ✅
-- `codellama` ✅
+Use only the following embedding models:
+- `embeddinggemma` ✅
+- `qwen3-embedding` ✅
+- `all-minilm` ✅
+
+**Note:** These are specialized embedding models. General-purpose models like `gemma3:4b`, `mistral`, or `codellama` are not supported for RAG embeddings.
 
 ### 5. Embeddings Cache
 
