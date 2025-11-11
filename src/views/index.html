@@ -185,9 +185,9 @@
                 
                 // Calculate connection points (bottom of from node to top of to node)
                 const x1 = fromPos.x;
-                const y1 = fromPos.y + 30; // bottom of node
+                const y1 = fromPos.y + 35; // bottom of node
                 const x2 = toPos.x;
-                const y2 = toPos.y - 30; // top of node
+                const y2 = toPos.y - 35; // top of node
                 
                 // Draw curved path
                 const midY = (y1 + y2) / 2;
@@ -230,8 +230,8 @@
                 }
                 
                 // Draw node box
-                const boxWidth = 140;
-                const boxHeight = 60;
+                const boxWidth = 180;
+                const boxHeight = 70;
                 svg += `<rect x="${x - boxWidth/2}" y="${y - boxHeight/2}" width="${boxWidth}" height="${boxHeight}" rx="8" fill="${fillColor}" stroke="${strokeColor}" stroke-width="${node.isStart ? 3 : 2}" />`;
                 
                 // Add start indicator
@@ -239,12 +239,37 @@
                     svg += `<text x="${x}" y="${y - boxHeight/2 - 10}" text-anchor="middle" font-size="12" fill="#4caf50" font-weight="bold">▼ START</text>`;
                 }
                 
-                // Add node label (truncate if too long)
-                const labelText = node.label.length > 15 ? node.label.substring(0, 13) + '...' : node.label;
-                svg += `<text x="${x}" y="${y}" text-anchor="middle" font-size="13" font-weight="600" fill="#333">${labelText}</text>`;
+                // Add node label with better handling
+                let labelText = node.label;
+                let labelLines = [];
+                
+                // If label is too long, try to split on underscore or break at max length
+                if (labelText.length > 20) {
+                    // Try splitting on underscore for multi-word labels
+                    const parts = labelText.split('_');
+                    if (parts.length > 1 && parts[0].length <= 12 && parts[1].length <= 12) {
+                        labelLines = parts.slice(0, 2);
+                    } else {
+                        // Truncate with ellipsis
+                        labelLines = [labelText.substring(0, 18) + '...'];
+                    }
+                } else {
+                    labelLines = [labelText];
+                }
+                
+                // Add title for hover tooltip
+                svg += `<title>${node.label}</title>`;
+                
+                // Render label text (single or multi-line)
+                if (labelLines.length === 1) {
+                    svg += `<text x="${x}" y="${y - 3}" text-anchor="middle" font-size="13" font-weight="600" fill="#333">${labelLines[0]}</text>`;
+                } else {
+                    svg += `<text x="${x}" y="${y - 10}" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${labelLines[0]}</text>`;
+                    svg += `<text x="${x}" y="${y + 5}" text-anchor="middle" font-size="12" font-weight="600" fill="#333">${labelLines[1]}</text>`;
+                }
                 
                 // Add type label
-                svg += `<text x="${x}" y="${y + 16}" text-anchor="middle" font-size="10" fill="#666">${node.type}</text>`;
+                svg += `<text x="${x}" y="${y + 22}" text-anchor="middle" font-size="10" fill="#666">${node.type}</text>`;
             });
             
             svg += '</svg>';
