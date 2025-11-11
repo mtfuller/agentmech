@@ -7,7 +7,7 @@ start_state: "choose_rag_type"
 rag:
   product_kb:
     directory: "./examples/knowledge-base"
-    model: "gemma3:4b"
+    model: "all-minilm"
     embeddings_file: "product_embeddings.msgpack"
     storage_format: "msgpack"
     chunk_size: 500
@@ -15,7 +15,7 @@ rag:
   
   technical_kb:
     directory: "./examples/knowledge-base"
-    model: "gemma3:4b"
+    model: "embeddinggemma"
     embeddings_file: "technical_embeddings.msgpack"
     storage_format: "msgpack"
     chunk_size: 800

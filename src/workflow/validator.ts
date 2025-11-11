@@ -247,6 +247,10 @@ export class WorkflowValidator {
     
     if (ragSpec.model) {
       this.validateFieldType(ragSpec.model, 'string', 'model', ragContext);
+      const allowedEmbeddingModels = ['embeddinggemma', 'qwen3-embedding', 'all-minilm'];
+      if (!allowedEmbeddingModels.includes(ragSpec.model)) {
+        throw new Error(`RAG model must be one of: ${allowedEmbeddingModels.join(', ')}`);
+      }
     }
     
     if (ragSpec.embeddings_file) {
