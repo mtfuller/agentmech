@@ -1,9 +1,10 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
+const { WorkflowValidator } = require('../../dist/workflow/validator');
 
 describe('Next Options (LLM State Selection)', () => {
   test('should accept valid next_options configuration', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test Next Options',
         start_state: 'research',
         states: {
@@ -32,7 +33,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect next_options with less than 2 options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -50,7 +51,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect missing state field in next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -69,7 +70,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect missing description field in next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -93,7 +94,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect non-existent state reference in next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -117,7 +118,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect conflicting next and next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -142,7 +143,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect next_options on non-prompt state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -168,7 +169,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should accept next_options with end state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -192,7 +193,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect empty state string in next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -211,7 +212,7 @@ describe('Next Options (LLM State Selection)', () => {
 
   test('should detect empty description string in next_options', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {

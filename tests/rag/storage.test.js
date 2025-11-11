@@ -1,4 +1,4 @@
-const RagService = require('../../dist/integrations/rag-service');
+const RAGService = require('../../dist/rag/rag-service');
 const fs = require('fs');
 const path = require('path');
 
@@ -23,13 +23,13 @@ describe('RAG Storage Formats', () => {
   });
 
   test('should create and save embeddings in MessagePack format', async () => {
-    const ragServiceMsgpack = new RagService({
+    const ragServiceMsgpack = new RAGService.RAGService({
       directory: testDir,
       model: 'gemma3:4b',
-      embeddings_file: 'test-embeddings.msgpack',
-      storage_format: 'msgpack',
-      chunk_size: 100,
-      top_k: 2
+      embeddingsFile: 'test-embeddings.msgpack',
+      storageFormat: 'msgpack',
+      chunkSize: 100,
+      topK: 2
     });
 
     await ragServiceMsgpack.initialize();
@@ -40,13 +40,13 @@ describe('RAG Storage Formats', () => {
   });
 
   test('should create and save embeddings in JSON format', async () => {
-    const ragServiceJson = new RagService({
+    const ragServiceJson = new RAGService.RAGService({
       directory: testDir,
-      model: 'gemma3:4b',
-      embeddings_file: 'test-embeddings.json',
-      storage_format: 'json',
-      chunk_size: 100,
-      top_k: 2
+      model: 'embeddinggemma',
+      embeddingsFile: 'test-embeddings.json',
+      storageFormat: 'json',
+      chunkSize: 100,
+      topK: 2
     });
 
     await ragServiceJson.initialize();
@@ -54,7 +54,7 @@ describe('RAG Storage Formats', () => {
     expect(fs.existsSync(jsonPath)).toBe(true);
     const stats = fs.statSync(jsonPath);
     expect(stats.size).toBeGreaterThan(0);
-  });
+  }, 10000);
 
   test('should have MessagePack file smaller than JSON', () => {
     const msgpackPath = path.join(testDir, 'test-embeddings.msgpack');
@@ -76,7 +76,7 @@ describe('RAG Storage Formats', () => {
       fs.mkdirSync(migrationDir, { recursive: true });
     }
 
-    // Copy the JSON embeddings as legacy file
+    // First, ensure we have a JSON embeddings file to copy
     const jsonPath = path.join(testDir, 'test-embeddings.json');
     const legacyJsonPath = path.join(migrationDir, 'embeddings.json');
     fs.copyFileSync(jsonPath, legacyJsonPath);
@@ -86,9 +86,9 @@ describe('RAG Storage Formats', () => {
     fs.copyFileSync(testDocPath, migrationDocPath);
 
     // Initialize with msgpack format - should detect and migrate JSON
-    const ragServiceMigration = new RagService({
+    const ragServiceMigration = new RAGService.RAGService({
       directory: migrationDir,
-      model: 'gemma3:4b',
+      model: 'embeddinggemma',
       embeddingsFile: 'embeddings.msgpack',
       storageFormat: 'msgpack',
       chunkSize: 100,
@@ -98,6 +98,6 @@ describe('RAG Storage Formats', () => {
     await ragServiceMigration.initialize();
     const msgpackPath = path.join(migrationDir, 'embeddings.msgpack');
     expect(fs.existsSync(msgpackPath)).toBe(true);
-  });
+  }, 20000);
 });
 

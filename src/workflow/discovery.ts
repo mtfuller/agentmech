@@ -44,7 +44,7 @@ class WorkflowDiscovery {
         const filePath = path.join(dirPath, file);
         
         try {
-          const workflow = WorkflowParser.parseFile(filePath);
+          const workflow = WorkflowParser.parseFile({filePath, workflowDir: '', visitedFiles: new Set()});
           workflows.push({
             name: workflow.name,
             description: workflow.description,

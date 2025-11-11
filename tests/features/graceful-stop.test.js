@@ -1,6 +1,6 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
-const WorkflowExecutor = require('../../dist/core/workflow-executor');
-const WebWorkflowExecutor = require('../../dist/web/web-workflow-executor');
+const WorkflowParser = require('../../dist/workflow/parser');
+const WorkflowExecutor = require('../../dist/workflow/executor');
+const WebWorkflowExecutor = require('../../dist/web/workflow-executor');
 const Tracer = require('../../dist/utils/tracer');
 
 describe('Graceful Stop Mechanism', () => {
@@ -20,6 +20,7 @@ describe('Graceful Stop Mechanism', () => {
       
       const executor = new WorkflowExecutor(workflow, 'http://localhost:11434');
       expect(typeof executor.stop).toBe('function');
+      executor.stop(); // Clean up to prevent Jest from hanging
     });
 
     it('should set stopRequested flag when stop is called', () => {
@@ -43,6 +44,7 @@ describe('Graceful Stop Mechanism', () => {
       executor.stop();
       
       expect(executor['stopRequested']).toBe(true);
+      // stop() already cleaned up the readline interface
     });
 
     it('should only log stop message once when stop is called multiple times', () => {
@@ -77,6 +79,7 @@ describe('Graceful Stop Mechanism', () => {
       
       // Should only log once despite multiple calls
       expect(logCount).toBe(1);
+      executor.stop(); // Clean up to prevent Jest from hanging
     });
   });
 
@@ -186,7 +189,7 @@ states:
       const workflowPath = path.join(tmpDir, 'stop-test.yaml');
       fs.writeFileSync(workflowPath, workflowYaml);
       
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       expect(workflow.name).toBe('Stop Test');
       expect(workflow.states.step1.type).toBe('input');

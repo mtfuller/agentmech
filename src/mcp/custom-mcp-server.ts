@@ -122,7 +122,7 @@ class CustomMcpServer {
       }
     }
 
-    console.error(`Loaded ${this.tools.size} custom tools from ${this.toolsDirectory}`);
+    console.info(`Loaded ${this.tools.size} custom tools from ${this.toolsDirectory}`);
   }
 
   /**

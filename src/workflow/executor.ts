@@ -1,73 +1,30 @@
 import * as readline from 'readline';
 import * as path from 'path';
-import OllamaClient = require('../integrations/ollama-client');
-import McpClient = require('../integrations/mcp-client');
-import RagService = require('../integrations/rag-service');
+import OllamaClient = require('../ollama/ollama-client');
+import McpClient = require('../mcp/mcp-client');
+import { RAGConfig, RAGService } from '../rag/rag-service';
+import { Workflow, State, NextOption } from './workflow';
 import Tracer = require('../utils/tracer');
 import FileHandler = require('../utils/file-handler');
 
+// Constants for state types and special state names
 const END_STATE = 'end';
-
-
-
-interface NextOption {
-  state: string;
-  description: string;
-}
-
-interface McpServerConfig {
-  command?: string;  // Optional for type-based configs, but always set after normalization
-  args?: string[];
-  env?: Record<string, string>;
-}
-
-interface RagConfig {
-  directory: string;
-  model?: string;
-  embeddingsFile?: string;
-  chunkSize?: number;
-  topK?: number;
-}
-
-interface State {
-  type: string;
-  prompt?: string;
-  prompt_file?: string;
-  workflow_ref?: string;
-  next?: string;
-  next_options?: NextOption[];  // LLM-driven state selection
-  model?: string;
-  save_as?: string;
-  options?: Record<string, any>;
-  mcp_servers?: string[];
-  use_rag?: boolean | string;  // true for default, or name of rag config
-  rag?: RagConfig;  // inline RAG configuration
-  default_value?: string;  // default value for input state
-  on_error?: string;  // Fallback state to transition to on error (state-level)
-  files?: string[];  // Array of file paths for multimodal inputs (images, PDFs, text files, etc.)
-}
-
-interface Workflow {
-  name: string;
-  description?: string;
-  start_state: string;
-  default_model?: string;
-  mcp_servers?: Record<string, McpServerConfig>;
-  rag?: RagConfig;  // Backward compatibility: default RAG config
-  rags?: Record<string, RagConfig>;  // Named RAG configurations
-  on_error?: string;  // Fallback state to transition to on error (workflow-level)
-  states: Record<string, State>;
-}
+const STATE_TYPE = {
+  PROMPT: 'prompt',
+  INPUT: 'input',
+  TRANSITION: 'transition',
+  END: 'end'
+} as const;
 
 class WorkflowExecutor {
   private workflow: Workflow;
   private ollamaClient: OllamaClient;
   private mcpClient: McpClient;
-  private ragService?: RagService;
-  private namedRagServices: Map<string, RagService>;
+  private ragService?: RAGService;
+  private namedRagServices: Map<string, RAGService>;
   private context: Record<string, any>;
   private history: string[];
-  private rl: readline.Interface;
+  private rl?: readline.Interface;
   private tracer: Tracer;
   private stopRequested: boolean;
   private runDirectory?: string;
@@ -87,26 +44,127 @@ class WorkflowExecutor {
       this.context['run_directory'] = runDirectory;
     }
     
-    // Initialize default RAG service if configured
-    if (workflow.rag) {
-      this.ragService = new RagService(workflow.rag, ollamaUrl);
-    }
     this.tracer = tracer || new Tracer(false);
-    
-    this.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
   }
 
   /**
-   * Request graceful stop of workflow execution
+   * Get or create the readline interface
+   */
+  private getReadlineInterface(): readline.Interface {
+    if (!this.rl) {
+      this.rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+    }
+    return this.rl;
+  }
+
+  /**
+   * Process multimodal files (images, text files, etc.) for a state
+   * @param filePaths - Array of file paths to process
+   * @returns Object containing processed images and text contents
+   */
+  private async processMultimodalFiles(filePaths: string[]): Promise<{ images: string[], textContents: string[] }> {
+    const images: string[] = [];
+    const textContents: string[] = [];
+
+    if (!filePaths || filePaths.length === 0) {
+      return { images, textContents };
+    }
+
+    console.log(`\nProcessing ${filePaths.length} file(s) for multimodal input...`);
+
+    for (const filePath of filePaths) {
+      try {
+        const resolvedPath = this.interpolateVariables(filePath);
+        const processedFile = await FileHandler.processFile(resolvedPath);
+
+        console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
+
+        if (processedFile.type === 'image') {
+          images.push(processedFile.content);
+        } else if (processedFile.type === 'text') {
+          textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
+        }
+      } catch (error: any) {
+        console.warn(`⚠ Warning: ${error.message}`);
+        // Continue processing other files
+      }
+    }
+
+    if (images.length > 0) {
+      console.log(`📷 Attached ${images.length} image(s) to the prompt`);
+    }
+
+    return { images, textContents };
+  }
+
+  /**
+   * Prepare prompt with RAG context if configured
+   * @param prompt - Original prompt text
+   * @param state - State configuration
+   * @returns Promise resolving to prompt with RAG context added
+   */
+  private async preparePromptWithRAG(prompt: string, state: State): Promise<string> {
+    let ragServiceToUse: RAGService | undefined = undefined;
+
+    // Priority: inline rag > use_rag (named/default)
+    if (state.rag) {
+      console.log('\nInitializing inline RAG configuration...');
+      ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
+      await ragServiceToUse.initialize();
+    }
+
+    // Add RAG context if a service is available
+    if (ragServiceToUse) {
+      console.log('Retrieving relevant context from RAG...');
+      const relevantChunks = await ragServiceToUse.search(prompt);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks);
+
+      if (ragContext) {
+        console.log('RAG context added to prompt');
+        return prompt + ragContext;
+      }
+    }
+
+    return prompt;
+  }
+
+  /**
+   * Connect to MCP servers configured for a state
+   * @param state - State configuration
+   */
+  private async connectMCPServers(state: State): Promise<void> {
+    if (!state.mcpServers || state.mcpServers.length === 0) {
+      return;
+    }
+
+    console.log(`\nConnecting to MCP servers: ${state.mcpServers.join(', ')}`);
+    for (const serverName of state.mcpServers) {
+      try {
+        await this.mcpClient.connectServer(serverName);
+        console.log(`✓ Connected to MCP server: ${serverName}`);
+      } catch (error: any) {
+        console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
+      }
+    }
+  }
+
+  /**
+   * Request graceful stop of workflow execution and clean up resources
    */
   stop(): void {
     if (!this.stopRequested) {
       this.stopRequested = true;
       console.log('\n\n🛑 Stop requested. Workflow will stop after the current state completes...');
       this.tracer.traceContextUpdate('stop_requested', 'true');
+    }
+    
+    // Clean up readline interface to prevent hanging (can be called multiple times safely)
+    if (this.rl) {
+      this.rl.close();
+      this.rl = undefined;
     }
   }
 
@@ -120,17 +178,17 @@ class WorkflowExecutor {
       console.log(`${this.workflow.description}\n`);
     }
 
-    this.tracer.traceWorkflowStart(this.workflow.name, this.workflow.start_state);
+    this.tracer.traceWorkflowStart(this.workflow.name, this.workflow.startState);
 
     // Auto-inject filesystem MCP server if run directory is provided and not already configured
     if (this.runDirectory) {
-      // Initialize mcp_servers if not present
-      if (!this.workflow.mcp_servers) {
-        this.workflow.mcp_servers = {};
+      // Initialize mcpServers if not present
+      if (!this.workflow.mcpServers) {
+        this.workflow.mcpServers = {};
       }
       
       // Check if filesystem server is already configured
-      const hasFilesystemServer = Object.entries(this.workflow.mcp_servers).some(
+      const hasFilesystemServer = Object.entries(this.workflow.mcpServers).some(
         ([name, config]) => {
           // Check if it's explicitly named 'filesystem' or uses the filesystem package
           return name === 'filesystem' || 
@@ -141,20 +199,21 @@ class WorkflowExecutor {
       // If no filesystem server configured, auto-inject one
       if (!hasFilesystemServer) {
         console.log(`Auto-configuring filesystem MCP server with run directory: ${this.runDirectory}`);
-        this.workflow.mcp_servers['filesystem'] = {
+        this.workflow.mcpServers['filesystem'] = {
           command: 'npx',
-          args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory]
+          args: ['-y', '@modelcontextprotocol/server-filesystem', this.runDirectory],
+          env: {}
         };
       }
     }
 
     // Initialize MCP servers if configured
-    if (this.workflow.mcp_servers) {
+    if (this.workflow.mcpServers) {
       console.log('Initializing MCP servers...');
-      for (const [serverName, config] of Object.entries(this.workflow.mcp_servers)) {
+      for (const [serverName, config] of Object.entries(this.workflow.mcpServers)) {
         this.mcpClient.registerServer(serverName, config);
       }
-      console.log(`Registered ${Object.keys(this.workflow.mcp_servers).length} MCP server(s)\n`);
+      console.log(`Registered ${Object.keys(this.workflow.mcpServers).length} MCP server(s)\n`);
     }
 
     // Initialize default RAG if configured
@@ -165,10 +224,10 @@ class WorkflowExecutor {
     }
 
     // Initialize named RAG services if configured
-    if (this.workflow.rags) {
+    if (this.workflow.rag) {
       console.log('Initializing named RAG systems...');
-      for (const [ragName, ragConfig] of Object.entries(this.workflow.rags)) {
-        const ragService = new RagService(ragConfig, 'http://localhost:11434');
+      for (const [ragName, ragConfig] of Object.entries(this.workflow.rag)) {
+        const ragService = new RAGService(ragConfig, 'http://localhost:11434');
         await ragService.initialize();
         this.namedRagServices.set(ragName, ragService);
         console.log(`  ✓ Initialized RAG: ${ragName}`);
@@ -177,7 +236,7 @@ class WorkflowExecutor {
     }
 
     try {
-      let currentState: string | null = this.workflow.start_state;
+      let currentState: string | null = this.workflow.startState;
       
       while (currentState && currentState !== END_STATE && !this.stopRequested) {
         const state: State = this.workflow.states[currentState];
@@ -195,18 +254,18 @@ class WorkflowExecutor {
           this.tracer.traceError('state_execution_error', error.message, { state: currentState });
           
           // Check for state-level fallback first
-          if (state.on_error) {
-            console.log(`\nTransitioning to fallback state (state-level): ${state.on_error}`);
-            this.tracer.traceStateTransition(currentState, state.on_error, 'error_fallback');
-            currentState = state.on_error;
+          if (state.onError) {
+            console.log(`\nTransitioning to fallback state (state-level): ${state.onError}`);
+            this.tracer.traceStateTransition(currentState, state.onError, 'error_fallback');
+            currentState = state.onError;
             continue; // Continue the workflow with the fallback state
           }
           
           // Check for workflow-level fallback
-          if (this.workflow.on_error) {
-            console.log(`\nTransitioning to fallback state (workflow-level): ${this.workflow.on_error}`);
-            this.tracer.traceStateTransition(currentState, this.workflow.on_error, 'error_fallback');
-            currentState = this.workflow.on_error;
+          if (this.workflow.onError) {
+            console.log(`\nTransitioning to fallback state (workflow-level): ${this.workflow.onError}`);
+            this.tracer.traceStateTransition(currentState, this.workflow.onError, 'error_fallback');
+            currentState = this.workflow.onError;
             continue; // Continue the workflow with the fallback state
           }
           
@@ -223,9 +282,14 @@ class WorkflowExecutor {
         this.tracer.traceWorkflowComplete();
       }
     } finally {
-      // Clean up MCP connections
+      // Clean up MCP connections and readline interface
       await this.mcpClient.disconnectAll();
-      this.rl.close();
+      
+      // Clean up readline interface if it was created
+      if (this.rl) {
+        this.rl.close();
+        this.rl = undefined;
+      }
     }
   }
 
@@ -237,13 +301,13 @@ class WorkflowExecutor {
    */
   async executeState(stateName: string, state: State): Promise<string> {
     switch (state.type) {
-      case 'prompt':
+      case STATE_TYPE.PROMPT:
         return await this.executePromptState(stateName, state);
-      case 'input':
+      case STATE_TYPE.INPUT:
         return await this.executeInputState(stateName, state);
-      case 'transition':
+      case STATE_TYPE.TRANSITION:
         return await this.executeTransitionState(stateName, state);
-      case END_STATE:
+      case STATE_TYPE.END:
         return END_STATE;
       default:
         throw new Error(`Unknown state type: ${state.type}`);
@@ -272,95 +336,21 @@ class WorkflowExecutor {
     let prompt = this.interpolateVariables(state.prompt || '');
     console.log(`\nPrompt: ${prompt}`);
     
-    // Process files if provided (for multimodal support)
-    let images: string[] = [];
-    let textContents: string[] = [];
+    // Process multimodal files if provided
+    const { images, textContents } = await this.processMultimodalFiles(state.files);
     
-    if (state.files && state.files.length > 0) {
-      console.log(`\nProcessing ${state.files.length} file(s) for multimodal input...`);
-      
-      for (const filePath of state.files) {
-        try {
-          const resolvedPath = this.interpolateVariables(filePath);
-          const processedFile = await FileHandler.processFile(resolvedPath);
-          
-          console.log(`✓ Processed ${processedFile.filename} (${processedFile.type})`);
-          
-          if (processedFile.type === 'image') {
-            images.push(processedFile.content);
-          } else if (processedFile.type === 'text') {
-            textContents.push(`\n--- Content from ${processedFile.filename} ---\n${processedFile.content}\n--- End of ${processedFile.filename} ---\n`);
-          }
-        } catch (error: any) {
-          console.warn(`⚠ Warning: ${error.message}`);
-          // Continue processing other files
-        }
-      }
-      
-      // Append text file contents to the prompt
-      if (textContents.length > 0) {
-        prompt = prompt + '\n\n' + textContents.join('\n');
-      }
-      
-      if (images.length > 0) {
-        console.log(`📷 Attached ${images.length} image(s) to the prompt`);
-      }
+    // Append text file contents to the prompt
+    if (textContents.length > 0) {
+      prompt = prompt + '\n\n' + textContents.join('\n');
     }
     
-    // Determine which RAG service to use
-    let ragServiceToUse: RagService | undefined = undefined;
-    
-    // Priority: inline rag > use_rag (named/default) 
-    if (state.rag) {
-      // Inline RAG configuration
-      console.log('\nInitializing inline RAG configuration...');
-      ragServiceToUse = new RagService(state.rag, 'http://localhost:11434');
-      await ragServiceToUse.initialize();
-    } else if (state.use_rag) {
-      if (typeof state.use_rag === 'string') {
-        // Named RAG reference
-        ragServiceToUse = this.namedRagServices.get(state.use_rag);
-        if (ragServiceToUse) {
-          console.log(`\nUsing RAG configuration: ${state.use_rag}`);
-        }
-      } else if (state.use_rag === true) {
-        // Default RAG
-        ragServiceToUse = this.ragService;
-        if (ragServiceToUse) {
-          console.log('\nUsing default RAG configuration');
-        }
-      }
-    }
-    
-    // Add RAG context if a service is available
-    if (ragServiceToUse) {
-      console.log('Retrieving relevant context from RAG...');
-      const relevantChunks = await ragServiceToUse.search(prompt);
-      const ragContext = ragServiceToUse.formatContext(relevantChunks);
-      
-      if (ragContext) {
-        prompt = prompt + ragContext;
-        console.log('RAG context added to prompt');
-      }
-    }
+    // Add RAG context if configured
+    prompt = await this.preparePromptWithRAG(prompt, state);
     
     // Connect to MCP servers if specified for this state
-    if (state.mcp_servers && state.mcp_servers.length > 0) {
-      console.log(`\nConnecting to MCP servers: ${state.mcp_servers.join(', ')}`);
-      for (const serverName of state.mcp_servers) {
-        try {
-          await this.mcpClient.connectServer(serverName);
-          console.log(`✓ Connected to MCP server: ${serverName}`);
-        } catch (error: any) {
-          console.warn(`⚠ Failed to connect to MCP server "${serverName}": ${error.message}`);
-        }
-      }
-      
-      // Note: Full MCP protocol communication for querying tools/resources is not yet implemented.
-      // The infrastructure is in place for future integration with MCP servers via JSON-RPC over stdio.
-    }
+    await this.connectMCPServers(state);
     
-    const model = state.model || this.workflow.default_model || 'gemma3:4b';
+    const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
     console.log(`\nUsing model: ${model}`);
     console.log('Generating response...\n');
     
@@ -370,14 +360,14 @@ class WorkflowExecutor {
       console.log(`Response: ${response}\n`);
       
       // Store response in context if variable is specified
-      if (state.save_as) {
-        this.context[state.save_as] = response;
-        this.tracer.traceContextUpdate(state.save_as, response);
+      if (state.saveAs) {
+        this.context[state.saveAs] = response;
+        this.tracer.traceContextUpdate(state.saveAs, response);
       }
-      
-      // Handle LLM-driven state selection if next_options is defined
-      if (state.next_options && state.next_options.length > 0) {
-        return await this.selectNextState(state.next_options, response, model);
+
+      // Handle LLM-driven state selection if nextOptions is defined
+      if (state.nextOptions && state.nextOptions.length > 0) {
+        return await this.selectNextState(state.nextOptions, response, model);
       }
       
       return state.next || END_STATE;
@@ -385,8 +375,6 @@ class WorkflowExecutor {
       throw new Error(`Failed to generate response: ${error.message}`);
     }
   }
-
-
 
   /**
    * Execute an input state (asks user for freeform text input)
@@ -400,8 +388,8 @@ class WorkflowExecutor {
     }
     
     let defaultHint = '';
-    if (state.default_value) {
-      const interpolatedDefault = this.interpolateVariables(state.default_value);
+    if (state.defaultValue) {
+      const interpolatedDefault = this.interpolateVariables(state.defaultValue);
       defaultHint = ` (default: ${interpolatedDefault})`;
     }
     
@@ -409,15 +397,15 @@ class WorkflowExecutor {
     
     // Use default value if no input provided
     let userInput = answer.trim();
-    if (!userInput && state.default_value) {
-      userInput = this.interpolateVariables(state.default_value);
+    if (!userInput && state.defaultValue) {
+      userInput = this.interpolateVariables(state.defaultValue);
       console.log(`Using default value: ${userInput}`);
     }
     
     // Store input in context if variable is specified
-    if (state.save_as) {
-      this.context[state.save_as] = userInput;
-      this.tracer.traceContextUpdate(state.save_as, userInput);
+    if (state.saveAs) {
+      this.context[state.saveAs] = userInput;
+      this.tracer.traceContextUpdate(state.saveAs, userInput);
     }
     
     this.tracer.traceUserChoice(stateName, userInput);
@@ -507,7 +495,8 @@ class WorkflowExecutor {
    */
   askQuestion(question: string): Promise<string> {
     return new Promise((resolve) => {
-      this.rl.question(question, (answer) => {
+      const rl = this.getReadlineInterface();
+      rl.question(question, (answer) => {
         resolve(answer);
       });
     });

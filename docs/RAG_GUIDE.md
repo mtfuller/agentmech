@@ -30,25 +30,9 @@ You can still use JSON format if needed by setting `storageFormat: "json"` in yo
 
 ## Configuration Options
 
-RAG can be configured in three flexible ways:
+RAG can be configured in two flexible ways:
 
-### 1. Default RAG (Workflow-level)
-
-Best for: Single knowledge base used across multiple states
-
-```yaml
-rag:
-  directory: "./knowledge-base"          # Required: Directory with documents
-  model: "gemma3:4b"                     # Optional: Model for embeddings
-  embeddingsFile: "embeddings.msgpack"   # Optional: Cache file name (default: embeddings.msgpack)
-  storageFormat: "msgpack"               # Optional: "msgpack" (default) or "json"
-  chunkSize: 500                         # Optional: Characters per chunk
-  topK: 3                                # Optional: Number of chunks to retrieve
-```
-
-States use it with: `use_rag: true`
-
-### 2. Named RAG Configurations
+### 1. Named RAG Configurations
 
 Best for: Multiple knowledge bases in one workflow
 
@@ -67,7 +51,7 @@ rags:
 
 States reference by name: `use_rag: "product_kb"`
 
-### 3. Inline RAG (State-level)
+### 2. Inline RAG (State-level)
 
 Best for: State-specific knowledge base or settings
 
@@ -92,7 +76,7 @@ Three ways to enable RAG in a prompt state:
 state1:
   type: "prompt"
   prompt: "Question here"
-  use_rag: true
+  use_rag: "wow"
   next: "end"
 
 # Option 2: Use named RAG configuration

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { encode, decode } from '@msgpack/msgpack';
-import OllamaClient = require('./ollama-client');
+import OllamaClient = require('../ollama/ollama-client');
 
 interface DocumentChunk {
   id: string;
@@ -10,13 +10,13 @@ interface DocumentChunk {
   embedding?: number[];
 }
 
-interface RagConfig {
+export interface RAGConfig {
   directory: string;
-  model?: string;
-  embeddings_file?: string;
-  chunk_size?: number;
-  top_k?: number;
-  storage_format?: 'json' | 'msgpack';
+  model: string;
+  embeddingsFile: string;
+  chunkSize: number;
+  topK: number;
+  storageFormat: 'json' | 'msgpack';
 }
 
 // Constants for embeddings storage
@@ -26,35 +26,34 @@ const MSGPACK_EXTENSIONS = ['.msgpack', '.mp']; // .mp is a common short extensi
 
 interface EmbeddingsStore {
   chunks: DocumentChunk[];
-  config: RagConfig;
+  config: RAGConfig;
   createdAt: string;
 }
 
-class RagService {
+export class RAGService {
   private ollamaClient: OllamaClient;
-  private config: RagConfig;
+  private config: RAGConfig;
   private chunks: DocumentChunk[] = [];
 
-  constructor(config: RagConfig, ollamaUrl: string = 'http://localhost:11434') {
+  constructor(config: RAGConfig, ollamaUrl: string = 'http://localhost:11434') {
     // First apply config overrides, then normalize field names
     const mergedConfig = {
-      model: config.model || 'gemma3:4b',
       ...config
     };
     
     // Support both old and new field names, preferring new ones
-    const embeddingsFile = mergedConfig.embeddings_file || mergedConfig.embeddings_file || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
-    const chunkSize = mergedConfig.chunk_size || mergedConfig.chunk_size || 1000;
-    const topK = mergedConfig.top_k || mergedConfig.top_k || 3;
-    const storageFormat = mergedConfig.storage_format || mergedConfig.storage_format || 'msgpack';
+    const embeddingsFile = mergedConfig.embeddingsFile || mergedConfig.embeddingsFile || DEFAULT_MSGPACK_EMBEDDINGS_FILE;
+    const chunkSize = mergedConfig.chunkSize || mergedConfig.chunkSize || 1000;
+    const topK = mergedConfig.topK || mergedConfig.topK || 3;
+    const storageFormat = mergedConfig.storageFormat || mergedConfig.storageFormat || 'msgpack';
 
     // Store normalized config using new field names
     this.config = {
       ...mergedConfig,
-      embeddings_file: embeddingsFile,
-      chunk_size: chunkSize,
-      top_k: topK,
-      storage_format: storageFormat,
+      embeddingsFile: embeddingsFile,
+      chunkSize: chunkSize,
+      topK: topK,
+      storageFormat: storageFormat,
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
   }
@@ -63,7 +62,7 @@ class RagService {
    * Initialize RAG by loading or creating embeddings
    */
   async initialize(): Promise<void> {
-    const embeddingsPath = path.join(this.config.directory, this.config.embeddings_file!);
+    const embeddingsPath = path.join(this.config.directory, this.config.embeddingsFile);
     
     // Check if embeddings file exists
     if (fs.existsSync(embeddingsPath)) {
@@ -71,7 +70,7 @@ class RagService {
       await this.loadEmbeddings(embeddingsPath);
     } else {
       // Check for legacy JSON file if using msgpack format
-      if (this.config.storage_format === 'msgpack') {
+      if (this.config.storageFormat === 'msgpack') {
         const legacyJsonPath = path.join(this.config.directory, DEFAULT_JSON_EMBEDDINGS_FILE);
         if (fs.existsSync(legacyJsonPath)) {
           console.log(`Found legacy JSON embeddings at ${legacyJsonPath}`);
@@ -148,7 +147,7 @@ class RagService {
       
       // Determine format from file extension or config
       const fileExt = path.extname(filePath).toLowerCase();
-      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt) || this.config.storage_format === 'msgpack';
+      const isMsgpack = MSGPACK_EXTENSIONS.includes(fileExt) || this.config.storageFormat === 'msgpack';
       
       if (isMsgpack) {
         // Save as MessagePack format (binary)
@@ -190,7 +189,7 @@ class RagService {
         }
         
         const content = fs.readFileSync(file, 'utf8');
-        const chunks = this.chunkText(content, this.config.chunk_size!);
+        const chunks = this.chunkText(content, this.config.chunkSize!);
       
         for (let i = 0; i < chunks.length; i++) {
           const chunk: DocumentChunk = {
@@ -343,7 +342,7 @@ class RagService {
     
     // Sort by similarity and return top K
     scores.sort((a, b) => b.score - a.score);
-    const topChunks = scores.slice(0, this.config.top_k!).map(s => s.chunk);
+    const topChunks = scores.slice(0, this.config.topK!).map(s => s.chunk);
     
     console.log(`Found ${topChunks.length} relevant chunks`);
     return topChunks;
@@ -392,5 +391,3 @@ class RagService {
     return context;
   }
 }
-
-export = RagService;

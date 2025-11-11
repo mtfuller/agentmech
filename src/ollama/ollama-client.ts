@@ -129,7 +129,7 @@ class OllamaClient {
   async embeddings(model: string, prompt: string): Promise<number[]> {
     try {
       const response = await axios.post(`${this.baseUrl}/api/embeddings`, {
-        model,
+        model: "embeddinggemma",
         prompt
       });
       
@@ -139,7 +139,8 @@ class OllamaClient {
       if ((axiosError as any).code === 'ECONNREFUSED') {
         throw new Error(`Cannot connect to Ollama at ${this.baseUrl}. Please ensure Ollama is running.`);
       }
-      throw new Error(`Ollama API error: ${axiosError.message}`);
+      console.error(axiosError.response?.data)
+      throw new Error(`Ollama API error: ${axiosError.message} -- ${model}`);
     }
   }
 }

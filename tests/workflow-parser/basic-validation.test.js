@@ -1,21 +1,24 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
+const { WorkflowValidator } = require('../../dist/workflow/validator');
 const path = require('path');
 
 describe('Basic Workflow Validation', () => {
   test('should parse valid workflow', () => {
-    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/simple-qa.yaml'));
+    const filePath = path.join(__dirname, '../../examples/simple-qa.yaml');
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath, visitedFiles: new Set()});
     expect(workflow.name).toBe('Simple Q&A Workflow');
   });
 
   test('should validate workflow structure', () => {
-    const workflow = WorkflowParser.parseFile(path.join(__dirname, '../../examples/complete-story-builder.yaml'));
-    expect(workflow.start_state).toBeDefined();
-    expect(workflow.states[workflow.start_state]).toBeDefined();
+    const filePath = path.join(__dirname, '../../examples/complete-story-builder.yaml');
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath, visitedFiles: new Set()});
+    expect(workflow.startState).toBeDefined();
+    expect(workflow.states[workflow.startState]).toBeDefined();
   });
 
   test('should detect missing start_state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       });
@@ -24,7 +27,7 @@ describe('Basic Workflow Validation', () => {
 
   test('should detect invalid state type', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: { test: { type: 'invalid' } }
@@ -34,7 +37,7 @@ describe('Basic Workflow Validation', () => {
 
   test('should detect missing prompt in prompt state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: { test: { type: 'prompt', next: 'end' } }
@@ -44,7 +47,7 @@ describe('Basic Workflow Validation', () => {
 
   test('should validate transition state type', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -59,7 +62,7 @@ describe('Basic Workflow Validation', () => {
 
   test('should reject explicit end state definition', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {
@@ -72,7 +75,7 @@ describe('Basic Workflow Validation', () => {
 
   test('should allow next: "end" without defining end state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         states: {

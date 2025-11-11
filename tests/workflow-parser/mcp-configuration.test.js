@@ -1,4 +1,5 @@
-const WorkflowParser = require('../../dist/core/workflow-parser');
+const WorkflowParser = require('../../dist/workflow/parser');
+const { WorkflowValidator } = require('../../dist/workflow/validator');
 const fs = require('fs');
 const path = require('path');
 const yaml = require('js-yaml');
@@ -19,13 +20,13 @@ describe('MCP Server Configuration', () => {
       states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
     };
     expect(() => {
-      WorkflowParser.validateWorkflow(workflow);
+      WorkflowValidator.validateWorkflowSpec(workflow);
     }).not.toThrow();
   });
 
   test('should detect invalid MCP server configuration (missing command)', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         mcp_servers: {
@@ -40,7 +41,7 @@ describe('MCP Server Configuration', () => {
 
   test('should detect invalid MCP server reference in state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         mcp_servers: {
@@ -60,7 +61,7 @@ describe('MCP Server Configuration', () => {
 
   test('should accept valid MCP server reference in state', () => {
     expect(() => {
-      WorkflowParser.validateWorkflow({
+      WorkflowValidator.validateWorkflowSpec({
         name: 'Test',
         start_state: 'test',
         mcp_servers: {
@@ -93,13 +94,13 @@ describe('MCP Server Configuration', () => {
         states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       };
       expect(() => {
-        WorkflowParser.validateWorkflow(workflow);
+        WorkflowValidator.validateWorkflowSpec(workflow);
       }).not.toThrow();
     });
 
     test('should reject NPX type configuration without package', () => {
       expect(() => {
-        WorkflowParser.validateWorkflow({
+        WorkflowValidator.validateWorkflowSpec({
           name: 'Test',
           start_state: 'test',
           mcp_servers: {
@@ -109,7 +110,7 @@ describe('MCP Server Configuration', () => {
           },
           states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
         });
-      }).toThrow(/must have a "package" field/);
+      }).toThrow(/must have a package field/);
     });
 
     test('should normalize NPX type to standard command format', () => {
@@ -132,40 +133,40 @@ states:
 `;
       fs.writeFileSync(workflowPath, workflowContent);
       
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
       
       // Check that it was normalized
-      expect(workflow.mcp_servers.filesystem.command).toBe('npx');
-      expect(workflow.mcp_servers.filesystem.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
-      expect(workflow.mcp_servers.filesystem.type).toBeUndefined();
-      expect(workflow.mcp_servers.filesystem.package).toBeUndefined();
-      
+      expect(workflow.mcpServers.filesystem.command).toBe('npx');
+      expect(workflow.mcpServers.filesystem.args).toEqual(['-y', '@modelcontextprotocol/server-filesystem', '/tmp']);
+      expect(workflow.mcpServers.filesystem.type).toBeUndefined();
+      expect(workflow.mcpServers.filesystem.package).toBeUndefined();
+
       // Cleanup
       fs.unlinkSync(workflowPath);
     });
   });
 
   describe('Custom Tools Type Configuration', () => {
-    test('should accept custom-tools type configuration with toolsDirectory', () => {
+    test('should accept custom-tools type configuration with tools_directory', () => {
       const workflow = {
         name: 'Custom Tools Test',
         start_state: 'test',
         mcp_servers: {
           'custom_tools': {
             type: 'custom-tools',
-            toolsDirectory: 'examples/custom-tools'
+            tools_directory: 'examples/custom-tools'
           }
         },
         states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       };
       expect(() => {
-        WorkflowParser.validateWorkflow(workflow);
+        WorkflowValidator.validateWorkflowSpec(workflow);
       }).not.toThrow();
     });
 
-    test('should reject custom-tools type configuration without toolsDirectory', () => {
+    test('should reject custom-tools type configuration without tools_directory', () => {
       expect(() => {
-        WorkflowParser.validateWorkflow({
+        WorkflowValidator.validateWorkflowSpec({
           name: 'Test',
           start_state: 'test',
           mcp_servers: {
@@ -175,7 +176,7 @@ states:
           },
           states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
         });
-      }).toThrow(/must have a "toolsDirectory" field/);
+      }).toThrow(/must have a tools_directory field/);
     });
 
     test('should normalize custom-tools type to standard command format', () => {
@@ -188,7 +189,7 @@ start_state: "test"
 mcp_servers:
   custom_tools:
     type: "custom-tools"
-    toolsDirectory: "examples/custom-tools"
+    tools_directory: "examples/custom-tools"
 states:
   test:
     type: "prompt"
@@ -196,25 +197,25 @@ states:
     next: "end"
 `;
       fs.writeFileSync(workflowPath, workflowContent);
-      
-      const workflow = WorkflowParser.parseFile(workflowPath);
-      
+
+      const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: workflowPath, visitedFiles: new Set()});
+
       // Check that it was normalized
-      expect(workflow.mcp_servers.custom_tools.command).toBe('node');
-      expect(workflow.mcp_servers.custom_tools.args).toHaveLength(2);
-      expect(workflow.mcp_servers.custom_tools.args[0]).toBe('dist/custom-mcp-server.js');
+      expect(workflow.mcpServers.custom_tools.command).toBe('node');
+      expect(workflow.mcpServers.custom_tools.args).toHaveLength(2);
+      expect(workflow.mcpServers.custom_tools.args[0]).toBe('dist/custom-mcp-server.js');
       // Second arg should be the resolved absolute path to the tools directory
-      expect(workflow.mcp_servers.custom_tools.args[1]).toContain('custom-tools');
-      expect(workflow.mcp_servers.custom_tools.type).toBeUndefined();
-      expect(workflow.mcp_servers.custom_tools.toolsDirectory).toBeUndefined();
-      
+      expect(workflow.mcpServers.custom_tools.args[1]).toContain('custom-tools');
+      expect(workflow.mcpServers.custom_tools.type).toBeUndefined();
+      expect(workflow.mcpServers.custom_tools.toolsDirectory).toBeUndefined();
+
       // Cleanup
       fs.unlinkSync(workflowPath);
     });
 
     test('should reject invalid type value', () => {
       expect(() => {
-        WorkflowParser.validateWorkflow({
+        WorkflowValidator.validateWorkflowSpec({
           name: 'Test',
           start_state: 'test',
           mcp_servers: {

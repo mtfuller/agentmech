@@ -50,7 +50,7 @@ export class TestExecutor {
 
     try {
       // Parse workflow
-      const workflow = WorkflowParser.parseFile(workflowPath);
+      const workflow = WorkflowParser.parseFile({filePath: workflowPath, workflowDir: '', visitedFiles: new Set()});
 
       // Create a tracer that captures events
       const tracer = new Tracer(false); // Don't output to console during tests

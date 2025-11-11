@@ -2,8 +2,8 @@
  * Integration tests for run directory feature
  */
 
-const WorkflowParser = require('../../dist/core/workflow-parser');
-const WorkflowExecutor = require('../../dist/core/workflow-executor');
+const WorkflowParser = require('../../dist/workflow/parser');
+const WorkflowExecutor = require('../../dist/workflow/executor');
 const Tracer = require('../../dist/utils/tracer');
 const RunDirectory = require('../../dist/utils/run-directory');
 const fs = require('fs');
@@ -45,7 +45,7 @@ states:
   });
   
   it('should add run_directory to context when provided', () => {
-    const workflow = WorkflowParser.parseFile(testWorkflowPath);
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: testWorkflowPath, visitedFiles: new Set()});
     const runDir = path.join(testBaseDir, 'run-dir');
     fs.mkdirSync(runDir, { recursive: true });
     
@@ -58,7 +58,7 @@ states:
   });
   
   it('should auto-inject filesystem MCP server when run directory is provided', async () => {
-    const workflow = WorkflowParser.parseFile(testWorkflowPath);
+    const workflow = WorkflowParser.parseFile({workflowDir: '', filePath: testWorkflowPath, visitedFiles: new Set()});
     const runDir = path.join(testBaseDir, 'run-dir');
     fs.mkdirSync(runDir, { recursive: true });
     
