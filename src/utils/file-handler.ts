@@ -1,5 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import pdfParse = require('pdf-parse');
+import mammoth = require('mammoth');
 
 /**
  * Supported file types for multimodal inputs
@@ -140,27 +142,33 @@ class FileHandler {
   }
   
   /**
-   * Process a PDF file - for now, return error suggesting text extraction
-   * In a full implementation, this would use a library like pdf-parse
+   * Process a PDF file - extract text content using pdf-parse
    */
-  private static processPdf(filePath: string, filename: string, mimeType: string): ProcessedFile {
-    // For MVP, we'll read PDF as base64 and let vision models handle it
-    // Or we could extract text using a library
-    throw new Error(
-      `PDF processing not yet implemented. Please convert PDF to text or images first. ` +
-      `For text extraction, consider using pdf-parse or similar tools.`
-    );
+  private static async processPdf(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+    const buffer = fs.readFileSync(filePath);
+    const data = await pdfParse(buffer);
+    
+    return {
+      type: FileType.PDF,
+      content: data.text,
+      mimeType,
+      filename
+    };
   }
   
   /**
-   * Process a Word document - for now, return error suggesting text extraction
-   * In a full implementation, this would use a library like mammoth
+   * Process a Word document - extract text content using mammoth
    */
-  private static processWordDoc(filePath: string, filename: string, mimeType: string): ProcessedFile {
-    throw new Error(
-      `Word document processing not yet implemented. Please convert to text or PDF first. ` +
-      `For text extraction, consider using mammoth or similar tools.`
-    );
+  private static async processWordDoc(filePath: string, filename: string, mimeType: string): Promise<ProcessedFile> {
+    const buffer = fs.readFileSync(filePath);
+    const result = await mammoth.extractRawText({ buffer });
+    
+    return {
+      type: FileType.WORD,
+      content: result.value,
+      mimeType,
+      filename
+    };
   }
   
   /**
