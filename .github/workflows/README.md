@@ -23,6 +23,12 @@ This directory contains the CI/CD workflows for the agentmech project.
   - Lists package contents
   - Uploads the tarball as artifact
 
+- **auto-tag**: Automatically creates git tags for commits merged to main (push only, not PRs)
+  - Reads semantic version from package.json
+  - Checks if tag already exists (idempotent)
+  - Creates and pushes tag in format `v{version}` (e.g., v1.0.2)
+  - Skips tag creation if tag already exists
+
 **When to use**: Runs automatically on every push and PR. No manual action needed.
 
 ### 2. Publish Workflow (`publish.yml`)
@@ -46,16 +52,20 @@ This directory contains the CI/CD workflows for the agentmech project.
   - Publishes to NPM with provenance
 
 **How to use (Semantic Versioning with Tags)**:
-1. Create semantic version tag and update package.json:
+1. Update package.json version:
    ```bash
-   npm version patch  # Creates v1.0.1 tag for bug fixes
-   npm version minor  # Creates v1.1.0 tag for new features
-   npm version major  # Creates v2.0.0 tag for breaking changes
+   npm version patch  # For bug fixes (1.0.0 → 1.0.1)
+   npm version minor  # For new features (1.0.0 → 1.1.0)
+   npm version major  # For breaking changes (1.0.0 → 2.0.0)
    ```
-2. Push version commit and tags: `git push origin main --follow-tags`
+2. Push version commit to main:
+   ```bash
+   git push origin main
+   ```
+   Note: The CI workflow will automatically create the corresponding tag (e.g., v1.0.1) when the commit is merged to main
 3. **Manually create a GitHub Release**:
    - Go to Releases → Draft a new release
-   - **Select the tag** that was just pushed (e.g., v1.0.1)
+   - **Select the auto-created tag** (e.g., v1.0.1)
    - Fill in release title and notes
    - Click **"Publish release"** ← This triggers NPM publishing
 4. Workflow runs automatically and publishes to NPM
@@ -106,30 +116,35 @@ This directory contains the CI/CD workflows for the agentmech project.
 git checkout main
 git pull
 
-# 2. Create semantic version tag and update package.json
-# This automatically creates a tag following vX.Y.Z format
-npm version patch   # for bug fixes (1.0.0 → 1.0.1, creates v1.0.1 tag)
-npm version minor   # for new features (1.0.0 → 1.1.0, creates v1.1.0 tag)
-npm version major   # for breaking changes (1.0.0 → 2.0.0, creates v2.0.0 tag)
+# 2. Update package.json version
+# This updates the version in package.json but does NOT create tags locally
+npm version patch   # for bug fixes (1.0.0 → 1.0.1)
+npm version minor   # for new features (1.0.0 → 1.1.0)
+npm version major   # for breaking changes (1.0.0 → 2.0.0)
 
-# 3. Push version commit and tags to GitHub
-git push origin main --follow-tags
+# 3. Push version commit to GitHub
+git push origin main
+# Note: The CI workflow automatically creates the tag (e.g., v1.0.1) when merged to main
 
-# 4. MANUALLY create GitHub Release for the tag
+# 4. Wait for auto-tagging to complete
+# Go to: https://github.com/mtfuller/agentmech/actions
+# Watch the CI workflow complete - it will automatically create the tag
+
+# 5. MANUALLY create GitHub Release for the auto-created tag
 # Go to: https://github.com/mtfuller/agentmech/releases/new
-# - **Select the tag** that was just pushed (e.g., v1.0.1)
+# - **Select the auto-created tag** (e.g., v1.0.1)
 # - Add release title and notes
 # - Click **"Publish release"** ← This is the manual trigger for NPM publishing
 
-# 5. Monitor the automated workflow
+# 6. Monitor the automated workflow
 # Go to: Actions tab
 # Watch the "Publish to NPM" workflow
 # The workflow will verify version matches tag and publish to NPM
 ```
 
 **Key Points**:
-- `npm version` creates semantic version tags (vX.Y.Z)
-- Package.json is automatically bumped
+- `npm version` updates package.json version
+- When you push to main, the CI workflow automatically creates the corresponding tag (vX.Y.Z)
 - **You must manually publish the GitHub Release** - this gives you control over when NPM publishing happens
 - NPM publishing only occurs when you click "Publish release"
 
