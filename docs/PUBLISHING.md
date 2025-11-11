@@ -16,30 +16,45 @@ Before publishing, ensure you have:
 
 ## Publishing Workflow
 
-The project uses GitHub Actions for automated publishing. The workflow is triggered when a new release is created.
+The project uses GitHub Actions for automated publishing. **Publishing is only triggered when a human manually creates and publishes a GitHub Release for a specific semantic version tag.**
 
-### Automated Publishing Process
+### Semantic Versioning and Tag-Based Release Process
 
-1. **Prepare the release**:
+This project follows [Semantic Versioning](https://semver.org/) and uses Git tags to track releases.
+
+1. **Create a semantic version tag and update package.json**:
    ```bash
-   # Update the version in package.json
-   npm version patch  # or minor, or major
+   # Bump version and create a tag (choose one based on changes)
+   npm version patch  # For bug fixes: 1.0.0 → 1.0.1 (creates v1.0.1 tag)
+   npm version minor  # For new features: 1.0.0 → 1.1.0 (creates v1.1.0 tag)
+   npm version major  # For breaking changes: 1.0.0 → 2.0.0 (creates v2.0.0 tag)
    
-   # Push the changes and tags
+   # This command automatically:
+   # - Updates version in package.json and package-lock.json
+   # - Creates a git commit with the version bump
+   # - Creates a git tag (e.g., v1.0.1) following semantic versioning
+   ```
+
+2. **Push the version commit and tags to GitHub**:
+   ```bash
    git push origin main --follow-tags
    ```
 
-2. **Create a GitHub Release**:
-   - Go to the repository's Releases page
+3. **Manually create a GitHub Release for the tag**:
+   - Go to the repository's [Releases page](https://github.com/mtfuller/agentmech/releases)
    - Click "Draft a new release"
-   - Choose or create a new tag (e.g., `v1.0.1`)
-   - Fill in the release title and description
-   - Click "Publish release"
+   - **Select the tag** that was just created (e.g., `v1.0.1`)
+   - Fill in the release title (e.g., "Release 1.0.1")
+   - Add release notes describing what changed
+   - Click **"Publish release"** (this is the manual trigger)
 
-3. **Automated Workflow**:
-   - The publish workflow is automatically triggered
+4. **Automated NPM Publishing**:
+   - Once you publish the release, the GitHub Actions workflow is triggered
+   - The workflow verifies the package version matches the release tag
    - It runs tests, builds the package, and publishes to NPM
    - Package is published with provenance for supply chain security
+
+**Important**: Publishing to NPM only happens when you manually publish a release. This gives you full control over when packages are published to NPM.
 
 ### Manual Publishing (Not Recommended)
 
@@ -63,30 +78,32 @@ npm login
 npm publish --access public
 ```
 
-## Version Management
+## Semantic Versioning and Tags
 
-Follow [Semantic Versioning](https://semver.org/):
+This project strictly follows [Semantic Versioning](https://semver.org/) with Git tags:
 
 - **Patch** (`1.0.x`): Bug fixes and minor changes
   ```bash
-  npm version patch
+  npm version patch  # Creates tag v1.0.1
   ```
 
 - **Minor** (`1.x.0`): New features (backward compatible)
   ```bash
-  npm version minor
+  npm version minor  # Creates tag v1.1.0
   ```
 
 - **Major** (`x.0.0`): Breaking changes
   ```bash
-  npm version major
+  npm version major  # Creates tag v2.0.0
   ```
 
 The `npm version` command automatically:
-- Updates `package.json`
-- Updates `package-lock.json`
-- Creates a git commit
-- Creates a git tag
+- Updates `package.json` and `package-lock.json`
+- Creates a git commit with message "X.Y.Z"
+- Creates a git tag (e.g., `v1.0.1`) following semantic versioning
+- The tag format is always `vX.Y.Z` (e.g., v1.0.0, v1.2.3)
+
+**Tag Naming Convention**: All release tags must follow the format `vX.Y.Z` where X, Y, and Z are numbers representing major, minor, and patch versions respectively.
 
 ## Package Contents
 

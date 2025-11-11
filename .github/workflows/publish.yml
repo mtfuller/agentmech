@@ -2,7 +2,7 @@ name: Publish to NPM
 
 on:
   release:
-    types: [created]
+    types: [published]  # Triggered when a human manually publishes a release
 
 jobs:
   publish:
@@ -14,6 +14,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.release.tag_name }}  # Checkout the specific tag
     
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
@@ -30,6 +32,20 @@ jobs:
     
     - name: Build
       run: npm run build
+    
+    - name: Verify package version matches tag
+      run: |
+        PACKAGE_VERSION=$(node -p "require('./package.json').version")
+        TAG_VERSION=${{ github.event.release.tag_name }}
+        # Remove 'v' prefix from tag if present
+        TAG_VERSION=${TAG_VERSION#v}
+        echo "Package version: $PACKAGE_VERSION"
+        echo "Release tag: $TAG_VERSION"
+        if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+          echo "❌ Error: Package version ($PACKAGE_VERSION) does not match release tag ($TAG_VERSION)"
+          exit 1
+        fi
+        echo "✅ Version matches tag"
     
     - name: Verify package contents
       run: |

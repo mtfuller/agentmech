@@ -45,7 +45,7 @@ A production-ready CI/CD pipeline has been configured to automate the testing, b
    - Value: Paste your NPM token
    - Click "Add secret"
 
-### Publishing a New Version
+### Publishing a New Version (Semantic Versioning with Tags)
 
 ```bash
 # 1. Ensure code is ready
@@ -53,29 +53,38 @@ git checkout main
 git pull
 npm test  # Verify all tests pass
 
-# 2. Update version (choose one)
-npm version patch   # Bug fixes: 1.0.0 → 1.0.1
-npm version minor   # New features: 1.0.0 → 1.1.0  
-npm version major   # Breaking changes: 1.0.0 → 2.0.0
+# 2. Create semantic version tag and update package.json (choose one)
+npm version patch   # Bug fixes: 1.0.0 → 1.0.1, creates v1.0.1 tag
+npm version minor   # New features: 1.0.0 → 1.1.0, creates v1.1.0 tag
+npm version major   # Breaking changes: 1.0.0 → 2.0.0, creates v2.0.0 tag
+# This automatically updates package.json, creates a commit, and creates a tag
 
-# 3. Push changes and tags
+# 3. Push version commit and tags to GitHub
 git push origin main --follow-tags
 
-# 4. Create GitHub Release
-# Option A: Via GitHub UI
+# 4. MANUALLY create and publish GitHub Release for the tag
+# ⚠️ IMPORTANT: Publishing to NPM only happens when you manually publish a release
+#
+# Option A: Via GitHub UI (Recommended)
 #   - Go to https://github.com/mtfuller/agentmech/releases/new
-#   - Select the tag that was just created (e.g., v1.0.1)
-#   - Add release title: "Version 1.0.1" (or similar)
+#   - Select the tag that was just pushed (e.g., v1.0.1)
+#   - Add release title: "Release 1.0.1" (or similar)
 #   - Add release notes describing changes
-#   - Click "Publish release"
+#   - Click "Publish release" ← This triggers NPM publishing
 #
 # Option B: Via gh CLI
-gh release create v1.0.1 --title "Version 1.0.1" --notes "Release notes here"
+gh release create v1.0.1 --title "Release 1.0.1" --notes "Release notes here"
 
-# 5. Monitor the workflow
+# 5. Monitor the automated workflow
 # Go to Actions tab and watch the "Publish to NPM" workflow
-# It should complete successfully and publish to NPM
+# It will verify version matches tag, run tests, and publish to NPM
 ```
+
+**Key Points**:
+- Tags follow semantic versioning (vX.Y.Z format)
+- Package.json is automatically bumped by `npm version`
+- **You must manually create and publish the GitHub Release** - this gives you control
+- NPM publishing is triggered only when you publish the release
 
 ## 🔄 How the Workflows Work
 
