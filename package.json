@@ -2,7 +2,7 @@
   "name": "agentmech",
   "version": "1.0.0",
   "description": "A Node.js CLI tool for running AI workflows locally with Ollama integration",
-  "main": "dist/cli/cli.js",
+  "main": "dist/cli.js",
   "bin": {
     "agentmech": "./dist/cli.js"
   },
