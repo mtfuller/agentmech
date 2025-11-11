@@ -93,6 +93,15 @@ h1 {
     }
 }
 
+@keyframes blink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
+}
+
 .message.system {
     background: #e3f2fd;
     color: #1976d2;
@@ -110,6 +119,16 @@ h1 {
     color: white;
     align-self: flex-start;
     max-width: 90%;
+}
+
+.message.response.streaming {
+    position: relative;
+}
+
+.message.response.streaming::after {
+    content: '▊';
+    animation: blink 1s infinite;
+    margin-left: 2px;
 }
 
 .message.error {

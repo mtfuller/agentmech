@@ -355,9 +355,21 @@ class WorkflowExecutor {
     console.log('Generating response...\n');
     
     try {
-      // Use multimodal generate if images are present
-      const response = await this.ollamaClient.generate(model, prompt, state.options || {}, images.length > 0 ? images : undefined);
-      console.log(`Response: ${response}\n`);
+      // Create streaming callback to display tokens as they arrive
+      process.stdout.write('Response: ');
+      
+      const response = await this.ollamaClient.generate(
+        model, 
+        prompt, 
+        state.options || {}, 
+        images.length > 0 ? images : undefined,
+        (token: string) => {
+          // Stream tokens to stdout
+          process.stdout.write(token);
+        }
+      );
+      
+      process.stdout.write('\n\n');
       
       // Store response in context if variable is specified
       if (state.saveAs) {

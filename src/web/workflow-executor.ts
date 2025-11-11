@@ -56,7 +56,7 @@ const INPUT_TIMEOUT_MS = 300000; // 5 minutes
 // }
 
 interface ExecutionEvent {
-  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped' | 'prompt_sent';
+  type: 'log' | 'prompt' | 'input' | 'response' | 'error' | 'complete' | 'state_change' | 'stopped' | 'prompt_sent' | 'response_start' | 'response_token' | 'response_end';
   message?: string;
   data?: any;
 }
@@ -470,10 +470,29 @@ class WebWorkflowExecutor {
     });
 
     try {
-      const response = await this.ollamaClient.generate(model, prompt, state.options || {});
-      
+      // Send event to indicate response streaming is starting
       this.sendEvent({
-        type: 'response',
+        type: 'response_start',
+        message: 'Starting to generate response...'
+      });
+      
+      const response = await this.ollamaClient.generate(
+        model, 
+        prompt, 
+        state.options || {},
+        undefined, // No images for now (multimodal support can be added later)
+        (token: string) => {
+          // Stream tokens to web UI
+          this.sendEvent({
+            type: 'response_token',
+            message: token
+          });
+        }
+      );
+      
+      // Send final response event
+      this.sendEvent({
+        type: 'response_end',
         message: response,
         data: { response }
       });
