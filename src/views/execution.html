@@ -71,15 +71,39 @@
             
             // Render markdown for response messages with sanitization
             if (type === 'response') {
+                // Store raw message for copy functionality
+                const rawMessage = message;
+                
+                // Create a wrapper div for response content and copy button
+                const responseWrapper = document.createElement('div');
+                responseWrapper.className = 'response-wrapper';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'response-content';
+                
                 // Check if marked and DOMPurify are loaded, otherwise use plain text
                 if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
                     const rawHtml = marked.parse(message);
                     const cleanHtml = DOMPurify.sanitize(rawHtml);
-                    messageDiv.innerHTML = cleanHtml;
+                    contentDiv.innerHTML = cleanHtml;
                 } else {
                     // Fallback to plain text if libraries aren't loaded
-                    messageDiv.textContent = message;
+                    contentDiv.textContent = message;
                 }
+                
+                // Create copy button
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-btn';
+                copyButton.innerHTML = '📋 Copy';
+                copyButton.title = 'Copy response to clipboard';
+                copyButton.onclick = (e) => {
+                    e.stopPropagation();
+                    copyToClipboard(rawMessage, copyButton);
+                };
+                
+                responseWrapper.appendChild(contentDiv);
+                responseWrapper.appendChild(copyButton);
+                messageDiv.appendChild(responseWrapper);
             } else if (type === 'prompt-details') {
                 // Create collapsible prompt component
                 const promptId = 'prompt-' + (++promptCounter);
@@ -142,6 +166,58 @@
                 content.classList.add('visible');
                 toggle.classList.add('expanded');
                 toggle.textContent = '▲ Hide';
+            }
+        }
+        
+        function copyToClipboard(text, button) {
+            // Use the modern clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Show success feedback
+                    const originalHTML = button.innerHTML;
+                    button.innerHTML = '✓ Copied!';
+                    button.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalHTML;
+                        button.classList.remove('copied');
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Failed to copy text: ', err);
+                    button.innerHTML = '✗ Failed';
+                    setTimeout(() => {
+                        button.innerHTML = '📋 Copy';
+                    }, 2000);
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                    const originalHTML = button.innerHTML;
+                    button.innerHTML = '✓ Copied!';
+                    button.classList.add('copied');
+                    
+                    setTimeout(() => {
+                        button.innerHTML = originalHTML;
+                        button.classList.remove('copied');
+                    }, 2000);
+                } catch (err) {
+                    console.error('Fallback copy failed: ', err);
+                    button.innerHTML = '✗ Failed';
+                    setTimeout(() => {
+                        button.innerHTML = '📋 Copy';
+                    }, 2000);
+                }
+                
+                document.body.removeChild(textArea);
             }
         }
         
@@ -253,14 +329,43 @@
                             // Finalize the streaming response with markdown rendering
                             if (currentStreamingResponse) {
                                 currentStreamingResponse.classList.remove('streaming');
+                                
+                                // Store raw text for copy functionality
+                                const rawText = streamingResponseText;
+                                
+                                // Create wrapper and content div
+                                const responseWrapper = document.createElement('div');
+                                responseWrapper.className = 'response-wrapper';
+                                
+                                const contentDiv = document.createElement('div');
+                                contentDiv.className = 'response-content';
+                                
                                 // Render markdown if libraries are available
                                 if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
                                     const rawHtml = marked.parse(streamingResponseText);
                                     const cleanHtml = DOMPurify.sanitize(rawHtml);
-                                    currentStreamingResponse.innerHTML = cleanHtml;
+                                    contentDiv.innerHTML = cleanHtml;
                                 } else {
-                                    currentStreamingResponse.textContent = streamingResponseText;
+                                    contentDiv.textContent = streamingResponseText;
                                 }
+                                
+                                // Create copy button
+                                const copyButton = document.createElement('button');
+                                copyButton.className = 'copy-btn';
+                                copyButton.innerHTML = '📋 Copy';
+                                copyButton.title = 'Copy response to clipboard';
+                                copyButton.onclick = (e) => {
+                                    e.stopPropagation();
+                                    copyToClipboard(rawText, copyButton);
+                                };
+                                
+                                responseWrapper.appendChild(contentDiv);
+                                responseWrapper.appendChild(copyButton);
+                                
+                                // Replace the streaming div content with the wrapper
+                                currentStreamingResponse.innerHTML = '';
+                                currentStreamingResponse.appendChild(responseWrapper);
+                                
                                 currentStreamingResponse = null;
                                 streamingResponseText = '';
                             }
