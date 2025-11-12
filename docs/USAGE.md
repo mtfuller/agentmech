@@ -451,7 +451,10 @@ Common MCP servers you can use:
 - **@modelcontextprotocol/server-memory**: Store and recall information
 - **@modelcontextprotocol/server-github**: Interact with GitHub repositories
 - **@modelcontextprotocol/server-postgres**: Query PostgreSQL databases
-- **@modelcontextprotocol/server-puppeteer**: Browser automation
+- **@modelcontextprotocol/server-playwright**: Browser automation and web browsing
+- **@modelcontextprotocol/server-puppeteer**: Alternative browser automation
+
+For web browsing examples, see [examples/WEB_BROWSING_GUIDE.md](../examples/WEB_BROWSING_GUIDE.md).
 
 #### State-Level MCP Configuration
 

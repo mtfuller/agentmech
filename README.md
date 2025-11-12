@@ -334,10 +334,12 @@ Browse the `examples/` directory for sample workflows:
 - **multi-rag-qa.yaml** - RAG with multiple knowledge bases
 - **research-assistant.yaml** - LLM-driven state routing
 - **comprehensive-mcp-integration.yaml** - MCP server integration
+- **simple-web-browse.yaml** - Web browsing with Playwright MCP server
+- **web-browsing-demo.yaml** - Interactive web browsing workflow
 - **complete-story-builder.yaml** - Workflow composition
 - **user-input-demo.test.yaml** - Test scenarios
 
-See [examples/](examples/) and [docs/USAGE.md](docs/USAGE.md) for more.
+See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSING_GUIDE.md), and [docs/USAGE.md](docs/USAGE.md) for more.
 
 ## Documentation
 
