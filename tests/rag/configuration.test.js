@@ -290,5 +290,96 @@ describe('RAG Configuration Validation', () => {
       });
     }).not.toThrow();
   });
+
+  test('should accept RAG with context_template', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            context_template: 'Context:\n{{chunks}}\n\nQuestion: {{prompt}}'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept RAG with chunk_template', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            chunk_template: '{{number}}. From {{chunk.source}}:\n{{chunk.text}}'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept RAG with both context_template and chunk_template', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        rag: {
+          'kb': {
+            directory: './knowledge',
+            context_template: 'Reference materials:\n{{chunks}}\n\nQuery: {{prompt}}',
+            chunk_template: '[{{number}}] {{chunk.source}}: {{chunk.text}}'
+          }
+        },
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            use_rag: 'kb',
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
+
+  test('should accept inline RAG with templates', () => {
+    expect(() => {
+      WorkflowValidator.validateWorkflowSpec({
+        name: 'Test',
+        start_state: 'test',
+        states: {
+          test: {
+            type: 'prompt',
+            prompt: 'Test',
+            rag: {
+              directory: './docs',
+              context_template: 'Documentation:\n{{chunks}}',
+              chunk_template: '- {{chunk.text}}'
+            },
+            next: 'end'
+          }
+        }
+      });
+    }).not.toThrow();
+  });
 });
 

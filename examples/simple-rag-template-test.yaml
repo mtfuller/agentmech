@@ -1,0 +1,25 @@
+name: "Simple RAG Template Test"
+description: "Basic test of custom RAG templates"
+default_model: "gemma3:4b"
+start_state: "test_custom_template"
+
+rag:
+  test_kb:
+    directory: "./examples/knowledge-base"
+    model: "all-minilm"
+    chunk_size: 500
+    top_k: 2
+    chunk_template: "Reference {{number}}: {{chunk.text}}"
+    context_template: |
+      Context Information:
+      {{chunks}}
+      
+      Question: {{prompt}}
+
+states:
+  test_custom_template:
+    type: "prompt"
+    prompt: "What is AgentMech?"
+    use_rag: "test_kb"
+    save_as: "answer"
+    next: "end"

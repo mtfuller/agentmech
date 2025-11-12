@@ -160,6 +160,9 @@ rag:
     directory: "./knowledge-base"
     chunk_size: 500
     top_k: 3
+    # NEW: Customize how chunks are injected
+    chunk_template: "{{number}}. {{chunk.text}}"
+    context_template: "Context:\n{{chunks}}\n\nQuery: {{prompt}}"
 
 states:
   answer:

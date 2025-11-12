@@ -417,7 +417,7 @@ class WebWorkflowExecutor {
       });
       
       const relevantChunks = await ragServiceToUse.search(prompt);
-      const ragContext = ragServiceToUse.formatContext(relevantChunks);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks, prompt);
       
       if (ragContext) {
         prompt = prompt + ragContext;

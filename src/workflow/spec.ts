@@ -182,5 +182,25 @@ export interface RAGSpec {
   
   /** Storage format for embeddings: 'json' or 'msgpack' */
   storage_format?: string;
+  
+  /** 
+   * Custom template for formatting RAG context chunks.
+   * Available placeholders:
+   * - {{prompt}} - the original user prompt
+   * - {{chunks}} - all chunks formatted with chunk_template
+   * - Use chunk_template to customize individual chunk formatting
+   */
+  context_template?: string;
+  
+  /**
+   * Custom template for formatting individual RAG chunks.
+   * Available placeholders:
+   * - {{chunk.source}} - source file path
+   * - {{chunk.text}} - chunk content
+   * - {{chunk.id}} - chunk identifier
+   * - {{index}} - 0-based chunk index
+   * - {{number}} - 1-based chunk number
+   */
+  chunk_template?: string;
 }
 

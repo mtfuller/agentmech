@@ -120,13 +120,29 @@ class WorkflowExecutor {
       console.log('\n' + CliFormatter.rag('Initializing inline RAG configuration...'));
       ragServiceToUse = new RAGService(state.rag, 'http://localhost:11434');
       await ragServiceToUse.initialize();
+    } else if (state.useRag) {
+      if (typeof state.useRag === 'string') {
+        // Named RAG reference
+        ragServiceToUse = this.namedRagServices.get(state.useRag);
+        if (ragServiceToUse) {
+          console.log('\n' + CliFormatter.rag(`Using RAG configuration: ${state.useRag}`));
+        } else {
+          console.warn(CliFormatter.warning(`RAG configuration "${state.useRag}" not found`));
+        }
+      } else if (state.useRag === true) {
+        // Default RAG
+        ragServiceToUse = this.ragService;
+        if (ragServiceToUse) {
+          console.log('\n' + CliFormatter.rag('Using default RAG configuration'));
+        }
+      }
     }
 
     // Add RAG context if a service is available
     if (ragServiceToUse) {
       console.log(CliFormatter.rag('Retrieving relevant context from RAG...'));
       const relevantChunks = await ragServiceToUse.search(prompt);
-      const ragContext = ragServiceToUse.formatContext(relevantChunks);
+      const ragContext = ragServiceToUse.formatContext(relevantChunks, prompt);
 
       if (ragContext) {
         console.log(CliFormatter.success('RAG context added to prompt'));
