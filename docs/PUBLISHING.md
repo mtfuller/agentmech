@@ -20,25 +20,46 @@ The project uses GitHub Actions for automated publishing. **Publishing is only t
 
 ### Semantic Versioning and Tag-Based Release Process
 
-This project follows [Semantic Versioning](https://semver.org/) and uses Git tags to track releases.
+This project follows [Semantic Versioning](https://semver.org/) and uses **Conventional Commits** for automated versioning. Versions are automatically determined and tagged based on commit message prefixes.
 
-1. **Create a semantic version tag and update package.json**:
-   ```bash
-   # Bump version and create a tag (choose one based on changes)
-   npm version patch  # For bug fixes: 1.0.0 → 1.0.1 (creates v1.0.1 tag)
-   npm version minor  # For new features: 1.0.0 → 1.1.0 (creates v1.1.0 tag)
-   npm version major  # For breaking changes: 1.0.0 → 2.0.0 (creates v2.0.0 tag)
-   
-   # This command automatically:
-   # - Updates version in package.json and package-lock.json
-   # - Creates a git commit with the version bump
-   # - Creates a git tag (e.g., v1.0.1) following semantic versioning
-   ```
+#### Conventional Commit Format
 
-2. **Push the version commit and tags to GitHub**:
-   ```bash
-   git push origin main --follow-tags
-   ```
+When committing to the `main` branch, use these prefixes to control versioning:
+
+- **`fix:`** - Bug fixes → **Patch** version bump (1.0.0 → 1.0.1)
+  ```bash
+  git commit -m "fix: resolve memory leak in workflow executor"
+  ```
+
+- **`feat:`** - New features → **Minor** version bump (1.0.0 → 1.1.0)
+  ```bash
+  git commit -m "feat: add support for custom MCP servers"
+  ```
+
+- **`BREAKING CHANGE:`** or **`feat!:`** / **`fix!:`** - Breaking changes → **Major** version bump (1.0.0 → 2.0.0)
+  ```bash
+  git commit -m "feat!: redesign workflow configuration schema"
+  # or
+  git commit -m "feat: redesign schema
+
+  BREAKING CHANGE: workflow format is incompatible with v1.x"
+  ```
+
+- **Other prefixes** (e.g., `chore:`, `docs:`, `style:`, `refactor:`, `test:`) → No version bump
+
+#### Automated Release Process
+
+1. **Commit with conventional commit messages**:
+   - Use appropriate prefixes (`fix:`, `feat:`, `feat!:`)
+   - Include descriptive commit messages
+   - Push changes to `main` branch
+
+2. **Automated versioning**:
+   - The CI workflow automatically analyzes commit messages
+   - Determines the appropriate version bump (patch, minor, or major)
+   - Creates a git tag (e.g., `v1.0.1`)
+   - Updates `package.json` with the new version
+   - Commits and pushes the version change
 
 3. **Manually create a GitHub Release for the tag**:
    - Go to the repository's [Releases page](https://github.com/mtfuller/agentmech/releases)
@@ -80,30 +101,29 @@ npm publish --access public
 
 ## Semantic Versioning and Tags
 
-This project strictly follows [Semantic Versioning](https://semver.org/) with Git tags:
+This project strictly follows [Semantic Versioning](https://semver.org/) with automated versioning based on [Conventional Commits](https://www.conventionalcommits.org/):
 
 - **Patch** (`1.0.x`): Bug fixes and minor changes
-  ```bash
-  npm version patch  # Creates tag v1.0.1
-  ```
+  - Triggered by commits starting with `fix:`
+  - Example: `fix: resolve memory leak` → 1.0.0 → 1.0.1
 
 - **Minor** (`1.x.0`): New features (backward compatible)
-  ```bash
-  npm version minor  # Creates tag v1.1.0
-  ```
+  - Triggered by commits starting with `feat:`
+  - Example: `feat: add RAG support` → 1.0.0 → 1.1.0
 
 - **Major** (`x.0.0`): Breaking changes
-  ```bash
-  npm version major  # Creates tag v2.0.0
-  ```
+  - Triggered by commits with `BREAKING CHANGE:` in the body or `!` after type
+  - Example: `feat!: redesign API` → 1.0.0 → 2.0.0
 
-The `npm version` command automatically:
+The CI workflow automatically:
+- Analyzes commit messages since the last tag
+- Determines the appropriate version bump
 - Updates `package.json` and `package-lock.json`
-- Creates a git commit with message "X.Y.Z"
+- Creates a git commit with the version bump
 - Creates a git tag (e.g., `v1.0.1`) following semantic versioning
-- The tag format is always `vX.Y.Z` (e.g., v1.0.0, v1.2.3)
+- Pushes the tag to GitHub
 
-**Tag Naming Convention**: All release tags must follow the format `vX.Y.Z` where X, Y, and Z are numbers representing major, minor, and patch versions respectively.
+**Tag Naming Convention**: All release tags follow the format `vX.Y.Z` where X, Y, and Z are numbers representing major, minor, and patch versions respectively.
 
 ## Package Contents
 
@@ -133,9 +153,14 @@ Before publishing, the following checks are performed:
 
 ### CI Workflow (`.github/workflows/ci.yml`)
 - Runs on every push and pull request
-- Tests on multiple Node.js versions (14.x, 16.x, 18.x, 20.x)
+- Tests on multiple Node.js versions (20.x, 22.x)
 - Builds the project
 - Uploads test coverage reports
+- **Auto-tags releases** (on push to main):
+  - Analyzes commit messages using Conventional Commits format
+  - Automatically bumps version based on commit types
+  - Creates and pushes semantic version tags
+  - Updates package.json with new version
 
 ### Publish Workflow (`.github/workflows/publish.yml`)
 - Runs when a new release is created
