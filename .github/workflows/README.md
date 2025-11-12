@@ -188,8 +188,8 @@ git push origin main
    ```
 
 5. **Monitor published package**:
-   - Check npmjs.com/package/agentmech
-   - Verify installation works: `npm install -g agentmech`
+   - Check npmjs.com/package/@agentmech/agentmech
+   - Verify installation works: `npm install -g @agentmech/agentmech`
    - Test the CLI: `agentmech --version`
 
 ## Additional Resources

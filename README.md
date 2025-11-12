@@ -24,7 +24,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 ### From NPM (Recommended)
 
 ```bash
-npm install -g agentmech
+npm install -g @agentmech/agentmech
 ```
 
 ### From Source
