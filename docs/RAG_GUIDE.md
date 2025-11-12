@@ -26,7 +26,7 @@ The RAG feature allows workflows to retrieve relevant context from a knowledge b
 - **Backward compatible** with existing JSON embeddings files
 - **Automatic migration** from JSON to MessagePack
 
-You can still use JSON format if needed by setting `storageFormat: "json"` in your configuration.
+You can still use JSON format if needed by setting `storage_format: "json"` in your configuration.
 
 ## Configuration Options
 
@@ -40,13 +40,13 @@ Best for: Multiple knowledge bases in one workflow
 rags:
   product_kb:
     directory: "./docs/products"
-    chunkSize: 500
-    topK: 3
+    chunk_size: 500
+    top_k: 3
   
   technical_kb:
     directory: "./docs/technical"
-    chunkSize: 800
-    topK: 5
+    chunk_size: 800
+    top_k: 5
 ```
 
 States reference by name: `use_rag: "product_kb"`
@@ -62,8 +62,8 @@ states:
     prompt: "{{user_question}}"
     rag:
       directory: "./specific-docs"
-      chunkSize: 400
-      topK: 2
+      chunk_size: 400
+      top_k: 2
     next: "end"
 ```
 
@@ -92,7 +92,7 @@ state3:
   prompt: "Question here"
   rag:
     directory: "./docs"
-    chunkSize: 600
+    chunk_size: 600
   next: "end"
 ```
 
@@ -274,7 +274,7 @@ Use only the following embedding models:
 **JSON (Legacy)**:
 - Human-readable format
 - Larger file size
-- Use `storageFormat: "json"` to enable
+- Use `storage_format: "json"` to enable
 - For debugging or specific requirements
 
 ### 7. Migrating from JSON to MessagePack
@@ -291,8 +291,8 @@ Manual migration:
 # Simply change your config to use msgpack
 rag:
   directory: "./knowledge-base"
-  storageFormat: "msgpack"  # Add this line
-  embeddingsFile: "embeddings.msgpack"  # And update filename
+  storage_format: "msgpack"  # Add this line
+  embeddings_file: "embeddings.msgpack"  # And update filename
 ```
 
 ## Performance Tips
@@ -320,7 +320,7 @@ rag:
 - Use cached embeddings
 
 ### Poor search results
-- Adjust topK value
+- Adjust top_k value
 - Modify chunk size
 - Improve document quality
 - Ensure relevant documents in knowledge base
