@@ -35,6 +35,53 @@ class WorkflowParser {
   }
 
   /**
+   * Parse variables from workflow spec
+   * @param variablesSpec - Variables specification from workflow
+   * @param workflowDir - Directory containing the workflow file
+   * @returns Parsed variables as key-value pairs
+   */
+  private static parseVariables(variablesSpec: Record<string, any> | undefined, workflowDir: string): Record<string, string> {
+    if (!variablesSpec) {
+      return {};
+    }
+
+    const variables: Record<string, string> = {};
+    
+    for (const [varName, varSpec] of Object.entries(variablesSpec)) {
+      // Handle simple string values (shorthand)
+      if (typeof varSpec === 'string') {
+        variables[varName] = varSpec;
+        continue;
+      }
+      
+      // Handle object format with value or file
+      if (typeof varSpec === 'object' && varSpec !== null) {
+        if (varSpec.file) {
+          // Load variable value from file
+          const resolvedPath = path.resolve(workflowDir, varSpec.file);
+          try {
+            variables[varName] = fs.readFileSync(resolvedPath, 'utf8');
+          } catch (error: any) {
+            if (error.code === 'ENOENT') {
+              throw new Error(`Variable file not found for "${varName}": ${resolvedPath}`);
+            }
+            throw new Error(`Failed to read variable file for "${varName}": ${error.message}`);
+          }
+        } else if (varSpec.value !== undefined) {
+          // Use inline value
+          variables[varName] = String(varSpec.value);
+        } else {
+          throw new Error(`Variable "${varName}" must have either "value" or "file" property`);
+        }
+      } else {
+        throw new Error(`Variable "${varName}" must be a string or object with "value" or "file" property`);
+      }
+    }
+    
+    return variables;
+  }
+
+  /**
    * Resolve the prompt text for a state (from inline or file)
    * @param spec - State specification
    * @param context - Parser context
@@ -128,6 +175,11 @@ class WorkflowParser {
       rag = this.parseRAGSpec(workflow.rag);
     }
 
+    let variables: Record<string, string> = {};
+    if (workflow.variables) {
+      variables = this.parseVariables(workflow.variables, context.workflowDir);
+    }
+
     return {
       name: workflow.name,
       description: workflow.description,
@@ -136,6 +188,7 @@ class WorkflowParser {
       states,
       mcpServers,
       rag,
+      variables,
       onError: workflow.on_error
     } as Workflow;
   }

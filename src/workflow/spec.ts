@@ -24,6 +24,9 @@ export interface WorkflowSpec {
   /** Optional named RAG (Retrieval-Augmented Generation) configurations */
   rag?: Record<string, RAGSpec>;
   
+  /** Optional variables that can be used in prompts with {{variable_name}} syntax */
+  variables?: Record<string, VariableSpec>;
+  
   /** Optional fallback state to transition to on error (workflow-level) */
   on_error?: string;
 }
@@ -104,6 +107,18 @@ export interface MCPServerSpec {
   
   /** Environment variables to set for the server process */
   env?: Record<string, string>;
+}
+
+/**
+ * Specification for a variable that can be used in prompts.
+ * Variables can contain inline values or be loaded from files.
+ */
+export interface VariableSpec {
+  /** Inline value for the variable */
+  value?: string;
+  
+  /** Path to file containing the variable value (alternative to inline value) */
+  file?: string;
 }
 
 /**

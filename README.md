@@ -80,6 +80,10 @@ description: "Optional description"
 default_model: "gemma3:4b"
 start_state: "first_state"
 
+# Optional: Define variables for use in prompts
+variables:
+  my_var: "value"
+
 states:
   first_state:
     type: "prompt"
@@ -175,7 +179,35 @@ analyze:
 
 ### Variable Interpolation
 
-Use `{{variable_name}}` to reference context variables. Built-in variables include `{{run_directory}}` for the current execution directory.
+Use `{{variable_name}}` to reference variables in prompts and file paths.
+
+**Define workflow-level variables:**
+```yaml
+variables:
+  # Inline value (shorthand)
+  user_name: "Alice"
+  
+  # Inline value (object syntax)
+  topic:
+    value: "artificial intelligence"
+  
+  # Load from file
+  system_prompt:
+    file: "prompts/template.txt"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "{{system_prompt}}\n\nHello {{user_name}}! Let's discuss {{topic}}."
+    save_as: "response"
+    next: "end"
+```
+
+**Built-in variables:**
+- `{{run_directory}}` - Current execution directory
+
+**Runtime variables:**
+Variables saved with `save_as` can be used in subsequent states and will override workflow-level variables with the same name.
 
 ### Multimodal Support
 

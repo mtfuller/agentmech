@@ -307,14 +307,44 @@ final_state:
 
 ### Using Variables
 
-Store data with `save_as` and reference it with `{{variable_name}}`:
+Use `{{variable_name}}` syntax to reference variables in prompts and file paths.
+
+**Define workflow-level variables:**
+
+```yaml
+name: "My Workflow"
+default_model: "gemma3:4b"
+start_state: "greet"
+
+# Define variables at workflow level
+variables:
+  # Simple inline value (shorthand)
+  user_name: "Alice"
+  
+  # Object syntax with inline value
+  topic:
+    value: "machine learning"
+  
+  # Load value from external file
+  system_instructions:
+    file: "prompts/system.txt"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "{{system_instructions}}\n\nHello {{user_name}}! Let's discuss {{topic}}."
+    save_as: "greeting"
+    next: "end"
+```
+
+**Store runtime variables with `save_as`:**
 
 ```yaml
 states:
   ask_name:
     type: "input"
     prompt: "What's your name?"
-    save_as: "user_name"
+    save_as: "user_name"  # Runtime variable
     next: "greet"
   
   greet:
@@ -322,6 +352,8 @@ states:
     prompt: "Write a personalized greeting for {{user_name}}"
     next: "end"
 ```
+
+Runtime variables (from `save_as`) override workflow-level variables with the same name.
 
 ## Advanced Usage
 
