@@ -1,0 +1,59 @@
+name: "Simple Web Browsing Example"
+description: "A simple demonstration of web browsing using the Playwright MCP server to visit a website and extract information"
+default_model: "gemma3:4b"
+start_state: "visit_example"
+
+# Configure the Playwright MCP server for browser automation
+# The Playwright MCP server provides tools for:
+# - Navigating to URLs
+# - Taking screenshots
+# - Extracting page content
+# - Interacting with web elements
+# - And more browser automation tasks
+mcp_servers:
+  playwright:
+    type: npx
+    package: "@modelcontextprotocol/server-playwright"
+
+states:
+  visit_example:
+    type: "prompt"
+    prompt: |
+      Visit the example.com website and describe what you see.
+      
+      Please navigate to https://example.com and provide:
+      1. The main heading or title
+      2. The main content or message on the page
+      3. Any links or interactive elements present
+      
+      Use the browser automation tools to complete this task.
+    mcp_servers: ["playwright"]
+    save_as: "example_content"
+    next: "visit_github"
+  
+  visit_github:
+    type: "prompt"
+    prompt: |
+      Now visit https://github.com/trending and analyze the trending repositories.
+      
+      Please:
+      1. Navigate to the GitHub trending page
+      2. Extract the top 3 trending repositories
+      3. For each repository, note the name, description, and programming language
+      4. Summarize what makes these repositories interesting
+    mcp_servers: ["playwright"]
+    save_as: "trending_repos"
+    next: "summarize"
+  
+  summarize:
+    type: "prompt"
+    prompt: |
+      Create a comprehensive summary of our web browsing session:
+      
+      Example.com content: {{example_content}}
+      
+      GitHub trending repositories: {{trending_repos}}
+      
+      Provide a well-structured summary of what we discovered.
+    save_as: "final_summary"
+    next: "end"
