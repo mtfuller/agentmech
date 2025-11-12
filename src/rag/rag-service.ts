@@ -17,6 +17,8 @@ export interface RAGConfig {
   chunkSize: number;
   topK: number;
   storageFormat: 'json' | 'msgpack';
+  contextTemplate?: string;
+  chunkTemplate?: string;
 }
 
 // Constants for embeddings storage
@@ -46,6 +48,8 @@ export class RAGService {
     const chunkSize = mergedConfig.chunkSize || mergedConfig.chunkSize || 1000;
     const topK = mergedConfig.topK || mergedConfig.topK || 3;
     const storageFormat = mergedConfig.storageFormat || mergedConfig.storageFormat || 'msgpack';
+    const contextTemplate = mergedConfig.contextTemplate;
+    const chunkTemplate = mergedConfig.chunkTemplate;
 
     // Store normalized config using new field names
     this.config = {
@@ -54,6 +58,8 @@ export class RAGService {
       chunkSize: chunkSize,
       topK: topK,
       storageFormat: storageFormat,
+      contextTemplate: contextTemplate,
+      chunkTemplate: chunkTemplate,
     };
     this.ollamaClient = new OllamaClient(ollamaUrl);
   }
@@ -377,17 +383,45 @@ export class RAGService {
   /**
    * Format search results into context string
    */
-  formatContext(chunks: DocumentChunk[]): string {
+  formatContext(chunks: DocumentChunk[], originalPrompt?: string): string {
     if (chunks.length === 0) {
       return '';
     }
     
-    let context = '\n\nRelevant context from knowledge base:\n\n';
+    // Format individual chunks using chunk template or default format
+    const chunkTemplate = this.config.chunkTemplate;
+    const formattedChunks = chunks.map((chunk, index) => {
+      if (chunkTemplate) {
+        return this.interpolateChunkTemplate(chunkTemplate, chunk, index);
+      } else {
+        // Default format
+        return `[Source: ${chunk.source}]\n${chunk.text}`;
+      }
+    }).join('\n\n');
     
-    chunks.forEach((chunk, index) => {
-      context += `[Source: ${chunk.source}]\n${chunk.text}\n\n`;
-    });
-    
-    return context;
+    // Format the overall context using context template or default format
+    const contextTemplate = this.config.contextTemplate;
+    if (contextTemplate) {
+      let result = contextTemplate;
+      result = result.replace(/\{\{prompt\}\}/g, originalPrompt || '');
+      result = result.replace(/\{\{chunks\}\}/g, formattedChunks);
+      return result;
+    } else {
+      // Default format
+      return '\n\nRelevant context from knowledge base:\n\n' + formattedChunks + '\n\n';
+    }
+  }
+  
+  /**
+   * Interpolate chunk template with chunk data
+   */
+  private interpolateChunkTemplate(template: string, chunk: DocumentChunk, index: number): string {
+    let result = template;
+    result = result.replace(/\{\{chunk\.source\}\}/g, chunk.source);
+    result = result.replace(/\{\{chunk\.text\}\}/g, chunk.text);
+    result = result.replace(/\{\{chunk\.id\}\}/g, chunk.id);
+    result = result.replace(/\{\{index\}\}/g, index.toString());
+    result = result.replace(/\{\{number\}\}/g, (index + 1).toString());
+    return result;
   }
 }

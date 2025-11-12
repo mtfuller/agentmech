@@ -393,6 +393,8 @@ class WorkflowParser {
         chunkSize: serviceSpec.chunk_size || 0,
         topK: serviceSpec.top_k || 0,
         storageFormat: serviceSpec.storage_format === 'msgpack' ? 'msgpack' : 'json',
+        contextTemplate: serviceSpec.context_template,
+        chunkTemplate: serviceSpec.chunk_template,
       };
     }
 
