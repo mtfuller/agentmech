@@ -294,6 +294,60 @@ my_workflow_ref:
   next: "continue_after"  # state to go to after referenced workflow completes
 ```
 
+#### Sequential Steps
+Execute multiple prompts or inputs sequentially within a single state. This is useful when you want to run several related prompts in a row without defining separate states for each.
+
+**With Prompt States:**
+```yaml
+story_creation:
+  type: "prompt"
+  steps:
+    - prompt: "Generate a character name for a fantasy story"
+      save_as: "character_name"
+    - prompt: "Describe {{character_name}}'s personality"
+      save_as: "character_description"
+    - prompt: "Write a story about {{character_name}}: {{character_description}}"
+      save_as: "story"
+  next: "review"
+```
+
+**With Input States:**
+```yaml
+collect_info:
+  type: "input"
+  steps:
+    - prompt: "What is your name?"
+      save_as: "name"
+    - prompt: "What is your favorite color?"
+      save_as: "color"
+    - prompt: "What is your age?"
+      save_as: "age"
+      default_value: "18"
+  next: "process_data"
+```
+
+**Key Features:**
+- Steps are automatically expanded into separate sequential states internally
+- Each step inherits properties from the parent state (model, options, mcp_servers)
+- Step-level properties override state-level properties
+- Variables from previous steps can be referenced in subsequent steps
+- Must have at least 2 steps (otherwise use single prompt/input)
+- Cannot have both `steps` and `prompt`/`prompt_file` at state level
+- Use `save_as` within individual steps, not at state level
+
+**Step Properties:**
+- `prompt` or `prompt_file` - Required: the prompt text or file
+- `save_as` - Optional: variable name to store the result
+- `model` - Optional: override the state/workflow model
+- `options` - Optional: LLM options (temperature, etc.)
+- `mcp_servers` - Optional: MCP servers to connect
+- `use_rag` - Optional: named RAG configuration
+- `rag` - Optional: inline RAG configuration
+- `files` - Optional: multimodal file inputs
+- `default_value` - Optional: for input steps
+
+See `examples/sequential-steps-demo.yaml` and `examples/user-survey-steps.yaml` for complete examples.
+
 ### Ending a Workflow
 
 To end a workflow, simply use `next: "end"` in any state. The `"end"` state is a reserved state name and does not need to be explicitly defined.
