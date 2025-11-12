@@ -2,7 +2,7 @@ import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
 import { McpServerConfig, State, Workflow } from './workflow';
-import { WorkflowSpec, StateSpec, MCPServerSpec, RAGSpec } from './spec';
+import { WorkflowSpec, StateSpec, StepSpec, MCPServerSpec, RAGSpec } from './spec';
 import { RAGConfig } from '../rag/rag-service';
 import { WorkflowValidator } from './validator';
 
@@ -193,8 +193,76 @@ class WorkflowParser {
     } as Workflow;
   }
 
+  /**
+   * Expand a state with steps into multiple sequential states
+   * @param name - State name
+   * @param spec - State specification with steps
+   * @param context - Parser context
+   * @returns Record of expanded states
+   */
+  private static expandStepsToStates(name: string, spec: StateSpec, context: ParserContext): Record<string, State> {
+    const builtStates: Record<string, State> = {};
+    
+    if (!spec.steps || spec.steps.length === 0) {
+      throw new Error(`State "${name}" has invalid steps configuration`);
+    }
+    
+    // Build RAG config if present at state level (will be inherited by steps)
+    const stateRag = this.buildRAGConfig(spec);
+    
+    // Process each step
+    for (let i = 0; i < spec.steps.length; i++) {
+      const step = spec.steps[i];
+      const isFirstStep = i === 0;
+      const isLastStep = i === spec.steps.length - 1;
+      
+      // Determine state name: first step uses the original name, others get suffixed
+      const stepStateName = isFirstStep ? name : `${name}_step_${i}`;
+      
+      // Determine next state: last step goes to the state's next, others go to the next step
+      let nextState: string | undefined;
+      if (isLastStep) {
+        nextState = spec.next;
+      } else {
+        nextState = `${name}_step_${i + 1}`;
+      }
+      
+      // Resolve prompt for this step
+      const stepPrompt = step.prompt_file 
+        ? this.readPromptFile(step.prompt_file, context.workflowDir)
+        : (step.prompt || '');
+      
+      // Build RAG config for this step (step-level overrides state-level)
+      const stepRag = step.rag ? this.buildRAGConfig({ ...spec, rag: step.rag }) : stateRag;
+      
+      // Create the state for this step
+      builtStates[stepStateName] = {
+        type: spec.type,
+        prompt: stepPrompt,
+        next: nextState,
+        // Step-level properties override state-level properties
+        model: step.model || spec.model,
+        saveAs: step.save_as,
+        options: step.options || spec.options,
+        mcpServers: step.mcp_servers || spec.mcp_servers,
+        useRag: step.use_rag || spec.use_rag,
+        rag: stepRag,
+        defaultValue: step.default_value || spec.default_value,
+        onError: spec.on_error,  // onError is inherited from state level
+        files: step.files || spec.files || []
+      };
+    }
+    
+    return builtStates;
+  }
+
   static parseStateSpec(name: string, spec: StateSpec, context: ParserContext): Record<string, State> {
       const builtStates: Record<string, State> = {};
+
+      // Handle steps expansion first
+      if (spec.steps && spec.steps.length > 0) {
+        return this.expandStepsToStates(name, spec, context);
+      }
 
       // Resolve prompt text from inline or file
       const prompt = this.resolvePrompt(spec, context);

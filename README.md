@@ -123,6 +123,22 @@ sub_task:
   next: "continue"
 ```
 
+**Sequential Steps** - Execute multiple prompts in sequence within one state
+```yaml
+story_creation:
+  type: "prompt"
+  steps:
+    - prompt: "Generate a character name"
+      save_as: "name"
+    - prompt: "Describe {{name}}'s personality"
+      save_as: "description"
+    - prompt: "Write a story about {{name}}: {{description}}"
+      save_as: "story"
+  next: "next_state"
+```
+
+Steps can also be used with `input` states to collect multiple user inputs sequentially. Each step can have its own `prompt`, `save_as`, `model`, and other properties that override state-level settings.
+
 ### Advanced Features
 
 **MCP Servers** - Extend with Model Context Protocol
@@ -253,6 +269,8 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 
 Browse the `examples/` directory for sample workflows:
 - **simple-qa.yaml** - Basic Q&A workflow
+- **sequential-steps-demo.yaml** - Sequential prompts with steps feature
+- **user-survey-steps.yaml** - Multiple user inputs with steps
 - **image-analysis.yaml** - Analyze images with vision models
 - **multi-rag-qa.yaml** - RAG with multiple knowledge bases
 - **research-assistant.yaml** - LLM-driven state routing

@@ -1,4 +1,4 @@
-import { MCPServerSpec, RAGSpec, StateSpec, WorkflowSpec } from "./spec";
+import { MCPServerSpec, RAGSpec, StateSpec, StepSpec, WorkflowSpec } from "./spec";
 
 const END_STATE = 'end';
 
@@ -111,15 +111,47 @@ export class WorkflowValidator {
       throw new Error(`${stateContext} has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
 
-    if (state.type === 'prompt' && !state.prompt && !state.prompt_file) {
-      throw new Error(`Prompt state "${name}" must have a prompt or prompt_file field`);
+    // Validate steps configuration
+    if (state.steps) {
+      // Steps can only be used with prompt and input states
+      if (state.type !== 'prompt' && state.type !== 'input') {
+        throw new Error(`${stateContext} can only use steps with prompt or input type states`);
+      }
+      
+      // If steps is defined, cannot have prompt or prompt_file at state level
+      if (state.prompt || state.prompt_file) {
+        throw new Error(`${stateContext} cannot have both steps and prompt/prompt_file fields`);
+      }
+      
+      // If steps is defined, cannot have save_as at state level
+      if (state.save_as) {
+        throw new Error(`${stateContext} cannot have both steps and save_as fields. Use save_as within individual steps instead.`);
+      }
+      
+      // Validate steps array
+      if (!Array.isArray(state.steps)) {
+        throw new Error(`${stateContext} steps must be an array`);
+      }
+      
+      if (state.steps.length < 2) {
+        throw new Error(`${stateContext} steps must have at least 2 steps (otherwise use a single prompt/input)`);
+      }
+      
+      // Validate each step
+      for (let i = 0; i < state.steps.length; i++) {
+        this.validateStep(name, state.type, state.steps[i], i, mcpServers, namedRags);
+      }
     }
 
-    if (state.type === 'prompt' && state.prompt && state.prompt_file) {
+    if (state.type === 'prompt' && !state.steps && !state.prompt && !state.prompt_file) {
+      throw new Error(`Prompt state "${name}" must have a prompt, prompt_file, or steps field`);
+    }
+
+    if (state.type === 'prompt' && !state.steps && state.prompt && state.prompt_file) {
       throw new Error(`Prompt state "${name}" cannot have both prompt and prompt_file fields`);
     }
 
-    if (state.type === 'input') {
+    if (state.type === 'input' && !state.steps) {
       this.validateRequiredField(state.prompt, 'prompt field', `Input state "${name}"`);
     }
 
@@ -272,6 +304,67 @@ export class WorkflowValidator {
       if (typeof ragSpec.top_k !== 'number' || ragSpec.top_k <= 0) {
         throw new Error('RAG top_k must be a positive number');
       }
+    }
+  }
+
+  /**
+   * Validate a single step within a state's steps array
+   * @param stateName - Name of the parent state
+   * @param stateType - Type of the parent state
+   * @param step - Step configuration to validate
+   * @param stepIndex - Index of this step in the steps array
+   * @param mcpServers - MCP servers available in workflow
+   * @param namedRags - Named RAG configurations if present
+   */
+  static validateStep(stateName: string, stateType: string, step: any, stepIndex: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+    const stepContext = `State "${stateName}" step ${stepIndex + 1}`;
+    
+    // Each step must have either prompt or prompt_file
+    if (!step.prompt && !step.prompt_file) {
+      throw new Error(`${stepContext} must have a prompt or prompt_file field`);
+    }
+    
+    if (step.prompt && step.prompt_file) {
+      throw new Error(`${stepContext} cannot have both prompt and prompt_file fields`);
+    }
+    
+    // Validate MCP server references in step
+    if (step.mcp_servers) {
+      if (!Array.isArray(step.mcp_servers)) {
+        throw new Error(`${stepContext} mcp_servers must be an array`);
+      }
+      if (!mcpServers) {
+        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers defined`);
+      }
+      for (const serverName of step.mcp_servers) {
+        if (!mcpServers[serverName]) {
+          throw new Error(`${stepContext} references non-existent MCP server "${serverName}"`);
+        }
+      }
+    }
+    
+    // Validate inline RAG configuration in step
+    if (step.rag) {
+      this.validateRAGSpec(step.rag);
+      if (stateType !== 'prompt') {
+        throw new Error(`${stepContext} can only use RAG with prompt type states`);
+      }
+    }
+    
+    // Validate RAG usage in step
+    if (step.use_rag !== undefined) {
+      if (stateType !== 'prompt') {
+        throw new Error(`${stepContext} can only use RAG with prompt type states`);
+      }
+      
+      if (!namedRags || !namedRags[step.use_rag]) {
+        throw new Error(`${stepContext} references non-existent RAG configuration "${step.use_rag}"`);
+      }
+    }
+    
+    // Check for conflicting RAG configurations
+    if (step.rag && step.use_rag) {
+      throw new Error(`${stepContext} cannot have both inline 'rag' and 'use_rag' configurations`);
     }
   }
 
