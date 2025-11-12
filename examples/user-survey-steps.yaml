@@ -1,0 +1,30 @@
+name: "User Survey with Steps"
+description: "Collects multiple user inputs sequentially using steps"
+default_model: "gemma3:4b"
+start_state: "collect_info"
+
+states:
+  collect_info:
+    type: "input"
+    steps:
+      - prompt: "What is your name?"
+        save_as: "name"
+      - prompt: "What is your favorite programming language?"
+        save_as: "language"
+      - prompt: "How many years of experience do you have?"
+        save_as: "experience"
+        default_value: "0"
+    next: "generate_profile"
+  
+  generate_profile:
+    type: "prompt"
+    prompt: |
+      Based on the following information, create a professional developer profile:
+      
+      Name: {{name}}
+      Favorite Language: {{language}}
+      Experience: {{experience}} years
+      
+      Write a short bio (2-3 sentences) highlighting their expertise.
+    save_as: "profile"
+    next: "end"

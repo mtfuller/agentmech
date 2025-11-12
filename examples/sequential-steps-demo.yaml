@@ -1,0 +1,29 @@
+name: "Sequential Steps Demo"
+description: "Demonstrates using steps to create sequential prompts within a single state"
+default_model: "gemma3:4b"
+start_state: "story_creation"
+
+states:
+  story_creation:
+    type: "prompt"
+    steps:
+      - prompt: "Generate a creative character name for a fantasy story protagonist."
+        save_as: "character_name"
+      - prompt: "Based on the character name '{{character_name}}', describe their personality and background in 2-3 sentences."
+        save_as: "character_description"
+      - prompt: "Using the character {{character_name}} with this background: {{character_description}}, write a short story opening (150 words)."
+        save_as: "story_opening"
+    next: "review"
+  
+  review:
+    type: "prompt"
+    prompt: |
+      Review the story opening we created:
+      
+      Character: {{character_name}}
+      Background: {{character_description}}
+      Opening: {{story_opening}}
+      
+      Provide 2-3 constructive suggestions for improvement.
+    save_as: "review"
+    next: "end"

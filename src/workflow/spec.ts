@@ -32,6 +32,42 @@ export interface WorkflowSpec {
 }
 
 /**
+ * Specification for a single step within a state's steps array.
+ * Steps allow sequential execution of multiple prompts within one state.
+ */
+export interface StepSpec {
+  /** Inline prompt text (for prompt/input states) */
+  prompt?: string;
+  
+  /** Path to external file containing prompt text (alternative to inline prompt) */
+  prompt_file?: string;
+  
+  /** Variable name to store the step's output in workflow context */
+  save_as?: string;
+  
+  /** Model to use for this step (overrides state and workflow default_model) */
+  model?: string;
+  
+  /** Additional options to pass to the LLM (temperature, top_p, etc.) */
+  options?: Record<string, any>;
+  
+  /** List of MCP server names to use for this step */
+  mcp_servers?: string[];
+  
+  /** Name of RAG configuration to use for this step */
+  use_rag?: string;
+  
+  /** Inline RAG configuration for this step (alternative to use_rag) */
+  rag?: RAGSpec;
+  
+  /** List of file paths for multimodal inputs (images, PDFs, text files) */
+  files?: string[];
+  
+  /** Default value for input steps (used if user provides no input) */
+  default_value?: string;
+}
+
+/**
  * Specification for a single state within a workflow.
  * Defines the behavior and configuration for one step in the workflow.
  */
@@ -47,6 +83,9 @@ export interface StateSpec {
   
   /** Path to another workflow file to include as substates */
   workflow_ref?: string;
+  
+  /** Array of sequential steps to execute (alternative to single prompt) */
+  steps?: StepSpec[];
   
   /** Name of the next state to transition to */
   next?: string;
