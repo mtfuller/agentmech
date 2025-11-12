@@ -1,0 +1,147 @@
+name: "Custom RAG Template Demo"
+description: "Demonstrates how to customize RAG chunk injection with templates"
+default_model: "gemma3:4b"
+start_state: "choose_style"
+
+# Named RAG configurations with different template styles
+rag:
+  # Simple numbered list style
+  numbered_style:
+    directory: "./examples/knowledge-base"
+    model: "all-minilm"
+    chunk_size: 500
+    top_k: 3
+    chunk_template: |
+      {{number}}. {{chunk.text}}
+      (Source: {{chunk.source}})
+    context_template: |
+      Here are the top {{topK}} relevant excerpts from the documentation:
+      
+      {{chunks}}
+      
+      Question: {{prompt}}
+
+  # Markdown section style
+  markdown_style:
+    directory: "./examples/knowledge-base"
+    model: "all-minilm"
+    chunk_size: 500
+    top_k: 3
+    chunk_template: |
+      ### Reference {{number}}: {{chunk.source}}
+      {{chunk.text}}
+    context_template: |
+      ## Documentation References
+      
+      {{chunks}}
+      
+      ---
+      
+      **User Query**: {{prompt}}
+      
+      **Instructions**: Please answer the query using only the documentation references provided above.
+
+  # Detailed metadata style
+  detailed_style:
+    directory: "./examples/knowledge-base"
+    model: "all-minilm"
+    chunk_size: 500
+    top_k: 3
+    chunk_template: |
+      [Chunk ID: {{chunk.id}}]
+      [Source File: {{chunk.source}}]
+      [Position: {{index}}]
+      Content:
+      {{chunk.text}}
+    context_template: |
+      === KNOWLEDGE BASE CONTEXT ===
+      
+      {{chunks}}
+      
+      === END CONTEXT ===
+      
+      Original Query: {{prompt}}
+      
+      Task: Synthesize the above context to answer the query.
+
+states:
+  choose_style:
+    type: "input"
+    prompt: "Which template style would you like to see? (numbered, markdown, detailed, inline, all)"
+    save_as: "style_choice"
+    next: "explain_choice"
+
+  explain_choice:
+    type: "prompt"
+    prompt: |
+      User chose: {{style_choice}}
+      
+      Explain which RAG template style will be demonstrated:
+      - numbered: Simple numbered list with source citations
+      - markdown: Markdown sections with formal formatting
+      - detailed: Includes chunk IDs and metadata
+      - inline: State-level inline template configuration
+      - all: Show all styles in sequence
+    save_as: "explanation"
+    next_options:
+      - state: "numbered_example"
+        description: "Show numbered list style"
+      - state: "markdown_example"
+        description: "Show markdown section style"
+      - state: "detailed_example"
+        description: "Show detailed metadata style"
+      - state: "inline_example"
+        description: "Show inline template configuration"
+
+  numbered_example:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    use_rag: "numbered_style"
+    save_as: "numbered_answer"
+    next: "show_result"
+
+  markdown_example:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    use_rag: "markdown_style"
+    save_as: "markdown_answer"
+    next: "show_result"
+
+  detailed_example:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    use_rag: "detailed_style"
+    save_as: "detailed_answer"
+    next: "show_result"
+
+  inline_example:
+    type: "prompt"
+    prompt: "What are the main features of AI Workflow CLI?"
+    # Inline RAG configuration with custom templates
+    rag:
+      directory: "./examples/knowledge-base"
+      chunk_size: 400
+      top_k: 2
+      chunk_template: |
+        • {{chunk.text}}
+          [From: {{chunk.source}}]
+      context_template: |
+        📚 Relevant Documentation:
+        
+        {{chunks}}
+        
+        💬 Your Question: {{prompt}}
+        
+        ✨ Answer based on the documentation above:
+    save_as: "inline_answer"
+    next: "show_result"
+
+  show_result:
+    type: "prompt"
+    prompt: |
+      The answer has been generated using custom RAG templates.
+      
+      Explain how the custom template affected the way context was presented to you,
+      and how it helped you answer the question better.
+    save_as: "template_explanation"
+    next: "end"

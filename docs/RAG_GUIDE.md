@@ -98,6 +98,113 @@ state3:
 
 **Note**: You cannot combine `rag` and `use_rag` in the same state.
 
+## Customizing RAG Context Injection
+
+**NEW:** You can now customize how RAG chunks are formatted and injected into your prompts using custom templates.
+
+### Custom Templates
+
+RAG supports two types of templates:
+
+#### 1. Chunk Template (`chunk_template`)
+
+Controls how individual RAG chunks are formatted. Available placeholders:
+- `{{chunk.source}}` - Source file path
+- `{{chunk.text}}` - Chunk content
+- `{{chunk.id}}` - Chunk identifier
+- `{{index}}` - 0-based chunk index
+- `{{number}}` - 1-based chunk number
+
+**Example:**
+```yaml
+rag:
+  product_kb:
+    directory: "./docs/products"
+    chunk_template: |
+      {{number}}. From {{chunk.source}}:
+      {{chunk.text}}
+```
+
+#### 2. Context Template (`context_template`)
+
+Controls how the overall RAG context (all chunks) is combined with your prompt. Available placeholders:
+- `{{chunks}}` - All chunks formatted with `chunk_template`
+- `{{prompt}}` - The original user prompt
+
+**Example:**
+```yaml
+rag:
+  technical_kb:
+    directory: "./docs/technical"
+    context_template: |
+      Reference Documentation:
+      {{chunks}}
+      
+      User Question: {{prompt}}
+      
+      Please answer based on the references above.
+```
+
+### Complete Example
+
+Combine both templates for complete control:
+
+```yaml
+rag:
+  knowledge_base:
+    directory: "./knowledge"
+    model: "all-minilm"
+    chunk_size: 500
+    top_k: 3
+    chunk_template: |
+      ### Source: {{chunk.source}}
+      {{chunk.text}}
+    context_template: |
+      ## Knowledge Base Context
+      
+      {{chunks}}
+      
+      ---
+      
+      **Query**: {{prompt}}
+      
+      **Instructions**: Answer the query using only the context provided above.
+
+states:
+  answer:
+    type: "prompt"
+    prompt: "{{user_question}}"
+    use_rag: "knowledge_base"
+    next: "end"
+```
+
+### Default Behavior
+
+If no custom templates are specified, RAG uses these defaults:
+
+**Default chunk format:**
+```
+[Source: {{chunk.source}}]
+{{chunk.text}}
+```
+
+**Default context format:**
+```
+
+Relevant context from knowledge base:
+
+{{chunks}}
+
+```
+
+### Use Cases for Custom Templates
+
+1. **Structured Output**: Format chunks as numbered lists, markdown sections, or bullet points
+2. **Prompt Engineering**: Add specific instructions on how to use the context
+3. **Metadata Display**: Include chunk IDs or indexes for traceability
+4. **Language-Specific Formatting**: Adapt formatting for different languages or writing styles
+5. **Chain-of-Thought**: Structure context to encourage better reasoning from the LLM
+
 ## Supported File Types
 
 RAG automatically processes these file types:
