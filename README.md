@@ -4,7 +4,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 
 ## Features
 
-- ✨ **AI-Powered Generation**: Create workflows from natural language descriptions
+- ✨ **Guided Workflow Generation**: Create workflows with AI-powered template selection and customization
 - 🌐 **Web UI**: Browse and manage workflows through a web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models with streaming support
 - ⚡ **Real-time Streaming**: See LLM responses token-by-token as they're generated
@@ -42,6 +42,9 @@ npm install && npm run build
 ollama serve
 ollama pull gemma3:4b
 
+# Generate a custom workflow
+agentmech generate
+
 # Run a workflow
 agentmech run examples/simple-qa.yaml
 ```
@@ -49,7 +52,7 @@ agentmech run examples/simple-qa.yaml
 ## Commands
 
 ```bash
-# Generate workflow from description
+# Generate workflow with guided template selection
 agentmech generate [-o output.yaml] [-m model]
 
 # Run workflow
@@ -69,6 +72,59 @@ agentmech list-models
 ```
 
 Each execution creates a unique run directory at `~/.agentmech/runs/<workflow>-<timestamp>/` containing logs and generated files. Use `--trace` for detailed execution logging.
+
+## Workflow Generation
+
+The `generate` command provides an interactive, guided workflow creation experience:
+
+```bash
+agentmech generate [-o output.yaml] [-m model]
+```
+
+### How It Works
+
+1. **Describe Your Goal**: Tell AgentMech what you're trying to accomplish
+2. **AI Recommendations**: The LLM analyzes your goal and recommends suitable workflow templates
+3. **Choose a Template**: Select from 2-3 recommended workflow patterns:
+   - **Simple Q&A** - For straightforward questions and information lookup
+   - **User Input Conversation** - For interactive workflows that collect user input
+   - **Sequential Analysis** - For complex tasks requiring multiple processing steps
+   - **Content Generator** - For creative content generation with iterative refinement
+   - **Research Assistant** - For research tasks with intelligent decision-making
+4. **Customize**: Answer template-specific questions to personalize your workflow
+5. **Validate**: The generated workflow is automatically validated before saving
+
+### Example Session
+
+```
+$ agentmech generate
+
+AI Workflow Generator
+
+Let's create a workflow tailored to your needs!
+
+What are you trying to accomplish with this workflow? I want to analyze customer feedback
+
+Analyzing your goal and finding the best workflow patterns...
+
+Found matching workflow patterns!
+
+Select a workflow template:
+
+1. Sequential Analysis
+   Multi-step workflow with progressive analysis
+   Use case: Best for complex tasks that require multiple AI processing steps
+
+2. User Input Conversation
+   Collect user input and generate personalized responses
+   Use case: Best for interactive workflows that need to gather information
+
+Select a template (1-2): 1
+
+What would you like to name this workflow? (default: Sequential Analysis Workflow):
+Customer Feedback Analyzer
+...
+```
 
 ## Workflow YAML Format
 
