@@ -188,7 +188,7 @@ If publication fails:
 If you get a version conflict:
 ```bash
 # Check the current published version
-npm view agentmech version
+npm view @agentmech/agentmech version
 
 # Bump to a higher version
 npm version <patch|minor|major>
@@ -202,10 +202,10 @@ Before publishing, you can test the package locally:
 # Create a tarball
 npm pack
 
-# This creates agentmech-<version>.tgz
+# This creates agentmech-agentmech-<version>.tgz
 # Install it in another project to test
 cd /path/to/test-project
-npm install /path/to/agentmech-<version>.tgz
+npm install /path/to/agentmech-agentmech-<version>.tgz
 ```
 
 ## Best Practices

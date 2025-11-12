@@ -129,7 +129,7 @@ Pass if version increased, Fail if same
 
 ## 📊 Package Information
 
-- **Package Name**: `agentmech`
+- **Package Name**: `@agentmech/agentmech`
 - **Current Version**: `1.0.0`
 - **Package Size**: ~114.5 kB (compressed)
 - **Unpacked Size**: ~534.3 kB
@@ -191,7 +191,7 @@ All components have been validated:
 
 ### Before First Publish
 1. Ensure NPM_TOKEN secret is configured in GitHub
-2. Verify you have publish rights to the `agentmech` package name
+2. Verify you have publish rights to the `@agentmech/agentmech` package name
 3. If package name is taken, update `name` field in package.json
 
 ### Version Management
@@ -207,7 +207,7 @@ npm pack
 
 # Install in another project to test
 cd /path/to/test-project
-npm install /path/to/agentmech-1.0.0.tgz
+npm install /path/to/agentmech-agentmech-1.0.0.tgz
 
 # Test the CLI
 npx agentmech --version
@@ -221,7 +221,7 @@ npx agentmech --version
 - Verify all tests pass locally first
 
 ### Package Name Already Taken
-If `agentmech` is already taken on NPM:
+If `@agentmech/agentmech` is already taken on NPM:
 1. Choose a different name (e.g., `@yourorg/agentmech`)
 2. Update `name` field in `package.json`
 3. Re-run the publishing process
@@ -229,7 +229,7 @@ If `agentmech` is already taken on NPM:
 ### Version Conflict
 ```bash
 # Check current published version
-npm view agentmech version
+npm view @agentmech/agentmech version
 
 # Bump to a higher version
 npm version patch  # (or minor/major)
