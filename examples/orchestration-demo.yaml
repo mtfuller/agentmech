@@ -1,0 +1,16 @@
+name: "Simple Orchestration Demo"
+description: "A minimal orchestration example for testing"
+default_model: "gemma3:4b"
+strategy: "sequential"
+
+shared_context:
+  greeting: "Hello"
+
+workflows:
+  - id: "greet"
+    workflow: "greeting-workflow.yaml"
+    description: "Simple greeting workflow"
+    save_as: "greeting_result"
+    on_error: "continue"
+
+result_aggregation: "merge"

@@ -1,0 +1,35 @@
+name: "Sequential Research and Writing Pipeline"
+description: "Orchestrate research, analysis, and writing workflows sequentially"
+default_model: "gemma3:4b"
+strategy: "sequential"
+
+shared_context:
+  topic: "artificial intelligence in healthcare"
+  output_format: "blog post"
+
+workflows:
+  - id: "research"
+    workflow: "simple-qa.yaml"
+    description: "Research the topic and gather information"
+    variables:
+      question: "What are the key applications of {{topic}}?"
+    save_as: "research_findings"
+    on_error: "fail"
+  
+  - id: "analyze"
+    workflow: "simple-qa.yaml"
+    description: "Analyze the research findings"
+    variables:
+      question: "Based on these findings: {{research_findings}}, what are the most important insights?"
+    save_as: "analysis"
+    on_error: "fail"
+  
+  - id: "write"
+    workflow: "simple-qa.yaml"
+    description: "Write the final output"
+    variables:
+      question: "Write a {{output_format}} about {{topic}} based on this analysis: {{analysis}}"
+    save_as: "final_output"
+    on_error: "fail"
+
+result_aggregation: "last"

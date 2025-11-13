@@ -5,6 +5,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 ## Features
 
 - ✨ **Guided Workflow Generation**: Create workflows with AI-powered template selection and customization
+- 🎭 **Multi-Workflow Orchestration**: Coordinate multiple workflows to create sophisticated multi-agent systems
 - 🌐 **Web UI**: Browse and manage workflows through a web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models with streaming support
 - ⚡ **Real-time Streaming**: See LLM responses token-by-token as they're generated
@@ -57,6 +58,9 @@ agentmech generate [-o output.yaml] [-m model]
 
 # Run workflow
 agentmech run <workflow.yaml> [--trace] [--log-file path]
+
+# Orchestrate multiple workflows
+agentmech orchestrate <orchestration.yaml> [--trace] [--log-file path]
 
 # Test workflow
 agentmech test <test.yaml> [--format json|markdown] [--output path]
@@ -298,6 +302,137 @@ analyze:
 
 Supported: Images (`.jpg`, `.png`, etc.), text files (`.txt`, `.md`, `.json`, `.yaml`, `.csv`)
 
+## Workflow Orchestration
+
+Orchestrate multiple workflows to create complex multi-agent systems that work together autonomously:
+
+```bash
+agentmech orchestrate orchestration.yaml [--trace]
+```
+
+### Orchestration YAML Format
+
+Define how multiple workflows coordinate to accomplish complex tasks:
+
+```yaml
+name: "Multi-Agent Research Pipeline"
+description: "Coordinate research, analysis, and writing agents"
+default_model: "gemma3:4b"
+strategy: "sequential"  # or "parallel", "conditional"
+
+# Shared context available to all workflows
+shared_context:
+  topic: "artificial intelligence"
+  output_format: "blog post"
+
+workflows:
+  - id: "research"
+    workflow: "research-workflow.yaml"
+    description: "Gather information"
+    save_as: "research_findings"
+    timeout: 300  # Optional timeout in seconds
+    on_error: "fail"  # or "continue", "fallback"
+  
+  - id: "analyze"
+    workflow: "analysis-workflow.yaml"
+    description: "Analyze findings"
+    depends_on: ["research"]  # Wait for research to complete
+    variables:
+      data: "{{research_findings}}"
+    save_as: "analysis"
+  
+  - id: "write"
+    workflow: "writing-workflow.yaml"
+    description: "Create final output"
+    depends_on: ["analyze"]
+    variables:
+      content: "{{analysis}}"
+    save_as: "final_output"
+
+# How to combine results
+result_aggregation: "merge"  # or "last", "custom"
+```
+
+### Execution Strategies
+
+**Sequential** - Execute workflows one after another
+- Workflows run in order
+- Each workflow can use results from previous workflows
+- Failures stop the orchestration (unless `on_error: continue`)
+
+**Parallel** - Execute workflows simultaneously
+- All workflows start at the same time
+- Faster execution for independent tasks
+- Results are collected when all complete
+
+**Conditional** - Execute workflows based on conditions
+- Workflows run when their conditions are met
+- Supports complex dependency chains
+- Dynamic execution based on runtime context
+
+```yaml
+strategy: "conditional"
+workflows:
+  - id: "check"
+    workflow: "checker.yaml"
+    save_as: "status"
+  
+  - id: "process_success"
+    workflow: "success-handler.yaml"
+    depends_on: ["check"]
+    condition:
+      variable: "status"
+      operator: "equals"
+      value: "success"
+  
+  - id: "process_failure"
+    workflow: "failure-handler.yaml"
+    depends_on: ["check"]
+    condition:
+      variable: "status"
+      operator: "equals"
+      value: "failure"
+```
+
+**Condition operators:** `equals`, `not_equals`, `contains`, `not_contains`, `exists`, `not_exists`
+
+### Result Aggregation
+
+Control how results from multiple workflows are combined:
+
+**merge** - Combine all workflow results and shared context
+```yaml
+result_aggregation: "merge"
+```
+
+**last** - Use only the last workflow's result
+```yaml
+result_aggregation: "last"
+```
+
+**custom** - Use an LLM to synthesize results
+```yaml
+result_aggregation: "custom"
+aggregation_prompt: |
+  Synthesize these perspectives into a comprehensive summary:
+  {{results}}
+aggregation_model: "gemma3:4b"
+```
+
+### Error Handling
+
+Configure how orchestration handles workflow failures:
+
+```yaml
+workflows:
+  - id: "risky_task"
+    workflow: "task.yaml"
+    on_error: "fallback"
+    fallback_workflow: "backup-task.yaml"
+```
+
+Options: `fail` (stop orchestration), `continue` (skip and continue), `fallback` (use backup workflow)
+
 ## Testing
 
 Create test files to validate workflow behavior with mocked inputs and assertions:
@@ -327,16 +462,29 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 ## Examples
 
 Browse the `examples/` directory for sample workflows:
+
+**Basic Workflows:**
 - **simple-qa.yaml** - Basic Q&A workflow
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps
+
+**Advanced Features:**
 - **image-analysis.yaml** - Analyze images with vision models
 - **multi-rag-qa.yaml** - RAG with multiple knowledge bases
 - **research-assistant.yaml** - LLM-driven state routing
 - **comprehensive-mcp-integration.yaml** - MCP server integration
+- **complete-story-builder.yaml** - Workflow composition
+
+**Web Browsing:**
 - **simple-web-browse.yaml** - Web browsing with Playwright MCP server
 - **web-browsing-demo.yaml** - Interactive web browsing workflow
-- **complete-story-builder.yaml** - Workflow composition
+
+**Orchestration (Multi-Agent):**
+- **orchestration-sequential.yaml** - Sequential research and writing pipeline
+- **orchestration-parallel.yaml** - Parallel multi-perspective analysis
+- **orchestration-conditional.yaml** - Conditional workflow execution
+
+**Testing:**
 - **user-input-demo.test.yaml** - Test scenarios
 
 See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSING_GUIDE.md), and [docs/USAGE.md](docs/USAGE.md) for more.
@@ -345,6 +493,7 @@ See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSI
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
 - [USAGE.md](docs/USAGE.md) - Detailed usage examples
+- [ORCHESTRATION_GUIDE.md](docs/ORCHESTRATION_GUIDE.md) - Multi-workflow orchestration guide
 - [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
 - [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
 - [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details

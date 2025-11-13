@@ -1,0 +1,42 @@
+name: "Parallel Multi-Agent Analysis"
+description: "Run multiple analysis workflows in parallel and aggregate results"
+default_model: "gemma3:4b"
+strategy: "parallel"
+
+shared_context:
+  document: "A new AI regulation framework is being proposed that will impact tech companies significantly."
+
+workflows:
+  - id: "technical_analysis"
+    workflow: "simple-qa.yaml"
+    description: "Analyze from a technical perspective"
+    variables:
+      question: "Provide a technical analysis of this: {{document}}"
+    save_as: "technical_perspective"
+    on_error: "continue"
+  
+  - id: "business_analysis"
+    workflow: "simple-qa.yaml"
+    description: "Analyze from a business perspective"
+    variables:
+      question: "Provide a business impact analysis of this: {{document}}"
+    save_as: "business_perspective"
+    on_error: "continue"
+  
+  - id: "legal_analysis"
+    workflow: "simple-qa.yaml"
+    description: "Analyze from a legal perspective"
+    variables:
+      question: "Provide a legal perspective on this: {{document}}"
+    save_as: "legal_perspective"
+    on_error: "continue"
+
+result_aggregation: "custom"
+aggregation_prompt: |
+  You have received multiple perspectives on the same topic. Please synthesize them into a comprehensive summary.
+  
+  Perspectives:
+  {{results}}
+  
+  Provide a well-rounded summary that incorporates insights from all perspectives.
+aggregation_model: "gemma3:4b"
