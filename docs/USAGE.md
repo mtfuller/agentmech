@@ -707,7 +707,7 @@ npm start run /full/path/to/workflow.yaml
 
 **Solution:** 
 - Reduce the number of files in your knowledge base
-- Increase `chunkSize` to create fewer chunks
+- Increase `chunk_size` to create fewer chunks
 - Use a smaller/faster model for embeddings
 - Once generated, embeddings are cached for fast reuse
 
