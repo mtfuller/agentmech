@@ -72,7 +72,7 @@ export interface StepSpec {
  * Defines the behavior and configuration for one step in the workflow.
  */
 export interface StateSpec {
-  /** Type of state: 'prompt' (LLM interaction), 'input' (user input), 'workflow_ref' (reference another workflow), or 'transition' (automatic transition) */
+  /** Type of state: 'prompt' (LLM interaction), 'input' (user input), 'workflow_ref' (reference another workflow), 'transition' (automatic transition), or 'decision' (LLM-driven routing without new prompt) */
   type: string;
   
   /** Inline prompt text (for prompt/input states) */

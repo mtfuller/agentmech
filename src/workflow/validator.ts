@@ -106,7 +106,7 @@ export class WorkflowValidator {
     
     this.validateRequiredField(state.type, 'type', stateContext);
 
-    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition'];
+    const validTypes = ['prompt', 'input', 'workflow_ref', 'transition', 'decision'];
     if (!validTypes.includes(state.type)) {
       throw new Error(`${stateContext} has invalid type "${state.type}". Must be one of: ${validTypes.join(', ')}`);
     }
@@ -161,6 +161,13 @@ export class WorkflowValidator {
 
     if (state.type === 'transition') {
       this.validateRequiredField(state.next, 'next field', `Transition state "${name}"`);
+    }
+
+    if (state.type === 'decision') {
+      this.validateRequiredField(state.next_options, 'next_options field', `Decision state "${name}"`);
+      if (state.prompt || state.prompt_file) {
+        throw new Error(`Decision state "${name}" cannot have a prompt or prompt_file field. Use a prompt state if you need to provide a new prompt.`);
+      }
     }
 
     // Validate MCP server references
@@ -229,9 +236,9 @@ export class WorkflowValidator {
       if (state.next) {
         throw new Error(`${stateContext} cannot have both 'next' and 'next_options' fields`);
       }
-      // next_options can only be used with prompt states (where LLM makes the decision)
-      if (state.type !== 'prompt') {
-        throw new Error(`${stateContext} can only use next_options with prompt type states`);
+      // next_options can only be used with prompt and decision states (where LLM makes the decision)
+      if (state.type !== 'prompt' && state.type !== 'decision') {
+        throw new Error(`${stateContext} can only use next_options with prompt or decision type states`);
       }
     }
 
