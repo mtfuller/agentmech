@@ -668,48 +668,42 @@ Benefits:
 
 ## Troubleshooting
 
-### Issue: "Cannot connect to Ollama"
+For comprehensive troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-**Solution:** Make sure Ollama is running:
+### Quick Fixes
+
+**Cannot connect to Ollama:**
 ```bash
 ollama serve
 ```
 
-### Issue: "Model not found"
-
-**Solution:** Pull the model first:
+**Model not found:**
 ```bash
 ollama pull gemma3:4b
 ```
 
-### Issue: "Workflow file not found"
-
-**Solution:** Use absolute or correct relative path:
+**Workflow file not found:**
 ```bash
 npm start run ./examples/simple-qa.yaml
-# or
+# or use absolute path
 npm start run /full/path/to/workflow.yaml
 ```
 
-### Issue: Workflow validation fails
-
-**Solution:** Check the error message and fix the YAML syntax or structure. Common issues:
+**Workflow validation fails:**
+Check the error message - common issues:
 - Missing `start_state`
 - Invalid state `type`
 - State references non-existent `next` state
-- Prompt state missing `prompt` field (unless using `prompt_file`)
-- Input state missing `prompt` field
-- External prompt file not found (check path is relative to workflow file)
-- Referenced workflow file not found
-- RAG configured but directory missing
+- Prompt state missing `prompt` field
+- External files not found
 
-### Issue: RAG embeddings taking too long
+**RAG embeddings taking too long:**
+- Reduce files in knowledge base
+- Increase `chunk_size` (fewer chunks)
+- Use faster embedding model
+- Embeddings are cached for reuse
 
-**Solution:** 
-- Reduce the number of files in your knowledge base
-- Increase `chunkSize` to create fewer chunks
-- Use a smaller/faster model for embeddings
-- Once generated, embeddings are cached for fast reuse
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for detailed solutions.
 
 ## Tips
 
@@ -724,6 +718,8 @@ npm start run /full/path/to/workflow.yaml
 9. **Modular Workflows**: Break complex workflows into smaller, reusable components using workflow references
 10. **LLM Routing**: Use `next_options` in prompt states for intelligent, context-aware state transitions
 
+For more tips and patterns, see [BEST_PRACTICES.md](BEST_PRACTICES.md).
+
 ## Next Steps
 
 - Create your own custom workflows
@@ -732,3 +728,15 @@ npm start run /full/path/to/workflow.yaml
 - Build a knowledge base for RAG-powered workflows
 - Use LLM-driven routing for adaptive workflows
 - Share your workflows with the community
+
+## Additional Resources
+
+- [GETTING_STARTED.md](GETTING_STARTED.md) - New to AgentMech? Start here
+- [FAQ.md](FAQ.md) - Common questions and answers
+- [BEST_PRACTICES.md](BEST_PRACTICES.md) - Design patterns and recommendations
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Detailed problem solving
+- [QUICKREF.md](QUICKREF.md) - Quick reference for syntax
+- [CUSTOM_TOOLS_GUIDE.md](CUSTOM_TOOLS_GUIDE.md) - Build custom JavaScript tools
+- [RAG_GUIDE.md](RAG_GUIDE.md) - RAG implementation details
+- [STREAMING.md](STREAMING.md) - Real-time streaming responses
+- [Examples Directory](../examples/) - Sample workflows to learn from

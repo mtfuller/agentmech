@@ -1,0 +1,95 @@
+name: "RAG Q&A Template"
+description: |
+  Answers questions using a knowledge base of documents.
+  
+  Setup:
+  1. Create a knowledge-base directory
+  2. Add .txt, .md, or other text files
+  3. Run once to generate embeddings
+  4. Embeddings are cached for future runs
+  
+  Customize:
+  - Update knowledge base directory path
+  - Adjust chunk_size and top_k for your content
+  - Modify question prompts
+  
+  Use cases:
+  - Documentation Q&A
+  - Customer support with knowledge base
+  - Policy/procedure queries
+
+default_model: "gemma3:4b"
+start_state: "setup_info"
+
+# RAG Configuration
+# TODO: Update directory path to your knowledge base
+rag:
+  kb:
+    directory: "./knowledge-base"  # Create this directory with your documents
+    model: "all-minilm"  # Embedding model (fast and efficient)
+    chunk_size: 500  # Adjust based on your content (300-1500)
+    top_k: 3  # Number of relevant chunks to retrieve (1-10)
+    
+    # Optional: Customize how context is injected
+    chunk_template: |
+      Source: {{chunk.source}}
+      {{chunk.text}}
+    
+    context_template: |
+      Use the following information to answer the question:
+      
+      {{chunks}}
+      
+      Question: {{prompt}}
+      
+      Answer based only on the information provided above.
+
+states:
+  setup_info:
+    type: "prompt"
+    prompt: |
+      RAG Q&A System Ready!
+      
+      I will answer questions based on your knowledge base.
+      
+      Knowledge base: ./knowledge-base
+      
+      Note: First run will generate embeddings (may take time).
+      Subsequent runs will be much faster.
+    next: "ask_question"
+  
+  ask_question:
+    type: "input"
+    # TODO: Customize the question prompt
+    prompt: |
+      What would you like to know?
+      (I'll search the knowledge base to answer)
+    save_as: "question"
+    next: "answer"
+  
+  answer:
+    type: "prompt"
+    use_rag: "kb"  # This enables RAG for this prompt
+    # TODO: Customize how the question is framed
+    prompt: "{{question}}"
+    save_as: "answer"
+    next: "ask_followup"
+  
+  ask_followup:
+    type: "input"
+    prompt: |
+      Answer: {{answer}}
+      
+      Do you have another question? (yes/no)
+    save_as: "continue"
+    default_value: "no"
+    next: "check_continue"
+  
+  check_continue:
+    type: "prompt"
+    prompt: "User wants to continue: {{continue}}"
+    next_options:
+      - state: "ask_question"
+        description: "User wants to ask another question"
+      - state: "end"
+        description: "User is done"

@@ -1,0 +1,28 @@
+name: "Simple Q&A Template"
+description: |
+  A basic template for asking the AI a single question.
+  
+  Customize:
+  - Change the prompt to your question
+  - Adjust the model for speed vs quality
+  - Add save_as to store the response
+  
+  Use cases:
+  - Quick information lookup
+  - Getting explanations or definitions
+  - Testing AI responses
+
+default_model: "gemma3:4b"  # Change to "phi" for speed, "llama3" for quality
+start_state: "ask_question"
+
+states:
+  ask_question:
+    type: "prompt"
+    
+    # TODO: Customize this prompt for your use case
+    prompt: "What is artificial intelligence?"
+    
+    # Optional: Save the response to use later
+    # save_as: "ai_response"
+    
+    next: "end"

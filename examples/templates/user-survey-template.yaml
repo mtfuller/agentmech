@@ -1,0 +1,77 @@
+name: "User Survey Template"
+description: |
+  Collects multiple inputs from users and generates a summary.
+  
+  Customize:
+  - Modify input prompts for your survey questions
+  - Change variable names (save_as) to match your data
+  - Adjust the summary prompt
+  
+  Use cases:
+  - Customer feedback collection
+  - User onboarding questionnaires
+  - Data gathering workflows
+
+default_model: "gemma3:4b"
+start_state: "intro"
+
+states:
+  intro:
+    type: "prompt"
+    prompt: |
+      Welcome! I'll ask you a few questions to better understand your needs.
+      Let's get started.
+    next: "question_1"
+  
+  question_1:
+    type: "input"
+    # TODO: Customize this question
+    prompt: "What is your name?"
+    save_as: "user_name"
+    next: "question_2"
+  
+  question_2:
+    type: "input"
+    # TODO: Customize this question
+    prompt: "What industry do you work in?"
+    save_as: "industry"
+    next: "question_3"
+  
+  question_3:
+    type: "input"
+    # TODO: Customize this question
+    prompt: "What are your main challenges?"
+    save_as: "challenges"
+    next: "question_4"
+  
+  question_4:
+    type: "input"
+    # TODO: Customize this question
+    prompt: "What would you like to achieve?"
+    save_as: "goals"
+    next: "generate_summary"
+  
+  generate_summary:
+    type: "prompt"
+    # TODO: Customize the summary prompt
+    prompt: |
+      Generate a professional summary based on this information:
+      
+      Name: {{user_name}}
+      Industry: {{industry}}
+      Challenges: {{challenges}}
+      Goals: {{goals}}
+      
+      Provide insights and recommendations.
+    save_as: "summary"
+    next: "display_summary"
+  
+  display_summary:
+    type: "prompt"
+    prompt: |
+      Here is your personalized summary:
+      
+      {{summary}}
+      
+      Thank you for completing the survey!
+    next: "end"

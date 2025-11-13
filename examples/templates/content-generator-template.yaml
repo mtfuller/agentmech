@@ -1,0 +1,182 @@
+name: "Content Generator Template"
+description: |
+  Generates creative content through ideation, drafting, and refinement.
+  
+  Customize:
+  - Change content type (blog post, story, email, etc.)
+  - Modify tone and style instructions
+  - Adjust the number of refinement steps
+  
+  Use cases:
+  - Blog post creation
+  - Story writing
+  - Marketing content
+  - Email composition
+
+default_model: "gemma3:4b"
+start_state: "get_topic"
+
+states:
+  get_topic:
+    type: "input"
+    # TODO: Customize for your content type
+    prompt: "What topic would you like to write about?"
+    save_as: "topic"
+    next: "get_style"
+  
+  get_style:
+    type: "input"
+    # TODO: Customize style options
+    prompt: |
+      What style should the content have?
+      (Examples: professional, casual, technical, creative, persuasive)
+    save_as: "style"
+    default_value: "professional"
+    next: "brainstorm"
+  
+  brainstorm:
+    type: "prompt"
+    # TODO: Customize brainstorming approach
+    prompt: |
+      Generate 5 creative ideas for content about: {{topic}}
+      
+      Consider a {{style}} style.
+      Focus on unique angles and interesting perspectives.
+    save_as: "ideas"
+    next: "select_idea"
+  
+  select_idea:
+    type: "input"
+    prompt: |
+      Here are the ideas:
+      
+      {{ideas}}
+      
+      Which idea number would you like to develop? (1-5)
+      Or enter your own idea:
+    save_as: "selected_idea"
+    next: "create_outline"
+  
+  create_outline:
+    type: "prompt"
+    # TODO: Customize outline structure
+    prompt: |
+      Create a detailed outline for content about: {{topic}}
+      
+      Selected direction: {{selected_idea}}
+      Style: {{style}}
+      
+      Include:
+      - Introduction hook
+      - Main points (3-5)
+      - Supporting details
+      - Conclusion
+    save_as: "outline"
+    next: "write_draft"
+  
+  write_draft:
+    type: "prompt"
+    # TODO: Customize length and depth
+    prompt: |
+      Write a complete draft following this outline:
+      
+      {{outline}}
+      
+      Style: {{style}}
+      Make it engaging and well-structured.
+    save_as: "draft"
+    next: "review"
+  
+  review:
+    type: "input"
+    prompt: |
+      Here's the draft:
+      
+      {{draft}}
+      
+      Would you like to:
+      1. Refine and improve it
+      2. Make it shorter
+      3. Make it longer
+      4. Change the tone
+      5. Accept as is
+      
+      Enter choice (1-5):
+    save_as: "review_choice"
+    next: "process_review"
+  
+  process_review:
+    type: "prompt"
+    prompt: |
+      User chose: {{review_choice}}
+      
+      Draft: {{draft}}
+    next_options:
+      - state: "refine"
+        description: "Choice is 1 - refine and improve"
+      - state: "make_shorter"
+        description: "Choice is 2 - make shorter"
+      - state: "make_longer"
+        description: "Choice is 3 - make longer"
+      - state: "change_tone"
+        description: "Choice is 4 - change tone"
+      - state: "finalize"
+        description: "Choice is 5 - accept as is"
+  
+  refine:
+    type: "prompt"
+    prompt: |
+      Improve and refine this draft:
+      {{draft}}
+      
+      Focus on:
+      - Clarity and flow
+      - Stronger word choices
+      - Better transitions
+      - More engaging language
+    save_as: "draft"
+    next: "finalize"
+  
+  make_shorter:
+    type: "prompt"
+    prompt: |
+      Create a more concise version of this draft:
+      {{draft}}
+      
+      Remove unnecessary words while keeping all key points.
+    save_as: "draft"
+    next: "finalize"
+  
+  make_longer:
+    type: "prompt"
+    prompt: |
+      Expand this draft with more details and examples:
+      {{draft}}
+      
+      Add depth while maintaining coherence.
+    save_as: "draft"
+    next: "finalize"
+  
+  change_tone:
+    type: "input"
+    prompt: "What tone would you like? (professional, casual, friendly, formal, etc.)"
+    save_as: "new_style"
+    next: "apply_tone"
+  
+  apply_tone:
+    type: "prompt"
+    prompt: |
+      Rewrite this draft in a {{new_style}} tone:
+      {{draft}}
+    save_as: "draft"
+    next: "finalize"
+  
+  finalize:
+    type: "prompt"
+    prompt: |
+      === Final Content ===
+      
+      {{draft}}
+      
+      Content generation complete!
+    next: "end"

@@ -326,7 +326,23 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 
 ## Examples
 
-Browse the `examples/` directory for sample workflows:
+### Templates
+
+Start with ready-to-use templates in `examples/templates/`:
+- **simple-qa-template.yaml** - Basic question/answer template
+- **user-survey-template.yaml** - Multi-question survey with summary
+- **multi-step-analysis-template.yaml** - Sequential analysis pipeline
+- **content-generator-template.yaml** - Creative content creation
+- **rag-qa-template.yaml** - Knowledge base Q&A
+- **interactive-assistant-template.yaml** - Conversational loop
+- **error-handling-template.yaml** - Robust error handling patterns
+- **web-scraping-template.yaml** - Website data extraction
+
+See [examples/templates/README.md](examples/templates/README.md) for customization guides.
+
+### Sample Workflows
+
+Browse the `examples/` directory for working examples:
 - **simple-qa.yaml** - Basic Q&A workflow
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps

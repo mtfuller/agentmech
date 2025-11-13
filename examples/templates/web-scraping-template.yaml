@@ -1,0 +1,123 @@
+name: "Web Scraping Template"
+description: |
+  Extracts information from websites using Playwright.
+  
+  Setup:
+  - Playwright MCP server is automatically installed via npx
+  - No additional setup required
+  
+  Customize:
+  - Change target URLs
+  - Modify extraction prompts
+  - Adjust data processing
+  
+  Use cases:
+  - Market research
+  - Competitive analysis
+  - Data collection
+  - Content monitoring
+
+default_model: "gemma3:4b"
+start_state: "get_url"
+
+# Configure Playwright MCP server for web browsing
+mcp_servers:
+  browser:
+    type: npx
+    package: "@modelcontextprotocol/server-playwright"
+
+states:
+  get_url:
+    type: "input"
+    # TODO: Customize URL prompt or use fixed URL
+    prompt: "Enter the website URL to analyze:"
+    save_as: "target_url"
+    default_value: "https://example.com"
+    next: "scrape_content"
+  
+  scrape_content:
+    type: "prompt"
+    mcp_servers: ["browser"]  # Enable browser tools
+    # TODO: Customize what to extract
+    prompt: |
+      Navigate to {{target_url}} and extract:
+      
+      1. Page title
+      2. Main headings (h1, h2)
+      3. Primary content or article text
+      4. Key information or data points
+      5. Any relevant links or resources
+      
+      Provide structured output.
+    save_as: "raw_content"
+    next: "process_content"
+  
+  process_content:
+    type: "prompt"
+    # TODO: Customize content processing
+    prompt: |
+      Process and structure this scraped content:
+      
+      {{raw_content}}
+      
+      Organize it into clear sections:
+      - Summary
+      - Key points
+      - Important data
+      - Relevant links
+    save_as: "processed_content"
+    next: "ask_more"
+  
+  ask_more:
+    type: "input"
+    prompt: |
+      === Extracted Content ===
+      
+      {{processed_content}}
+      
+      Would you like to:
+      1. Scrape another website
+      2. Get more details from the same site
+      3. Exit
+      
+      Enter choice (1-3):
+    save_as: "next_action"
+    next: "decide_next"
+  
+  decide_next:
+    type: "prompt"
+    prompt: "User chose: {{next_action}}"
+    next_options:
+      - state: "get_url"
+        description: "Scrape another website"
+      - state: "deep_dive"
+        description: "Get more details from same site"
+      - state: "end"
+        description: "Exit"
+  
+  deep_dive:
+    type: "input"
+    prompt: |
+      What specific information would you like from {{target_url}}?
+      (e.g., "all product prices", "contact information", "article dates")
+    save_as: "specific_request"
+    next: "extract_specific"
+  
+  extract_specific:
+    type: "prompt"
+    mcp_servers: ["browser"]
+    # TODO: Customize specific extraction
+    prompt: |
+      Navigate to {{target_url}} and find: {{specific_request}}
+      
+      Be thorough and extract all relevant information.
+    save_as: "specific_data"
+    next: "display_specific"
+  
+  display_specific:
+    type: "prompt"
+    prompt: |
+      === Specific Data Extracted ===
+      
+      {{specific_data}}
+    next: "ask_more"
