@@ -1,5 +1,5 @@
-name: "Workflow with Variables"
-description: "Example workflow demonstrating variable usage in prompts"
+name: "Variables and External Files"
+description: "Demonstrates variable interpolation, external variable files, and external prompt files"
 default_model: "gemma3:4b"
 start_state: "greet"
 
@@ -11,13 +11,21 @@ variables:
   topic:
     value: "artificial intelligence"
   
-  # Variable loaded from file
+  # Variable loaded from external file
   system_prompt:
     file: "variables-test/template.txt"
 
 states:
+  # State 1: Use variables (including variable from file)
   greet:
     type: "prompt"
     prompt: "{{system_prompt}}\n\nHello {{user_name}}! Let's discuss {{topic}}. What would you like to know?"
     save_as: "greeting_response"
+    next: "story"
+  
+  # State 2: Use external prompt file (demonstrates prompt_file feature)
+  story:
+    type: "prompt"
+    prompt_file: "prompts/story-prompt.md"
+    save_as: "story"
     next: "end"
