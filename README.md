@@ -326,7 +326,23 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 
 ## Examples
 
-Browse the `examples/` directory for sample workflows:
+### Templates
+
+Start with ready-to-use templates in `examples/templates/`:
+- **simple-qa-template.yaml** - Basic question/answer template
+- **user-survey-template.yaml** - Multi-question survey with summary
+- **multi-step-analysis-template.yaml** - Sequential analysis pipeline
+- **content-generator-template.yaml** - Creative content creation
+- **rag-qa-template.yaml** - Knowledge base Q&A
+- **interactive-assistant-template.yaml** - Conversational loop
+- **error-handling-template.yaml** - Robust error handling patterns
+- **web-scraping-template.yaml** - Website data extraction
+
+See [examples/templates/README.md](examples/templates/README.md) for customization guides.
+
+### Sample Workflows
+
+Browse the `examples/` directory for working examples:
 - **simple-qa.yaml** - Basic Q&A workflow
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps
@@ -343,18 +359,32 @@ See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSI
 
 ## Documentation
 
+### Getting Started
+- [USAGE.md](docs/USAGE.md) - Detailed usage examples and tutorials
+- [QUICKREF.md](docs/QUICKREF.md) - Quick reference for common patterns
+- [FAQ.md](docs/FAQ.md) - Frequently asked questions
+- [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
+
+### Advanced Topics
+- [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom JavaScript tools
+- [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation and optimization
+- [STREAMING.md](docs/STREAMING.md) - Real-time streaming responses
+- [BEST_PRACTICES.md](docs/BEST_PRACTICES.md) - Design patterns and recommendations
+- [WEB_BROWSING_GUIDE.md](examples/WEB_BROWSING_GUIDE.md) - Web automation with Playwright
+- [WORKFLOW_GENERATION_GUIDE.md](examples/WORKFLOW_GENERATION_GUIDE.md) - AI-powered workflow generation
+
+### Development
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
-- [USAGE.md](docs/USAGE.md) - Detailed usage examples
-- [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
-- [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
-- [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
 - [PUBLISHING.md](docs/PUBLISHING.md) - NPM publishing and release process
 
 ## Troubleshooting
 
-**Cannot connect to Ollama** - Ensure `ollama serve` is running  
-**Model not found** - Run `ollama pull <model-name>` first  
-**Workflow file not found** - Check file path is correct
+For detailed troubleshooting, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+**Quick fixes:**
+- **Cannot connect to Ollama** - Ensure `ollama serve` is running  
+- **Model not found** - Run `ollama pull <model-name>` first  
+- **Workflow file not found** - Check file path is correct
 
 ## Contributing
 

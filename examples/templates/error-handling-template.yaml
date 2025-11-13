@@ -1,0 +1,218 @@
+name: "Error Handling Template"
+description: |
+  Demonstrates robust error handling with fallback states.
+  
+  Customize:
+  - Add error handlers for specific states
+  - Modify recovery strategies
+  - Adjust error messages
+  
+  Use cases:
+  - Production workflows
+  - Reliable automation
+  - Critical business processes
+
+default_model: "gemma3:4b"
+start_state: "main_task"
+
+# Workflow-level error handler (fallback)
+on_error: "general_error_handler"
+
+states:
+  main_task:
+    type: "input"
+    prompt: "Enter data to process:"
+    save_as: "user_data"
+    next: "validate_data"
+  
+  validate_data:
+    type: "prompt"
+    # This state has its own error handler
+    on_error: "validation_error_handler"
+    # TODO: Customize validation logic
+    prompt: |
+      Validate this data: {{user_data}}
+      
+      Check if it's:
+      - Not empty
+      - In correct format
+      - Within acceptable range
+      
+      If valid, respond "VALID: [explanation]"
+      If invalid, respond "INVALID: [reason]"
+    save_as: "validation_result"
+    next: "check_validation"
+  
+  check_validation:
+    type: "prompt"
+    prompt: "{{validation_result}}"
+    next_options:
+      - state: "process_data"
+        description: "Data is valid"
+      - state: "validation_error_handler"
+        description: "Data is invalid"
+  
+  process_data:
+    type: "prompt"
+    # This state could fail during processing
+    on_error: "processing_error_handler"
+    # TODO: Customize processing logic
+    prompt: |
+      Process this validated data: {{user_data}}
+      
+      Perform the main task:
+      1. Transform the data
+      2. Apply business logic
+      3. Generate output
+    save_as: "result"
+    next: "verify_result"
+  
+  verify_result:
+    type: "prompt"
+    # Final verification with error handling
+    on_error: "verification_error_handler"
+    # TODO: Customize verification
+    prompt: |
+      Verify this result is correct: {{result}}
+      
+      Check for:
+      - Completeness
+      - Accuracy
+      - Format compliance
+      
+      If correct, respond "VERIFIED: [explanation]"
+      If issues, respond "ISSUES: [problems]"
+    save_as: "verification"
+    next: "check_verification"
+  
+  check_verification:
+    type: "prompt"
+    prompt: "{{verification}}"
+    next_options:
+      - state: "success"
+        description: "Result verified successfully"
+      - state: "verification_error_handler"
+        description: "Issues found in result"
+  
+  success:
+    type: "prompt"
+    prompt: |
+      ✓ Task completed successfully!
+      
+      Result: {{result}}
+      Verification: {{verification}}
+    next: "end"
+  
+  # Specific error handler for validation
+  validation_error_handler:
+    type: "prompt"
+    prompt: |
+      ⚠ Validation Error
+      
+      The data provided could not be validated:
+      {{validation_result}}
+      
+      Please check your input and try again.
+    save_as: "error_message"
+    next: "offer_retry"
+  
+  # Specific error handler for processing
+  processing_error_handler:
+    type: "prompt"
+    prompt: |
+      ⚠ Processing Error
+      
+      An error occurred while processing your data.
+      This could be due to:
+      - Unexpected data format
+      - System resources
+      - Data constraints
+      
+      Attempting recovery...
+    next: "attempt_recovery"
+  
+  # Specific error handler for verification
+  verification_error_handler:
+    type: "prompt"
+    prompt: |
+      ⚠ Verification Failed
+      
+      The result did not pass verification:
+      {{verification}}
+      
+      Initiating fallback procedure...
+    next: "fallback_processing"
+  
+  # General error handler (workflow-level fallback)
+  general_error_handler:
+    type: "prompt"
+    prompt: |
+      ⚠ Unexpected Error
+      
+      An unexpected error occurred. The system will:
+      1. Log the error details
+      2. Preserve your data
+      3. Provide recovery options
+      
+      Error context: State encountered an unhandled exception
+    next: "offer_retry"
+  
+  # Recovery attempt
+  attempt_recovery:
+    type: "prompt"
+    # TODO: Customize recovery strategy
+    prompt: |
+      Attempting to recover by using a simpler processing approach.
+      
+      Original data: {{user_data}}
+      
+      Apply basic processing as fallback.
+    save_as: "result"
+    next: "success"
+  
+  # Alternative processing path
+  fallback_processing:
+    type: "prompt"
+    # TODO: Customize fallback approach
+    prompt: |
+      Using alternative processing method for: {{user_data}}
+      
+      This is a simpler approach that should work reliably.
+    save_as: "result"
+    next: "success"
+  
+  # Offer user to retry
+  offer_retry:
+    type: "input"
+    prompt: |
+      {{error_message}}
+      
+      Would you like to:
+      1. Try again with different input
+      2. Exit
+      
+      Enter choice (1 or 2):
+    save_as: "retry_choice"
+    next: "handle_retry"
+  
+  handle_retry:
+    type: "prompt"
+    prompt: "User choice: {{retry_choice}}"
+    next_options:
+      - state: "main_task"
+        description: "User wants to try again"
+      - state: "exit_with_error"
+        description: "User wants to exit"
+  
+  exit_with_error:
+    type: "prompt"
+    prompt: |
+      Operation cancelled.
+      
+      If this problem persists, please:
+      - Check your input format
+      - Verify system requirements
+      - Contact support with error details
+      
+      Error log saved to: {{run_directory}}/error.log
+    next: "end"

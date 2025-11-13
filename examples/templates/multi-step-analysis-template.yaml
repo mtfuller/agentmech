@@ -1,0 +1,88 @@
+name: "Multi-Step Analysis Template"
+description: |
+  Analyzes input through multiple sequential stages.
+  
+  Customize:
+  - Modify each analysis step prompt
+  - Add or remove analysis stages
+  - Change the type of analysis performed
+  
+  Use cases:
+  - Document analysis
+  - Data processing pipelines
+  - Complex text analysis
+
+default_model: "gemma3:4b"
+start_state: "get_input"
+
+states:
+  get_input:
+    type: "input"
+    # TODO: Customize the input prompt
+    prompt: "Enter the text you want to analyze:"
+    save_as: "input_text"
+    next: "step_1_summarize"
+  
+  step_1_summarize:
+    type: "prompt"
+    # TODO: Customize the first analysis step
+    prompt: |
+      Summarize the main points from this text:
+      
+      {{input_text}}
+    save_as: "summary"
+    next: "step_2_extract_themes"
+  
+  step_2_extract_themes:
+    type: "prompt"
+    # TODO: Customize the second analysis step
+    prompt: |
+      Based on this summary, extract the key themes and topics:
+      
+      {{summary}}
+    save_as: "themes"
+    next: "step_3_sentiment"
+  
+  step_3_sentiment:
+    type: "prompt"
+    # TODO: Customize the third analysis step
+    prompt: |
+      Analyze the sentiment and tone. Consider these themes:
+      
+      {{themes}}
+      
+      Original text summary: {{summary}}
+    save_as: "sentiment"
+    next: "step_4_recommendations"
+  
+  step_4_recommendations:
+    type: "prompt"
+    # TODO: Customize the final step
+    prompt: |
+      Generate actionable recommendations based on this analysis:
+      
+      Summary: {{summary}}
+      Themes: {{themes}}
+      Sentiment: {{sentiment}}
+      
+      Provide 3-5 specific recommendations.
+    save_as: "recommendations"
+    next: "display_results"
+  
+  display_results:
+    type: "prompt"
+    prompt: |
+      === Analysis Complete ===
+      
+      SUMMARY:
+      {{summary}}
+      
+      KEY THEMES:
+      {{themes}}
+      
+      SENTIMENT:
+      {{sentiment}}
+      
+      RECOMMENDATIONS:
+      {{recommendations}}
+    next: "end"

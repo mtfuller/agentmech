@@ -1,0 +1,99 @@
+name: "Interactive Assistant Template"
+description: |
+  A conversational assistant that loops until the user exits.
+  
+  Customize:
+  - Change the assistant's role and capabilities
+  - Modify task options
+  - Adjust response style
+  
+  Use cases:
+  - Chatbots
+  - Interactive help systems
+  - Task automation assistants
+
+default_model: "gemma3:4b"
+start_state: "welcome"
+
+# Optional: Define the assistant's personality
+variables:
+  assistant_role: "helpful AI assistant"
+  assistant_capabilities: |
+    - Answer questions
+    - Provide explanations
+    - Help with tasks
+    - Give recommendations
+
+states:
+  welcome:
+    type: "prompt"
+    # TODO: Customize welcome message
+    prompt: |
+      Hello! I'm your {{assistant_role}}.
+      
+      I can help you with:
+      {{assistant_capabilities}}
+      
+      How can I assist you today?
+    next: "get_task"
+  
+  get_task:
+    type: "input"
+    # TODO: Customize task prompt
+    prompt: |
+      What would you like help with?
+      (Or type 'exit' to quit)
+    save_as: "user_request"
+    next: "check_exit"
+  
+  check_exit:
+    type: "prompt"
+    prompt: "User said: {{user_request}}"
+    next_options:
+      - state: "goodbye"
+        description: "User wants to exit (said 'exit', 'quit', 'bye', etc.)"
+      - state: "process_request"
+        description: "User has a request to process"
+  
+  process_request:
+    type: "prompt"
+    # TODO: Customize how requests are processed
+    prompt: |
+      {{assistant_role}} responding to: {{user_request}}
+      
+      Provide a helpful, detailed response.
+      Be friendly and conversational.
+    save_as: "response"
+    next: "deliver_response"
+  
+  deliver_response:
+    type: "prompt"
+    prompt: |
+      {{response}}
+      
+      Is there anything else I can help you with?
+    next: "ask_continue"
+  
+  ask_continue:
+    type: "input"
+    prompt: "Would you like help with something else? (yes/no)"
+    save_as: "continue"
+    default_value: "yes"
+    next: "decide_continue"
+  
+  decide_continue:
+    type: "prompt"
+    prompt: "User wants to continue: {{continue}}"
+    next_options:
+      - state: "get_task"
+        description: "User wants to continue"
+      - state: "goodbye"
+        description: "User is done"
+  
+  goodbye:
+    type: "prompt"
+    # TODO: Customize goodbye message
+    prompt: |
+      Thank you for using the assistant!
+      Have a great day! 👋
+    next: "end"
