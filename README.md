@@ -343,18 +343,32 @@ See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSI
 
 ## Documentation
 
+### Getting Started
+- [USAGE.md](docs/USAGE.md) - Detailed usage examples and tutorials
+- [QUICKREF.md](docs/QUICKREF.md) - Quick reference for common patterns
+- [FAQ.md](docs/FAQ.md) - Frequently asked questions
+- [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Common issues and solutions
+
+### Advanced Topics
+- [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom JavaScript tools
+- [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation and optimization
+- [STREAMING.md](docs/STREAMING.md) - Real-time streaming responses
+- [BEST_PRACTICES.md](docs/BEST_PRACTICES.md) - Design patterns and recommendations
+- [WEB_BROWSING_GUIDE.md](examples/WEB_BROWSING_GUIDE.md) - Web automation with Playwright
+- [WORKFLOW_GENERATION_GUIDE.md](examples/WORKFLOW_GENERATION_GUIDE.md) - AI-powered workflow generation
+
+### Development
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
-- [USAGE.md](docs/USAGE.md) - Detailed usage examples
-- [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
-- [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
-- [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
 - [PUBLISHING.md](docs/PUBLISHING.md) - NPM publishing and release process
 
 ## Troubleshooting
 
-**Cannot connect to Ollama** - Ensure `ollama serve` is running  
-**Model not found** - Run `ollama pull <model-name>` first  
-**Workflow file not found** - Check file path is correct
+For detailed troubleshooting, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+**Quick fixes:**
+- **Cannot connect to Ollama** - Ensure `ollama serve` is running  
+- **Model not found** - Run `ollama pull <model-name>` first  
+- **Workflow file not found** - Check file path is correct
 
 ## Contributing
 
