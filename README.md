@@ -179,6 +179,19 @@ sub_task:
   next: "continue"
 ```
 
+**Decision State** - Route workflow based on context without new prompt
+```yaml
+route_decision:
+  type: "decision"
+  next_options:
+    - state: "path_a"
+      description: "User chose option A or context suggests path A"
+    - state: "path_b"
+      description: "User chose option B or context suggests path B"
+```
+
+Decision states use the LLM to select the next state from `next_options` based on accumulated workflow context (variables saved with `save_as`). Unlike prompt states, decision states don't require or accept a new prompt - they use existing context to make routing decisions.
+
 **Sequential Steps** - Execute multiple prompts in sequence within one state
 ```yaml
 story_creation:
@@ -330,6 +343,7 @@ Browse the `examples/` directory for sample workflows:
 - **simple-qa.yaml** - Basic Q&A workflow
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps
+- **decision-state-demo.yaml** - Context-based routing with decision states
 - **image-analysis.yaml** - Analyze images with vision models
 - **multi-rag-qa.yaml** - RAG with multiple knowledge bases
 - **research-assistant.yaml** - LLM-driven state routing
