@@ -56,4 +56,13 @@ program
   .option('-m, --model <model>', 'Model to use for generation', 'gemma3:4b')
   .action(Actions.generate);
 
+program
+  .command('orchestrate')
+  .description('Orchestrate multiple workflows to perform complex tasks autonomously')
+  .argument('<orchestration-file>', 'Path to orchestration YAML file')
+  .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
+  .option('-t, --trace', 'Enable tracing/observability for orchestration execution', false)
+  .option('-l, --log-file <path>', 'Path to file for logging trace events')
+  .action(Actions.orchestrate);
+
 program.parse();

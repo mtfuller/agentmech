@@ -1,0 +1,53 @@
+name: "Conditional Workflow Orchestration"
+description: "Execute workflows based on conditions and dependencies"
+default_model: "gemma3:4b"
+strategy: "conditional"
+
+shared_context:
+  task_type: "code_review"
+  requires_testing: true
+
+workflows:
+  - id: "initial_assessment"
+    workflow: "simple-qa.yaml"
+    description: "Assess the task requirements"
+    variables:
+      question: "What are the key requirements for a {{task_type}} task?"
+    save_as: "requirements"
+    on_error: "fail"
+  
+  - id: "code_review"
+    workflow: "code-review.yaml"
+    description: "Perform code review if task type is code_review"
+    depends_on: ["initial_assessment"]
+    condition:
+      variable: "task_type"
+      operator: "equals"
+      value: "code_review"
+    save_as: "review_results"
+    on_error: "continue"
+  
+  - id: "testing"
+    workflow: "simple-qa.yaml"
+    description: "Run tests if required"
+    depends_on: ["code_review"]
+    condition:
+      variable: "requires_testing"
+      operator: "equals"
+      value: true
+    variables:
+      question: "What tests should be run based on this review? {{review_results}}"
+    save_as: "test_plan"
+    on_error: "fallback"
+    fallback_workflow: "simple-qa.yaml"
+  
+  - id: "final_report"
+    workflow: "simple-qa.yaml"
+    description: "Generate final report"
+    depends_on: ["testing"]
+    variables:
+      question: "Create a final report based on requirements: {{requirements}}, review: {{review_results}}, and tests: {{test_plan}}"
+    save_as: "report"
+    on_error: "fail"
+
+result_aggregation: "merge"
