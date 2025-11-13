@@ -2,13 +2,14 @@
 
 import { Command } from 'commander';
 import * as Actions from './actions';
+import packageJson from '../package.json';
 
 const program = new Command();
 
 program
   .name('agentmech')
   .description('A CLI tool for running AI workflows locally with Ollama')
-  .version('1.0.0');
+  .version(packageJson.version);
 
 program
   .command('run')
