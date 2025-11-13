@@ -327,17 +327,34 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 ## Examples
 
 Browse the `examples/` directory for sample workflows:
-- **simple-qa.yaml** - Basic Q&A workflow
+
+**Basic Workflows:**
+- **simple-qa.yaml** - Basic Q&A workflow with prompt state
+- **user-input-demo.yaml** - Collecting user input with input state
+- **variables-workflow.yaml** - Variable interpolation and external files
+
+**Advanced Features:**
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps
-- **image-analysis.yaml** - Analyze images with vision models
+- **multimodal-analysis.yaml** - Analyze images and text files with vision models
+- **workflow-reference.yaml** - Workflow composition and references
+- **research-assistant.yaml** - LLM-driven dynamic routing
+
+**RAG & Knowledge:**
 - **multi-rag-qa.yaml** - RAG with multiple knowledge bases
-- **research-assistant.yaml** - LLM-driven state routing
+- **custom-rag-templates.yaml** - Custom RAG chunk and context templates
+
+**Integrations:**
 - **comprehensive-mcp-integration.yaml** - MCP server integration
+- **advanced-custom-tools.yaml** - Custom JavaScript tools
 - **simple-web-browse.yaml** - Web browsing with Playwright MCP server
-- **web-browsing-demo.yaml** - Interactive web browsing workflow
-- **complete-story-builder.yaml** - Workflow composition
-- **user-input-demo.test.yaml** - Test scenarios
+
+**Advanced Patterns:**
+- **mixed-fallback.yaml** - Error handling with fallback states
+- **run-directory-demo.yaml** - Using the run directory variable
+
+**Testing:**
+- **user-input-demo.test.yaml** - Test scenarios with assertions
 
 See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSING_GUIDE.md), and [docs/USAGE.md](docs/USAGE.md) for more.
 

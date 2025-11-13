@@ -1,23 +1,42 @@
-name: "Multimodal Text and Image Analysis"
-description: "Demonstrate processing multiple file types (text files and images) in a workflow"
-default_model: "llava"
+name: "Multimodal Analysis"
+description: "Demonstrates processing multiple file types including images, text files, and JSON in a single workflow"
+default_model: "llava"  # Vision-capable model for image analysis
 
-start_state: "analyze_data"
+start_state: "analyze_text_files"
 
 states:
-  analyze_data:
+  # Step 1: Analyze text and JSON files (works with any model)
+  analyze_text_files:
     type: "prompt"
-    prompt: "Analyze the following files and provide a summary of what information they contain:"
+    prompt: "Analyze the following text and data files. Summarize the key information from each:"
+    model: "gemma3:4b"  # Can use standard model for text-only analysis
     files:
       - "examples/multimodal-demo/sample-text.txt"
       - "examples/multimodal-demo/data.json"
     save_as: "text_analysis"
-    next: "analyze_with_image"
+    next: "analyze_image"
   
-  analyze_with_image:
+  # Step 2: Analyze image file (requires vision model)
+  analyze_image:
     type: "prompt"
-    prompt: "Now, also consider this image and explain how it relates to the text data analyzed earlier: {{text_analysis}}"
+    prompt: "Describe what you see in this image in detail:"
+    model: "llava"  # Vision model required for images
     files:
       - "examples/multimodal-demo/test-image.png"
-    save_as: "combined_analysis"
+    save_as: "image_analysis"
+    next: "combined_analysis"
+  
+  # Step 3: Combine all analyses
+  combined_analysis:
+    type: "prompt"
+    prompt: |
+      Create a comprehensive report combining all the analyzed files:
+      
+      Text/Data Analysis: {{text_analysis}}
+      
+      Image Analysis: {{image_analysis}}
+      
+      Provide insights on how these different data sources complement each other.
+    model: "gemma3:4b"
+    save_as: "final_report"
     next: "end"
