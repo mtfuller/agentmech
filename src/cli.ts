@@ -46,6 +46,7 @@ program
   .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
   .option('-o, --output <path>', 'Path to save test report (for json/markdown formats)')
   .option('-f, --format <format>', 'Report format: console, json, or markdown', 'console')
+  .option('-i, --iterations <number>', 'Number of times to run each test scenario', parseInt)
   .action(Actions.test);
 
 program

@@ -51,6 +51,14 @@ export class TestScenarioValidator {
       throw new Error('Test suite must contain at least one test scenario');
     }
 
+    // Validate iterations if provided
+    if (testSuite.iterations !== undefined) {
+      this.validateFieldType(testSuite.iterations, 'number', 'iterations', 'Test suite');
+      if (testSuite.iterations < 1) {
+        throw new Error('Test suite iterations must be at least 1');
+      }
+    }
+
     // Validate each test scenario
     testSuite.test_scenarios.forEach((scenario, index) => {
       this.validateTestScenario(scenario, index);
@@ -83,6 +91,14 @@ export class TestScenarioValidator {
       throw new Error(`Test scenario "${scenarioLabel}" must contain at least one assertion`);
     }
 
+    // Validate iterations if provided
+    if (scenario.iterations !== undefined) {
+      this.validateFieldType(scenario.iterations, 'number', 'iterations', `Test scenario "${scenarioLabel}"`);
+      if (scenario.iterations < 1) {
+        throw new Error(`Test scenario "${scenarioLabel}" iterations must be at least 1`);
+      }
+    }
+
     // Validate inputs if provided
     if (scenario.inputs) {
       if (!Array.isArray(scenario.inputs)) {
@@ -99,6 +115,24 @@ export class TestScenarioValidator {
         
         this.validateFieldType(input.value, 'string', 'value', `Input at index ${inputIndex} in scenario "${scenarioLabel}"`);
       });
+    }
+
+    // Validate LLM input generation if provided
+    if (scenario.llm_input_generation) {
+      this.validateFieldType(scenario.llm_input_generation.enabled, 'boolean', 'enabled', `LLM input generation in scenario "${scenarioLabel}"`);
+      
+      if (scenario.llm_input_generation.model !== undefined) {
+        this.validateFieldType(scenario.llm_input_generation.model, 'string', 'model', `LLM input generation in scenario "${scenarioLabel}"`);
+      }
+      
+      if (scenario.llm_input_generation.context !== undefined) {
+        this.validateFieldType(scenario.llm_input_generation.context, 'string', 'context', `LLM input generation in scenario "${scenarioLabel}"`);
+      }
+
+      // Cannot have both predefined inputs and LLM generation enabled
+      if (scenario.llm_input_generation.enabled && scenario.inputs && scenario.inputs.length > 0) {
+        throw new Error(`Test scenario "${scenarioLabel}" cannot have both predefined inputs and LLM input generation enabled`);
+      }
     }
 
     // Validate assertions

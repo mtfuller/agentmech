@@ -59,7 +59,7 @@ agentmech generate [-o output.yaml] [-m model]
 agentmech run <workflow.yaml> [--trace] [--log-file path]
 
 # Test workflow
-agentmech test <test.yaml> [--format json|markdown] [--output path]
+agentmech test <test.yaml> [--format json|markdown] [--output path] [--iterations N]
 
 # Validate workflow
 agentmech validate <workflow.yaml>
@@ -302,6 +302,8 @@ Supported: Images (`.jpg`, `.png`, etc.), text files (`.txt`, `.md`, `.json`, `.
 
 Create test files to validate workflow behavior with mocked inputs and assertions:
 
+### Basic Test Scenario
+
 ```yaml
 workflow: user-input-demo.yaml
 test_scenarios:
@@ -320,9 +322,76 @@ test_scenarios:
         value: "end"
 ```
 
+### Multiple Iterations with Aggregated Results
+
+Run tests multiple times to verify consistency and get aggregated statistics:
+
+```yaml
+workflow: user-input-demo.yaml
+iterations: 5  # Run all scenarios 5 times
+
+test_scenarios:
+  - name: "Consistency Test"
+    iterations: 10  # Override global iterations for this scenario
+    inputs:
+      - state: "get_name"
+        value: "Bob"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+```
+
+Aggregated reports show success rate, average/min/max duration, and per-iteration results.
+
+### LLM-Generated User Inputs
+
+Let an LLM generate realistic test inputs instead of pre-defining them:
+
+```yaml
+workflow: user-input-demo.yaml
+test_scenarios:
+  - name: "LLM-Generated Inputs"
+    llm_input_generation:
+      enabled: true
+      model: "gemma3:4b"  # Optional: Override default model
+      context: "Generate realistic user inputs for a tech-savvy professional"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "contains"
+        target: "response"
+        value: "{{name}}"
+```
+
+You can combine LLM generation with iterations to test with varying data:
+
+```yaml
+workflow: user-input-demo.yaml
+test_scenarios:
+  - name: "Varied Input Testing"
+    iterations: 3
+    llm_input_generation:
+      enabled: true
+      context: "Generate diverse user profiles with different backgrounds"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+```
+
 **Assertion types:** `equals`, `contains`, `not_contains`, `regex`, `state_reached`
 
-Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output report.json]`
+**Run tests:** 
+```bash
+# Basic test
+agentmech test workflow.test.yaml
+
+# With multiple iterations (overrides YAML iterations)
+agentmech test workflow.test.yaml --iterations 10
+
+# With output formats
+agentmech test workflow.test.yaml --format json --output report.json
+agentmech test workflow.test.yaml --format markdown --output report.md
+```
 
 ## Examples
 

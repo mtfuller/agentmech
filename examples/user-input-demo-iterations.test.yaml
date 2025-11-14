@@ -1,0 +1,48 @@
+# Test Scenarios for User Input Demo Workflow with Multiple Iterations
+# This demonstrates the new iterations feature for aggregated testing
+
+workflow: user-input-demo.yaml
+
+# Global iterations - applies to all scenarios unless overridden
+iterations: 3
+
+test_scenarios:
+  - name: "Multiple Runs with Fixed Inputs"
+    description: "Run the same test multiple times to verify consistency"
+    inputs:
+      - state: "get_name"
+        value: "Alice"
+      - state: "get_location"
+        value: "San Francisco"
+      - state: "get_interest"
+        value: "machine learning"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "equals"
+        target: "name"
+        value: "Alice"
+      - type: "contains"
+        target: "response"
+        value: "machine learning"
+
+  - name: "Stress Test with Many Iterations"
+    description: "Run many iterations to test reliability"
+    iterations: 5  # Override global iterations for this scenario
+    inputs:
+      - state: "get_name"
+        value: "Bob"
+      - state: "get_location"
+        value: "New York"
+      - state: "get_interest"
+        value: "quantum computing"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+      - type: "equals"
+        target: "name"
+        value: "Bob"
+      - type: "contains"
+        target: "response"
+        value: "quantum"
