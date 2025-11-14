@@ -39,7 +39,8 @@ class TestScenarioParser {
       workflow: testSuiteSpec.workflow,
       test_scenarios: testSuiteSpec.test_scenarios.map(scenarioSpec => 
         this.parseTestScenarioSpec(scenarioSpec)
-      )
+      ),
+      iterations: testSuiteSpec.iterations
     };
   }
 
@@ -53,9 +54,15 @@ class TestScenarioParser {
       name: scenarioSpec.name,
       description: scenarioSpec.description,
       inputs: scenarioSpec.inputs?.map(inputSpec => this.parseTestInputSpec(inputSpec)),
+      llmInputGeneration: scenarioSpec.llm_input_generation ? {
+        enabled: scenarioSpec.llm_input_generation.enabled,
+        model: scenarioSpec.llm_input_generation.model,
+        context: scenarioSpec.llm_input_generation.context
+      } : undefined,
       assertions: scenarioSpec.assertions.map(assertionSpec => 
         this.parseTestAssertionSpec(assertionSpec)
-      )
+      ),
+      iterations: scenarioSpec.iterations
     };
   }
 

@@ -2,6 +2,7 @@ import WorkflowParser = require('../workflow/parser');
 import WorkflowExecutor = require('../workflow/executor');
 import { TestScenario, TestAssertion, TestInput } from './test-scenario';
 import Tracer = require('../utils/tracer');
+import { LLMInputGenerator } from './llm-input-generator';
 
 /**
  * Result of a single assertion
@@ -21,6 +22,23 @@ export interface TestScenarioResult {
   assertions: AssertionResult[];
   error?: string;
   duration: number;  // Execution time in milliseconds
+  generatedInputs?: TestInput[];  // Inputs used (relevant for LLM-generated inputs)
+}
+
+/**
+ * Aggregated result for multiple test runs
+ */
+export interface AggregatedTestResult {
+  scenario: TestScenario;
+  iterations: number;
+  passed: number;
+  failed: number;
+  successRate: number;
+  totalDuration: number;
+  avgDuration: number;
+  minDuration: number;
+  maxDuration: number;
+  runs: TestScenarioResult[];
 }
 
 /**
@@ -31,6 +49,45 @@ export class TestExecutor {
 
   constructor(ollamaUrl: string = 'http://localhost:11434') {
     this.ollamaUrl = ollamaUrl;
+  }
+
+  /**
+   * Execute a test scenario with multiple iterations
+   * @param workflowPath - Path to the workflow file
+   * @param scenario - Test scenario to execute
+   * @param iterations - Number of times to run the scenario (default: 1)
+   * @returns Aggregated test result
+   */
+  async executeTestScenarioWithIterations(
+    workflowPath: string,
+    scenario: TestScenario,
+    iterations: number = 1
+  ): Promise<AggregatedTestResult> {
+    const runs: TestScenarioResult[] = [];
+    
+    for (let i = 0; i < iterations; i++) {
+      const result = await this.executeTestScenario(workflowPath, scenario);
+      runs.push(result);
+    }
+
+    // Calculate aggregate statistics
+    const passedRuns = runs.filter(r => r.passed).length;
+    const failedRuns = runs.length - passedRuns;
+    const durations = runs.map(r => r.duration);
+    const totalDuration = durations.reduce((sum, d) => sum + d, 0);
+
+    return {
+      scenario,
+      iterations: runs.length,
+      passed: passedRuns,
+      failed: failedRuns,
+      successRate: (passedRuns / runs.length) * 100,
+      totalDuration,
+      avgDuration: totalDuration / runs.length,
+      minDuration: Math.min(...durations),
+      maxDuration: Math.max(...durations),
+      runs
+    };
   }
 
   /**
@@ -52,6 +109,20 @@ export class TestExecutor {
       // Parse workflow
       const workflow = WorkflowParser.parseFile({filePath: workflowPath, workflowDir: '', visitedFiles: new Set()});
 
+      // Determine inputs to use
+      let inputs: TestInput[] = [];
+      
+      if (scenario.llmInputGeneration?.enabled) {
+        // Generate inputs using LLM
+        const tracer = new Tracer(false);
+        const inputGenerator = new LLMInputGenerator(this.ollamaUrl, tracer);
+        inputs = await inputGenerator.generateInputs(workflow, scenario.llmInputGeneration);
+        result.generatedInputs = inputs;
+      } else {
+        // Use predefined inputs
+        inputs = scenario.inputs || [];
+      }
+
       // Create a tracer that captures events
       const tracer = new Tracer(false); // Don't output to console during tests
       
@@ -60,7 +131,7 @@ export class TestExecutor {
         workflow,
         this.ollamaUrl,
         tracer,
-        scenario.inputs || []
+        inputs
       );
 
       // Execute the workflow
