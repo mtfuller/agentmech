@@ -256,6 +256,10 @@ my_prompt_state:
   type: "prompt"
   prompt: "Your question here"
   model: "gemma3:4b"  # optional, uses default_model if not set
+  options:  # optional, control model behavior
+    temperature: 0.7  # 0.0-2.0, controls randomness/creativity
+    top_p: 0.9  # 0.0-1.0, nucleus sampling
+    repeat_penalty: 1.1  # reduce repetition
   save_as: "variable_name"  # optional, saves response for later use
   mcp_servers: ["server1"]  # optional, MCP servers to connect for this state
   next: "next_state"  # or "end"
@@ -268,9 +272,21 @@ my_prompt_state:
   type: "prompt"
   prompt_file: "prompts/my-detailed-prompt.md"  # load from external file
   model: "gemma3:4b"
+  options:
+    temperature: 0.5  # More focused responses
   save_as: "variable_name"
   next: "next_state"
 ```
+
+**Model Options:**
+- `temperature` (0.0-2.0): Controls creativity - lower is more focused, higher is more creative
+- `top_p` (0.0-1.0): Nucleus sampling threshold
+- `top_k` (integer): Top-k sampling parameter
+- `repeat_penalty` (1.0+): Reduce repetitive text
+- `seed` (integer): For reproducible outputs
+- `num_predict` (integer): Maximum tokens to generate
+
+See [MODEL_OPTIONS.md](MODEL_OPTIONS.md) for detailed explanation and examples.
 
 #### Input State
 Collects freeform text input from the user:

@@ -156,6 +156,10 @@ analyze:
   type: "prompt"
   prompt: "Analyze this data"
   model: "gemma3:4b"              # Optional: Override default
+  options:                         # Optional: Control model behavior
+    temperature: 0.7               #   - temperature (0.0-2.0): creativity
+    top_p: 0.9                     #   - top_p (0.0-1.0): nucleus sampling
+    repeat_penalty: 1.1            #   - repeat_penalty: reduce repetition
   files: ["image.png", "data.txt"] # Optional: Multimodal inputs
   save_as: "result"
   next: "next_state"
@@ -328,6 +332,7 @@ Run tests: `agentmech test workflow.test.yaml [--format json|markdown] [--output
 
 Browse the `examples/` directory for sample workflows:
 - **simple-qa.yaml** - Basic Q&A workflow
+- **temperature-demo.yaml** - Control model creativity with temperature
 - **sequential-steps-demo.yaml** - Sequential prompts with steps feature
 - **user-survey-steps.yaml** - Multiple user inputs with steps
 - **image-analysis.yaml** - Analyze images with vision models
@@ -345,6 +350,7 @@ See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSI
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
 - [USAGE.md](docs/USAGE.md) - Detailed usage examples
+- [MODEL_OPTIONS.md](docs/MODEL_OPTIONS.md) - Temperature and model parameter control
 - [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
 - [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
 - [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
