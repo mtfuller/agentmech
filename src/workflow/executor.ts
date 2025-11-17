@@ -14,6 +14,7 @@ const STATE_TYPE = {
   PROMPT: 'prompt',
   INPUT: 'input',
   TRANSITION: 'transition',
+  DECISION: 'decision',
   END: 'end'
 } as const;
 
@@ -335,6 +336,8 @@ class WorkflowExecutor {
         return await this.executeInputState(stateName, state);
       case STATE_TYPE.TRANSITION:
         return await this.executeTransitionState(stateName, state);
+      case STATE_TYPE.DECISION:
+        return await this.executeDecisionState(stateName, state);
       case STATE_TYPE.END:
         return END_STATE;
       default:
@@ -352,6 +355,43 @@ class WorkflowExecutor {
     // Transition states are used internally for workflow references
     // They don't display anything, just move to the next state
     return state.next || END_STATE;
+  }
+
+  /**
+   * Execute a decision state (uses LLM to select next state based on context without new prompt)
+   * @param stateName - Name of the state
+   * @param state - State configuration
+   * @returns Next state name
+   */
+  async executeDecisionState(stateName: string, state: State): Promise<string> {
+    console.log('\n' + CliFormatter.step('Decision state - routing based on context'));
+    
+    // Decision states must have nextOptions
+    if (!state.nextOptions || state.nextOptions.length === 0) {
+      throw new Error(`Decision state "${stateName}" must have next_options defined`);
+    }
+    
+    // Build context summary from workflow variables
+    let contextSummary = 'Workflow context:\n';
+    const contextKeys = Object.keys(this.context);
+    if (contextKeys.length > 0) {
+      for (const key of contextKeys) {
+        const value = this.context[key];
+        // Limit each context value to prevent token overflow
+        const maxValueLength = 200;
+        const truncatedValue = typeof value === 'string' && value.length > maxValueLength
+          ? value.substring(0, maxValueLength) + '...'
+          : value;
+        contextSummary += `- ${key}: ${truncatedValue}\n`;
+      }
+    } else {
+      contextSummary += '(No context variables available)\n';
+    }
+    
+    const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
+    console.log(CliFormatter.model(`Using model: ${model}`));
+    
+    return await this.selectNextState(state.nextOptions, contextSummary, model);
   }
 
   /**
