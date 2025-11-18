@@ -1,0 +1,23 @@
+# Test Scenarios for User Input Demo Workflow using LLM Input Generation
+# This demonstrates the new LLM-based input generation feature
+
+workflow: user-input-demo.yaml
+
+test_scenarios:
+  - name: "LLM-Generated User Flow"
+    description: "Test workflow with LLM-generated realistic user inputs"
+    llm_input_generation:
+      enabled: true
+      context: "Generate realistic user inputs for a friendly onboarding workflow. The user should be tech-savvy and interested in AI/ML topics."
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "contains"
+        target: "response"
+        value: "{{name}}"
+        description: "Response should include the generated user name"
+      - type: "contains"
+        target: "response"
+        value: "{{topic}}"
+        description: "Response should mention the generated topic"

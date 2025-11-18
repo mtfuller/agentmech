@@ -37,6 +37,18 @@ export interface TestAssertionSpec {
 }
 
 /**
+ * LLM-based input generation configuration
+ */
+export interface LLMInputGenerationSpec {
+  /** Enable LLM-based input generation */
+  enabled: boolean;
+  /** Model to use for input generation (optional, defaults to workflow's default_model) */
+  model?: string;
+  /** Optional context to help LLM generate appropriate inputs */
+  context?: string;
+}
+
+/**
  * Individual test scenario specification
  */
 export interface TestScenarioSpec {
@@ -46,8 +58,12 @@ export interface TestScenarioSpec {
   description?: string;
   /** Array of mocked inputs for input states */
   inputs?: TestInputSpec[];
+  /** LLM-based input generation configuration (alternative to predefined inputs) */
+  llm_input_generation?: LLMInputGenerationSpec;
   /** Array of assertions to validate */
   assertions: TestAssertionSpec[];
+  /** Number of times to run this scenario (default: 1) */
+  iterations?: number;
 }
 
 /**
@@ -58,4 +74,6 @@ export interface TestSuiteSpec {
   workflow: string;
   /** Array of test scenarios to run */
   test_scenarios: TestScenarioSpec[];
+  /** Global number of iterations for all scenarios (can be overridden per scenario) */
+  iterations?: number;
 }

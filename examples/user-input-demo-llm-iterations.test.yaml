@@ -1,0 +1,20 @@
+# Test Scenarios combining LLM Input Generation with Multiple Iterations
+# This demonstrates using both new features together
+
+workflow: user-input-demo.yaml
+
+test_scenarios:
+  - name: "LLM-Generated Inputs with Multiple Runs"
+    description: "Generate new inputs with LLM for each iteration to test with varying data"
+    iterations: 3
+    llm_input_generation:
+      enabled: true
+      context: "Generate diverse user profiles - one should be a student, one a professional, and one a retiree. Each should have different interests."
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "contains"
+        target: "response"
+        value: "{{name}}"
+        description: "Response should personalize with the user's name"
