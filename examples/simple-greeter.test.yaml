@@ -1,0 +1,13 @@
+workflow: simple-greeter.yaml
+
+test_scenarios:
+  - name: "Basic Greeting Test"
+    description: "Test that the workflow generates a greeting"
+    assertions:
+      - type: "state_reached"
+        value: "end"
+        description: "Workflow should complete successfully"
+      - type: "contains"
+        target: "greeting"
+        value: "hello"
+        description: "Response should contain a greeting"

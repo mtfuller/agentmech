@@ -5,6 +5,7 @@ A Node.js CLI tool for running AI workflows locally with Ollama. Define complex 
 ## Features
 
 - ✨ **Guided Workflow Generation**: Create workflows with AI-powered template selection and customization
+- 🔄 **Workflow Finetuning**: Autonomously improve workflows through iterative LLM-powered analysis and testing
 - 🌐 **Web UI**: Browse and manage workflows through a web interface
 - 🤖 **Ollama Integration**: Run AI workflows using local Ollama models with streaming support
 - ⚡ **Real-time Streaming**: See LLM responses token-by-token as they're generated
@@ -54,6 +55,9 @@ agentmech run examples/simple-qa.yaml
 ```bash
 # Generate workflow with guided template selection
 agentmech generate [-o output.yaml] [-m model]
+
+# Finetune workflow with LLM-powered iteration
+agentmech finetune <workflow.yaml> [-o output.yaml] [-m model] [-i max-iterations]
 
 # Run workflow
 agentmech run <workflow.yaml> [--trace] [--log-file path]
@@ -345,6 +349,7 @@ See [examples/](examples/), [examples/WEB_BROWSING_GUIDE.md](examples/WEB_BROWSI
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - Code organization and structure
 - [USAGE.md](docs/USAGE.md) - Detailed usage examples
+- [FINETUNE.md](docs/FINETUNE.md) - Workflow improvement with the finetune command
 - [STREAMING.md](docs/STREAMING.md) - Streaming responses guide
 - [CUSTOM_TOOLS_GUIDE.md](docs/CUSTOM_TOOLS_GUIDE.md) - Creating custom tools
 - [RAG_GUIDE.md](docs/RAG_GUIDE.md) - RAG implementation details
