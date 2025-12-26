@@ -133,6 +133,7 @@ Customer Feedback Analyzer
 ```yaml
 name: "Workflow Name"
 description: "Optional description"
+type: "workflow"  # Optional: "workflow" (deterministic) or "agent" (adaptive)
 default_model: "gemma3:4b"
 start_state: "first_state"
 
@@ -147,6 +148,22 @@ states:
     save_as: "result"
     next: "end"
 ```
+
+### Workflow vs Agent
+
+AgentMech supports two execution models:
+
+**Workflow** (`type: "workflow"`)
+- **Linear and deterministic**: Executes steps in a predefined sequence
+- **Best for**: Structured tasks with clear, sequential steps
+- **Use when**: You need predictable, repeatable execution
+
+**Agent** (`type: "agent"`)
+- **Long-running and adaptable**: Operates in a precept-actuator loop
+- **Best for**: Dynamic tasks requiring intelligent decision-making
+- **Use when**: The system needs to adapt based on changing conditions
+
+The `type` field is optional and defaults to `"agent"` for backward compatibility. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
 
 ### State Types
 
