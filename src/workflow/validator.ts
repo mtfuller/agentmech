@@ -89,7 +89,7 @@ export class WorkflowValidator {
 
       // Validate each step
       for (let i = 0; i < workflow.steps.length; i++) {
-        this.validateWorkflowStep(i, workflow.steps[i], workflow.mcp_servers, workflow.rag);
+        this.validateWorkflowStep(i, workflow.steps[i], workflow.steps.length, workflow.mcp_servers, workflow.rag);
       }
 
     } else if (explicitType === 'agent' || (hasStates && !explicitType)) {
@@ -427,10 +427,11 @@ export class WorkflowValidator {
    * Validate a single step in a workflow's steps array
    * @param stepIndex - Index of this step in the steps array
    * @param step - Step configuration to validate
+   * @param totalSteps - Total number of steps in the workflow
    * @param mcpServers - MCP servers available in workflow
    * @param namedRags - Named RAG configurations if present
    */
-  static validateWorkflowStep(stepIndex: number, step: any, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+  static validateWorkflowStep(stepIndex: number, step: any, totalSteps: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
     const stepContext = `Workflow step ${stepIndex + 1}`;
     
     // Each step must have a type
@@ -491,13 +492,53 @@ export class WorkflowValidator {
       throw new Error(`${stepContext} cannot have both inline 'rag' and 'use_rag' configurations`);
     }
 
-    // Workflow steps should not have next or next_options
+    // Validate conditional branching
+    if (step.next_step !== undefined && step.next_step_options) {
+      throw new Error(`${stepContext} cannot have both "next_step" and "next_step_options" fields`);
+    }
+
+    // Validate next_step
+    if (step.next_step !== undefined) {
+      if (typeof step.next_step !== 'number') {
+        throw new Error(`${stepContext} next_step must be a number (step index)`);
+      }
+      if (step.next_step < 0 || step.next_step >= totalSteps) {
+        throw new Error(`${stepContext} next_step ${step.next_step} is out of range (must be 0-${totalSteps - 1})`);
+      }
+    }
+
+    // Validate next_step_options
+    if (step.next_step_options) {
+      if (!Array.isArray(step.next_step_options)) {
+        throw new Error(`${stepContext} next_step_options must be an array`);
+      }
+      if (step.next_step_options.length < 2) {
+        throw new Error(`${stepContext} next_step_options must have at least 2 options`);
+      }
+      for (const option of step.next_step_options) {
+        if (typeof option.step !== 'number') {
+          throw new Error(`${stepContext} next_step_options must have a numeric "step" field`);
+        }
+        if (option.step < 0 || option.step >= totalSteps) {
+          throw new Error(`${stepContext} next_step_options references step ${option.step} which is out of range (must be 0-${totalSteps - 1})`);
+        }
+        if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
+          throw new Error(`${stepContext} next_step_options must have a non-empty "description" field`);
+        }
+      }
+      // next_step_options can only be used with prompt steps (where LLM makes the decision)
+      if (step.type !== 'prompt') {
+        throw new Error(`${stepContext} can only use next_step_options with prompt type steps`);
+      }
+    }
+
+    // Workflow steps should not have next or next_options (agent-style fields)
     if (step.next) {
-      throw new Error(`${stepContext} cannot have "next" field. Workflow steps execute sequentially.`);
+      throw new Error(`${stepContext} cannot have "next" field. Use "next_step" for workflows instead.`);
     }
 
     if (step.next_options) {
-      throw new Error(`${stepContext} cannot have "next_options" field. Workflow steps execute sequentially.`);
+      throw new Error(`${stepContext} cannot have "next_options" field. Use "next_step_options" for workflows instead.`);
     }
   }
 

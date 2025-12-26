@@ -218,7 +218,24 @@ class WorkflowParser {
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       const stateName = `step_${i}`;
-      const nextState = i < steps.length - 1 ? `step_${i + 1}` : 'end';
+      
+      // Determine next state based on conditional branching
+      let nextState: string | undefined;
+      let nextOptions: any[] | undefined;
+
+      if (step.next_step_options) {
+        // LLM-driven conditional branching
+        nextOptions = step.next_step_options.map((option: any) => ({
+          state: `step_${option.step}`,
+          description: option.description
+        }));
+      } else if (step.next_step !== undefined) {
+        // Direct conditional jump
+        nextState = `step_${step.next_step}`;
+      } else {
+        // Default: proceed to next step sequentially
+        nextState = i < steps.length - 1 ? `step_${i + 1}` : 'end';
+      }
 
       // Resolve prompt for this step
       const stepPrompt = step.prompt_file 
@@ -232,6 +249,7 @@ class WorkflowParser {
         type: step.type,
         prompt: stepPrompt,
         next: nextState,
+        nextOptions: nextOptions,
         model: step.model,
         saveAs: step.save_as,
         options: step.options,

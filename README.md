@@ -177,6 +177,7 @@ AgentMech supports two execution models:
 **Workflow** (`type: "workflow"`)
 - **Linear and deterministic**: Executes steps in a predefined sequence
 - **Uses**: `steps` array - each step executes sequentially
+- **Conditional branching**: Workflows can branch to different steps using `next_step` or `next_step_options`
 - **Best for**: Structured tasks with clear, sequential steps
 - **Use when**: You need predictable, repeatable execution
 
@@ -186,7 +187,47 @@ AgentMech supports two execution models:
 - **Best for**: Dynamic tasks requiring intelligent decision-making
 - **Use when**: The system needs to adapt based on changing conditions
 
-The `type` field is optional but recommended for clarity. When omitted, the system determines the type based on whether `steps` or `states` is present. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
+The `type` field is optional but recommended for clarity. When omitted, the system determines the type based on whether `steps` or `states` is present. See `examples/workflow-example.yaml`, `examples/conditional-workflow.yaml`, and `examples/agent-example.yaml` for complete examples.
+
+### Workflow Conditional Branching
+
+Workflows support conditional branching to allow non-linear execution:
+
+**Direct Jump** - Jump to a specific step:
+```yaml
+steps:
+  - type: "prompt"
+    prompt: "Check if user is premium"
+    save_as: "is_premium"
+    next_step: 2  # Skip step 1, jump to step 2
+  - type: "prompt"
+    prompt: "This step is skipped"
+  - type: "prompt"
+    prompt: "Continue here"
+```
+
+**LLM-Driven Branching** - Let the LLM decide which step to execute:
+```yaml
+steps:
+  - type: "prompt"
+    prompt: "Analyze the customer request type"
+    save_as: "request_type"
+    next_step_options:
+      - step: 1
+        description: "Request is about billing"
+      - step: 2
+        description: "Request is technical support"
+      - step: 3
+        description: "Request is general inquiry"
+  - type: "prompt"
+    prompt: "Handle billing request"
+  - type: "prompt"
+    prompt: "Handle technical request"
+  - type: "prompt"
+    prompt: "Handle general inquiry"
+```
+
+See `examples/conditional-workflow.yaml` for a complete example.
 
 ### State Types (for Agents)
 

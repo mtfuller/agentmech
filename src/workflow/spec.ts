@@ -51,7 +51,7 @@ export interface WorkflowSpec {
 
 /**
  * Specification for a single step in a workflow.
- * Workflows use steps that execute sequentially.
+ * Workflows use steps that execute sequentially, with optional conditional branching.
  */
 export interface WorkflowStepSpec {
   /** Type of step: 'prompt' (LLM interaction) or 'input' (user input) */
@@ -86,6 +86,23 @@ export interface WorkflowStepSpec {
   
   /** Default value for input steps (used if user provides no input) */
   default_value?: string;
+  
+  /** 
+   * Optional: Index of the next step to execute (0-based).
+   * Allows conditional branching within the workflow.
+   * If not specified, proceeds to the next step in sequence.
+   */
+  next_step?: number;
+  
+  /** 
+   * Optional: Array of possible next steps with descriptions (for LLM-driven step selection).
+   * The LLM will analyze the workflow context and select the appropriate next step.
+   * Each option specifies a step index and description of when that step should be chosen.
+   */
+  next_step_options?: {
+    step: number;
+    description: string;
+  }[];
 }
 
 /**
