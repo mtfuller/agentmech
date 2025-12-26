@@ -45,7 +45,7 @@ describe('Workflow Type Field', () => {
         start_state: 'test',
         states: { test: { type: 'prompt', prompt: 'test', next: 'end' } }
       });
-    }).toThrow("Workflow type must be either 'workflow' or 'agent'");
+    }).toThrow('Workflow type must be either "workflow" or "agent"');
   });
 
   test('should parse and preserve type field in workflow object', () => {

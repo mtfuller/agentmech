@@ -61,7 +61,7 @@ export class WorkflowValidator {
     if (workflow.type !== undefined) {
       const validTypes = ['workflow', 'agent'];
       if (!validTypes.includes(workflow.type)) {
-        throw new Error(`Workflow type must be either 'workflow' or 'agent', got '${workflow.type}'`);
+        throw new Error(`Workflow type must be either "workflow" or "agent", got "${workflow.type}"`);
       }
     }
 
