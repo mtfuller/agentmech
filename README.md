@@ -130,10 +130,31 @@ Customer Feedback Analyzer
 
 ### Basic Structure
 
+**Workflow (sequential steps):**
 ```yaml
 name: "Workflow Name"
 description: "Optional description"
-type: "workflow"  # Optional: "workflow" (deterministic) or "agent" (adaptive)
+type: "workflow"
+default_model: "gemma3:4b"
+
+# Optional: Define variables for use in prompts
+variables:
+  my_var: "value"
+
+steps:
+  - type: "prompt"
+    prompt: "First step question"
+    save_as: "result1"
+  - type: "prompt"
+    prompt: "Second step using {{result1}}"
+    save_as: "result2"
+```
+
+**Agent (state machine with transitions):**
+```yaml
+name: "Agent Name"
+description: "Optional description"
+type: "agent"
 default_model: "gemma3:4b"
 start_state: "first_state"
 
@@ -155,17 +176,19 @@ AgentMech supports two execution models:
 
 **Workflow** (`type: "workflow"`)
 - **Linear and deterministic**: Executes steps in a predefined sequence
+- **Uses**: `steps` array - each step executes sequentially
 - **Best for**: Structured tasks with clear, sequential steps
 - **Use when**: You need predictable, repeatable execution
 
 **Agent** (`type: "agent"`)
 - **Long-running and adaptable**: Operates in a precept-actuator loop
+- **Uses**: `states` object with `start_state` - agent decides which state to transition to
 - **Best for**: Dynamic tasks requiring intelligent decision-making
 - **Use when**: The system needs to adapt based on changing conditions
 
-The `type` field is optional. When omitted, the execution behavior depends on the states and transitions you define. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
+The `type` field is optional but recommended for clarity. When omitted, the system determines the type based on whether `steps` or `states` is present. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
 
-### State Types
+### State Types (for Agents)
 
 **Prompt State** - Send prompts to AI models
 ```yaml

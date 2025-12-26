@@ -3,23 +3,16 @@ description: "A deterministic workflow that walks through steps sequentially"
 type: "workflow"
 default_model: "gemma3:4b"
 
-start_state: "introduction"
-
-states:
-  introduction:
-    type: "prompt"
+steps:
+  - type: "prompt"
     prompt: "You are processing a customer request. First, greet the customer and ask for their name."
     save_as: "greeting"
-    next: "collect_info"
   
-  collect_info:
-    type: "prompt"
+  - type: "prompt"
     prompt: "Based on the greeting '{{greeting}}', now collect the customer's email address and reason for contact."
     save_as: "customer_info"
-    next: "process_request"
   
-  process_request:
-    type: "prompt"
+  - type: "prompt"
     prompt: "Process the customer information: {{customer_info}}. Generate a professional response addressing their needs."
     save_as: "response"
-    next: "end"
+
