@@ -57,6 +57,14 @@ export class WorkflowValidator {
     this.validateRequiredField(workflow.start_state, 'start_state', 'Workflow');
     this.validateStateReference(workflow.start_state, workflow.states, 'start_state', 'Workflow');
 
+    // Validate type field if present
+    if (workflow.type !== undefined) {
+      const validTypes = ['workflow', 'agent'];
+      if (!validTypes.includes(workflow.type)) {
+        throw new Error(`Workflow type must be either 'workflow' or 'agent', got '${workflow.type}'`);
+      }
+    }
+
     // Validate that "end" is not explicitly defined (it's a reserved state)
     if (workflow.states[END_STATE]) {
       throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);

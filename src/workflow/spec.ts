@@ -1,21 +1,33 @@
 /**
- * Specification for a workflow configuration.
- * Represents the YAML structure for defining workflow execution.
+ * Specification for a workflow or agent configuration.
+ * Represents the YAML structure for defining workflow/agent execution.
+ * 
+ * Workflow vs Agent:
+ * - workflow: Linear and deterministic, walks through steps sequentially
+ * - agent: Long-running and adaptable, operates in a precept-actuator loop with states
  */
 export interface WorkflowSpec {
-  /** Name of the workflow */
+  /** Name of the workflow or agent */
   name: string;
   
-  /** Optional description of the workflow's purpose */
+  /** Optional description of the workflow's or agent's purpose */
   description?: string;
+  
+  /** 
+   * Type of execution model: 'workflow' or 'agent'
+   * - 'workflow': Linear and deterministic, uses steps for sequential execution
+   * - 'agent': Long-running and adaptable, uses states for precept-actuator loops
+   * Defaults to 'agent' for backward compatibility
+   */
+  type?: 'workflow' | 'agent';
   
   /** Default model to use for LLM operations (can be overridden per state) */
   default_model?: string;
   
-  /** Name of the state to begin workflow execution */
+  /** Name of the state to begin workflow/agent execution */
   start_state: string;
   
-  /** Collection of states that define the workflow state machine */
+  /** Collection of states that define the workflow/agent state machine */
   states: Record<string, StateSpec>;
   
   /** Optional MCP (Model Context Protocol) server configurations */
@@ -27,7 +39,7 @@ export interface WorkflowSpec {
   /** Optional variables that can be used in prompts with {{variable_name}} syntax */
   variables?: Record<string, VariableSpec>;
   
-  /** Optional fallback state to transition to on error (workflow-level) */
+  /** Optional fallback state to transition to on error (workflow/agent-level) */
   on_error?: string;
 }
 
