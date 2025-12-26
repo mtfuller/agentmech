@@ -163,7 +163,7 @@ AgentMech supports two execution models:
 - **Best for**: Dynamic tasks requiring intelligent decision-making
 - **Use when**: The system needs to adapt based on changing conditions
 
-The `type` field is optional and defaults to `"agent"` for backward compatibility. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
+The `type` field is optional. When omitted, the execution behavior depends on the states and transitions you define. See `examples/workflow-example.yaml` and `examples/agent-example.yaml` for complete examples.
 
 ### State Types
 

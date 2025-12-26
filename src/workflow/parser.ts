@@ -183,7 +183,7 @@ class WorkflowParser {
     return {
       name: workflow.name,
       description: workflow.description,
-      type: workflow.type,  // Pass through the type (defaults to 'agent' if undefined)
+      type: workflow.type,  // Optional field - undefined when not specified
       defaultModel: workflow.default_model,
       startState: workflow.start_state,
       states,

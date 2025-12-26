@@ -17,7 +17,7 @@ export interface WorkflowSpec {
    * Type of execution model: 'workflow' or 'agent'
    * - 'workflow': Linear and deterministic, uses steps for sequential execution
    * - 'agent': Long-running and adaptable, uses states for precept-actuator loops
-   * Defaults to 'agent' for backward compatibility
+   * Optional field - when omitted, the execution model is not explicitly specified
    */
   type?: 'workflow' | 'agent';
   
