@@ -249,7 +249,7 @@ class WorkflowParser {
         type: step.type,
         prompt: stepPrompt,
         next: nextState,
-        nextOptions: nextOptions,
+        ...(nextOptions && { nextOptions }),
         model: step.model,
         saveAs: step.save_as,
         options: step.options,
