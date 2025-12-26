@@ -31,6 +31,7 @@ export interface State {
 export interface Workflow {
   name: string;
   description: string;
+  type?: 'workflow' | 'agent';  // Type of execution: workflow (deterministic) or agent (adaptive)
   defaultModel: string;
   startState: string;
   states: Record<string, State>;

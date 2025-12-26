@@ -156,11 +156,22 @@ class WorkflowParser {
     WorkflowValidator.validateWorkflowSpec(workflow);
 
     let states: Record<string, State> = {};
-    if (workflow.states) {
+    let startState: string = '';
+
+    // Handle workflow with steps (convert to states internally)
+    if (workflow.steps) {
+      // Convert workflow steps to states
+      const convertedStates = this.convertWorkflowStepsToStates(workflow.steps, context);
+      states = convertedStates.states;
+      startState = convertedStates.startState;
+    } 
+    // Handle agent with states
+    else if (workflow.states) {
       for (const [stateName, stateSpec] of Object.entries(workflow.states)) {
         const parsedStates = this.parseStateSpec(stateName, stateSpec, context);
         states = { ...states, ...parsedStates };
       }
+      startState = workflow.start_state!;
     }
 
     let mcpServers: Record<string, McpServerConfig> = {};
@@ -183,14 +194,74 @@ class WorkflowParser {
     return {
       name: workflow.name,
       description: workflow.description,
+      type: workflow.type,  // Optional field - undefined when not specified
       defaultModel: workflow.default_model,
-      startState: workflow.start_state,
+      startState: startState,
       states,
       mcpServers,
       rag,
       variables,
       onError: workflow.on_error
     } as Workflow;
+  }
+
+  /**
+   * Convert workflow steps array to states for internal execution
+   * @param steps - Array of workflow steps
+   * @param context - Parser context
+   * @returns Object with states and startState
+   */
+  private static convertWorkflowStepsToStates(steps: any[], context: ParserContext): { states: Record<string, State>, startState: string } {
+    const states: Record<string, State> = {};
+    const startState = 'step_0';
+
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      const stateName = `step_${i}`;
+      
+      // Determine next state based on conditional branching
+      let nextState: string | undefined;
+      let nextOptions: any[] | undefined;
+
+      if (step.next_step_options) {
+        // LLM-driven conditional branching
+        nextOptions = step.next_step_options.map((option: any) => ({
+          state: `step_${option.step}`,
+          description: option.description
+        }));
+      } else if (step.next_step !== undefined) {
+        // Direct conditional jump
+        nextState = `step_${step.next_step}`;
+      } else {
+        // Default: proceed to next step sequentially
+        nextState = i < steps.length - 1 ? `step_${i + 1}` : 'end';
+      }
+
+      // Resolve prompt for this step
+      const stepPrompt = step.prompt_file 
+        ? this.readPromptFile(step.prompt_file, context.workflowDir)
+        : (step.prompt || '');
+
+      // Build RAG config for this step if present
+      const stepRag = step.rag ? this.buildRAGConfig({ ...step, rag: step.rag } as any) : undefined;
+
+      states[stateName] = {
+        type: step.type,
+        prompt: stepPrompt,
+        next: nextState,
+        ...(nextOptions && { nextOptions }),
+        model: step.model,
+        saveAs: step.save_as,
+        options: step.options,
+        mcpServers: step.mcp_servers,
+        useRag: step.use_rag,
+        rag: stepRag,
+        defaultValue: step.default_value,
+        files: step.files || []
+      };
+    }
+
+    return { states, startState };
   }
 
   /**

@@ -1,4 +1,4 @@
-import { MCPServerSpec, RAGSpec, StateSpec, StepSpec, WorkflowSpec } from "./spec";
+import { MCPServerSpec, RAGSpec, StateSpec, StepSpec, WorkflowSpec, WorkflowStepSpec } from "./spec";
 
 const END_STATE = 'end';
 
@@ -52,14 +52,81 @@ export class WorkflowValidator {
   static validateWorkflowSpec(workflow: WorkflowSpec): void {
     this.validateRequiredField(workflow, 'workflow', 'Configuration');
     this.validateRequiredField(workflow.name, 'name', 'Workflow');
-    this.validateRequiredField(workflow.states, 'states object', 'Workflow');
-    this.validateFieldType(workflow.states, 'object', 'states', 'Workflow');
-    this.validateRequiredField(workflow.start_state, 'start_state', 'Workflow');
-    this.validateStateReference(workflow.start_state, workflow.states, 'start_state', 'Workflow');
 
-    // Validate that "end" is not explicitly defined (it's a reserved state)
-    if (workflow.states[END_STATE]) {
-      throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);
+    // Determine type from structure if not explicitly set
+    const hasSteps = workflow.steps !== undefined;
+    const hasStates = workflow.states !== undefined;
+    const explicitType = workflow.type;
+
+    // Validate type field if present
+    if (explicitType !== undefined) {
+      const validTypes = ['workflow', 'agent'];
+      if (!validTypes.includes(explicitType)) {
+        throw new Error(`Workflow type must be either "workflow" or "agent", got "${explicitType}"`);
+      }
+    }
+
+    // Validate structure based on type
+    if (explicitType === 'workflow' || (hasSteps && !explicitType)) {
+      // Workflow: must have steps, cannot have states or start_state
+      this.validateRequiredField(workflow.steps, 'steps array', 'Workflow (type: "workflow")');
+      
+      if (workflow.states) {
+        throw new Error('Workflow (type: "workflow") cannot have "states" field. Use "steps" array instead.');
+      }
+      
+      if (workflow.start_state) {
+        throw new Error('Workflow (type: "workflow") cannot have "start_state" field. Steps execute sequentially.');
+      }
+
+      if (!Array.isArray(workflow.steps)) {
+        throw new Error('Workflow steps must be an array');
+      }
+
+      if (workflow.steps.length === 0) {
+        throw new Error('Workflow must have at least one step');
+      }
+
+      // Validate each step
+      for (let i = 0; i < workflow.steps.length; i++) {
+        this.validateWorkflowStep(i, workflow.steps[i], workflow.steps.length, workflow.mcp_servers, workflow.rag);
+      }
+
+    } else if (explicitType === 'agent' || (hasStates && !explicitType)) {
+      // Agent: must have states and start_state, cannot have steps
+      this.validateRequiredField(workflow.states, 'states object', 'Agent (type: "agent")');
+      this.validateFieldType(workflow.states, 'object', 'states', 'Agent');
+      this.validateRequiredField(workflow.start_state, 'start_state', 'Agent (type: "agent")');
+      
+      // After validation, we know states and start_state exist
+      const states = workflow.states!;
+      const startState = workflow.start_state!;
+      
+      this.validateStateReference(startState, states, 'start_state', 'Agent');
+
+      if (workflow.steps) {
+        throw new Error('Agent (type: "agent") cannot have "steps" field. Use "states" object instead.');
+      }
+
+      // Validate that "end" is not explicitly defined (it's a reserved state)
+      if (states[END_STATE]) {
+        throw new Error(`"${END_STATE}" is a reserved state name and cannot be explicitly defined. Remove the end state from your workflow.`);
+      }
+
+      // Validate each state
+      for (const [stateName, state] of Object.entries(states)) {
+        this.validateState(stateName, state, states, workflow.mcp_servers, workflow.rag);
+      }
+
+      // Validate agent-level fallback state if present
+      if (workflow.on_error) {
+        if (!states[workflow.on_error] && workflow.on_error !== END_STATE) {
+          throw new Error(`Agent on_error references non-existent state "${workflow.on_error}"`);
+        }
+      }
+
+    } else {
+      throw new Error('Configuration must have either "steps" (for workflow) or "states" (for agent)');
     }
 
     // Validate named RAG configurations if present
@@ -74,21 +141,9 @@ export class WorkflowValidator {
       this.validateVariables(workflow.variables);
     }
 
-    // Validate each state
-    for (const [stateName, state] of Object.entries(workflow.states)) {
-      this.validateState(stateName, state, workflow.states, workflow.mcp_servers, workflow.rag);
-    }
-
     // Validate MCP servers configuration if present
     if (workflow.mcp_servers) {
       this.validateMCPServers(workflow.mcp_servers);
-    }
-
-    // Validate workflow-level fallback state if present
-    if (workflow.on_error) {
-      if (!workflow.states[workflow.on_error] && workflow.on_error !== END_STATE) {
-        throw new Error(`Workflow on_error references non-existent state "${workflow.on_error}"`);
-      }
     }
   }
 
@@ -365,6 +420,125 @@ export class WorkflowValidator {
     // Check for conflicting RAG configurations
     if (step.rag && step.use_rag) {
       throw new Error(`${stepContext} cannot have both inline 'rag' and 'use_rag' configurations`);
+    }
+  }
+
+  /**
+   * Validate a single step in a workflow's steps array
+   * @param stepIndex - Index of this step in the steps array
+   * @param step - Step configuration to validate
+   * @param totalSteps - Total number of steps in the workflow
+   * @param mcpServers - MCP servers available in workflow
+   * @param namedRags - Named RAG configurations if present
+   */
+  static validateWorkflowStep(stepIndex: number, step: any, totalSteps: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+    const stepContext = `Workflow step ${stepIndex + 1}`;
+    
+    // Each step must have a type
+    if (!step.type) {
+      throw new Error(`${stepContext} must have a "type" field`);
+    }
+
+    const validTypes = ['prompt', 'input'];
+    if (!validTypes.includes(step.type)) {
+      throw new Error(`${stepContext} has invalid type "${step.type}". Must be one of: ${validTypes.join(', ')}`);
+    }
+
+    // Each step must have either prompt or prompt_file
+    if (!step.prompt && !step.prompt_file) {
+      throw new Error(`${stepContext} must have a "prompt" or "prompt_file" field`);
+    }
+    
+    if (step.prompt && step.prompt_file) {
+      throw new Error(`${stepContext} cannot have both "prompt" and "prompt_file" fields`);
+    }
+    
+    // Validate MCP server references in step
+    if (step.mcp_servers) {
+      if (!Array.isArray(step.mcp_servers)) {
+        throw new Error(`${stepContext} mcp_servers must be an array`);
+      }
+      if (!mcpServers) {
+        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers defined`);
+      }
+      for (const serverName of step.mcp_servers) {
+        if (!mcpServers[serverName]) {
+          throw new Error(`${stepContext} references non-existent MCP server "${serverName}"`);
+        }
+      }
+    }
+    
+    // Validate inline RAG configuration in step
+    if (step.rag) {
+      this.validateRAGSpec(step.rag);
+      if (step.type !== 'prompt') {
+        throw new Error(`${stepContext} can only use RAG with prompt type steps`);
+      }
+    }
+    
+    // Validate RAG usage in step
+    if (step.use_rag !== undefined) {
+      if (step.type !== 'prompt') {
+        throw new Error(`${stepContext} can only use RAG with prompt type steps`);
+      }
+      
+      if (!namedRags || !namedRags[step.use_rag]) {
+        throw new Error(`${stepContext} references non-existent RAG configuration "${step.use_rag}"`);
+      }
+    }
+    
+    // Check for conflicting RAG configurations
+    if (step.rag && step.use_rag) {
+      throw new Error(`${stepContext} cannot have both inline 'rag' and 'use_rag' configurations`);
+    }
+
+    // Validate conditional branching
+    if (step.next_step !== undefined && step.next_step_options) {
+      throw new Error(`${stepContext} cannot have both "next_step" and "next_step_options" fields`);
+    }
+
+    // Validate next_step
+    if (step.next_step !== undefined) {
+      if (typeof step.next_step !== 'number') {
+        throw new Error(`${stepContext} next_step must be a number (step index)`);
+      }
+      if (step.next_step < 0 || step.next_step >= totalSteps) {
+        throw new Error(`${stepContext} next_step ${step.next_step} is out of range (must be 0-${totalSteps - 1})`);
+      }
+    }
+
+    // Validate next_step_options
+    if (step.next_step_options) {
+      if (!Array.isArray(step.next_step_options)) {
+        throw new Error(`${stepContext} next_step_options must be an array`);
+      }
+      if (step.next_step_options.length < 2) {
+        throw new Error(`${stepContext} next_step_options must have at least 2 options`);
+      }
+      for (const option of step.next_step_options) {
+        if (typeof option.step !== 'number') {
+          throw new Error(`${stepContext} next_step_options must have a numeric "step" field`);
+        }
+        if (option.step < 0 || option.step >= totalSteps) {
+          throw new Error(`${stepContext} next_step_options references step ${option.step} which is out of range (must be 0-${totalSteps - 1})`);
+        }
+        if (!option.description || typeof option.description !== 'string' || option.description.trim() === '') {
+          throw new Error(`${stepContext} next_step_options must have a non-empty "description" field`);
+        }
+      }
+      // next_step_options can only be used with prompt steps (where LLM makes the decision)
+      if (step.type !== 'prompt') {
+        throw new Error(`${stepContext} can only use next_step_options with prompt type steps`);
+      }
+    }
+
+    // Workflow steps should not have next or next_options (agent-style fields)
+    if (step.next) {
+      throw new Error(`${stepContext} cannot have "next" field. Use "next_step" for workflows instead.`);
+    }
+
+    if (step.next_options) {
+      throw new Error(`${stepContext} cannot have "next_options" field. Use "next_step_options" for workflows instead.`);
     }
   }
 
