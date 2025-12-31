@@ -1,0 +1,134 @@
+name: "AI Project Manager"
+description: "An AI agent that assists with project management tasks using specialized PM skills"
+type: "agent"
+default_model: "gemma3:4b"
+
+start_state: "understand_request"
+
+# Define project management skills
+skills:
+  pm_skills:
+    directory: "./project-manager/skills"
+
+states:
+  understand_request:
+    type: "input"
+    prompt: |
+      I'm your AI Project Manager assistant. I can help you with:
+      - Creating project plans
+      - Identifying and managing risks
+      - Preparing status reports
+      - Facilitating communication
+      
+      What would you like help with today?
+    save_as: "user_request"
+    next: "route_request"
+  
+  route_request:
+    type: "prompt"
+    prompt: |
+      The user has requested: {{user_request}}
+      
+      Analyze their request and determine which task they need help with.
+    next_options:
+      - state: "create_plan"
+        description: "User wants to create a project plan"
+      - state: "assess_risks"
+        description: "User wants to identify or assess project risks"
+      - state: "prepare_status_report"
+        description: "User wants help with status reporting"
+      - state: "end"
+        description: "User has no specific request or wants to exit"
+
+  create_plan:
+    type: "prompt"
+    prompt: |
+      Based on the user's request:
+      {{user_request}}
+      
+      Create a comprehensive project plan that includes:
+      1. Clear goals and objectives
+      2. Work breakdown structure
+      3. Timeline with milestones
+      4. Resource allocation
+      5. Task priorities using MoSCoW method
+      
+      Apply project management best practices to ensure the plan is realistic and actionable.
+    skills:
+      - pm_skills.project_management
+    save_as: "project_plan"
+    next: "review_output"
+
+  assess_risks:
+    type: "prompt"
+    prompt: |
+      Based on the user's request:
+      {{user_request}}
+      
+      Perform a comprehensive risk assessment that includes:
+      1. Risk identification for the project
+      2. Probability and impact assessment for each risk
+      3. Risk prioritization with scores
+      4. Mitigation strategies for high-priority risks
+      5. Contingency plans
+      
+      Create a risk register with clear ownership and monitoring plans.
+    skills:
+      - pm_skills.risk_management
+      - pm_skills.project_management
+    save_as: "risk_assessment"
+    next: "review_output"
+
+  prepare_status_report:
+    type: "prompt"
+    prompt: |
+      Based on the user's request:
+      {{user_request}}
+      
+      Help prepare a professional status report that includes:
+      1. Executive summary
+      2. Progress against milestones
+      3. Key accomplishments
+      4. Current blockers and issues
+      5. Risk updates
+      6. Next steps and action items
+      
+      Make the report clear, concise, and stakeholder-appropriate.
+    skills:
+      - pm_skills.communication
+      - pm_skills.project_management
+    save_as: "status_report"
+    next: "review_output"
+
+  review_output:
+    type: "prompt"
+    prompt: |
+      Review the output I've created and ask the user if they need:
+      1. Any clarifications or additional details
+      2. Modifications to the deliverable
+      3. Help with another project management task
+      
+      Based on the user's feedback, determine the next action.
+      
+      {% if project_plan %}
+      Project Plan:
+      {{project_plan}}
+      {% endif %}
+      
+      {% if risk_assessment %}
+      Risk Assessment:
+      {{risk_assessment}}
+      {% endif %}
+      
+      {% if status_report %}
+      Status Report:
+      {{status_report}}
+      {% endif %}
+    skills:
+      - pm_skills.communication
+    save_as: "review_response"
+    next_options:
+      - state: "understand_request"
+        description: "User needs help with another task"
+      - state: "end"
+        description: "User is satisfied and done"
