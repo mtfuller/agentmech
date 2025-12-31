@@ -309,7 +309,7 @@ export class WorkflowValidator {
    * Validate tools configuration
    * @param tools - Tools configuration
    */
-  static validateTools(tools: Record<string, any>): void {
+  static validateTools(tools: Record<string, ToolSpec>): void {
     for (const [toolName, config] of Object.entries(tools)) {
       const toolContext = `Tool "${toolName}"`;
       

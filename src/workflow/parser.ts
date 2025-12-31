@@ -269,15 +269,11 @@ class WorkflowParser {
         continue;
       }
 
-      const mcpServerSpec: MCPServerSpec = {};
-      
-      // Only include args and env if they're defined
-      if (toolSpec.args) {
-        mcpServerSpec.args = toolSpec.args;
-      }
-      if (toolSpec.env) {
-        mcpServerSpec.env = toolSpec.env;
-      }
+      // Build MCP server spec with optional args and env
+      const mcpServerSpec: MCPServerSpec = {
+        ...(toolSpec.args && { args: toolSpec.args }),
+        ...(toolSpec.env && { env: toolSpec.env })
+      };
 
       if (toolSpec.npm_package) {
         // Convert npm_package to npx type configuration
