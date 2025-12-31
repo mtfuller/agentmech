@@ -11,6 +11,12 @@ export interface McpServerConfig {
   env: Record<string, string>;
 }
 
+export interface SkillMetadata {
+  name: string;
+  description: string;
+  content: string;
+}
+
 export interface State {
   type: string;
   prompt: string;
@@ -38,7 +44,7 @@ export interface Workflow {
   states: Record<string, State>;
   mcpServers?: Record<string, McpServerConfig>;
   rag: Record<string, RAGConfig>;  // Named RAG configurations
-  skills: Record<string, string>;  // Named skills (skill name -> skill content)
+  skills: Record<string, SkillMetadata>;  // Named skills (skill name -> skill metadata)
   variables?: Record<string, string>;  // Workflow-level variables for prompt interpolation
   onError?: string;
 }

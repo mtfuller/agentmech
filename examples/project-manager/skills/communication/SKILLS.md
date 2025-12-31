@@ -1,3 +1,8 @@
+---
+name: communication-skills
+description: Skills for effective stakeholder communication, status reporting, and meeting facilitation
+---
+
 # Communication Skills
 
 ## Stakeholder Communication

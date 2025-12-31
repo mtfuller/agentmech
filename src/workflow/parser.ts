@@ -1,7 +1,7 @@
 import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
-import { McpServerConfig, State, Workflow } from './workflow';
+import { McpServerConfig, State, Workflow, SkillMetadata } from './workflow';
 import { WorkflowSpec, StateSpec, StepSpec, MCPServerSpec, RAGSpec } from './spec';
 import { RAGConfig } from '../rag/rag-service';
 import { WorkflowValidator } from './validator';
@@ -84,16 +84,17 @@ class WorkflowParser {
   /**
    * Parse skills from workflow spec
    * Discovers SKILLS.md files in subdirectories of the specified directory
+   * Parses frontmatter to extract name and description
    * @param skillsSpec - Skills specification from workflow
    * @param workflowDir - Directory containing the workflow file
-   * @returns Parsed skills as key-value pairs (skill name -> skill content)
+   * @returns Parsed skills as key-value pairs (skill name -> skill metadata)
    */
-  private static parseSkills(skillsSpec: Record<string, any> | undefined, workflowDir: string): Record<string, string> {
+  private static parseSkills(skillsSpec: Record<string, any> | undefined, workflowDir: string): Record<string, SkillMetadata> {
     if (!skillsSpec) {
       return {};
     }
 
-    const skills: Record<string, string> = {};
+    const skills: Record<string, SkillMetadata> = {};
     
     for (const [skillName, skillSpec] of Object.entries(skillsSpec)) {
       // Handle object format with directory
@@ -116,9 +117,17 @@ class WorkflowParser {
             const skillFilePath = path.join(skillsDir, subdir, 'SKILLS.md');
             
             if (fs.existsSync(skillFilePath)) {
-              const skillContent = fs.readFileSync(skillFilePath, 'utf8');
+              const skillFileContent = fs.readFileSync(skillFilePath, 'utf8');
               const fullSkillName = `${skillName}.${subdir}`;
-              skills[fullSkillName] = skillContent;
+              
+              // Parse frontmatter if present
+              const { metadata, content } = this.parseFrontmatter(skillFileContent);
+              
+              skills[fullSkillName] = {
+                name: metadata.name || fullSkillName,
+                description: metadata.description || '',
+                content: content
+              };
             }
           }
         } catch (error: any) {
@@ -133,6 +142,38 @@ class WorkflowParser {
     }
     
     return skills;
+  }
+
+  /**
+   * Parse frontmatter from markdown content
+   * @param content - Markdown content with optional YAML frontmatter
+   * @returns Object with metadata and content
+   */
+  private static parseFrontmatter(content: string): { metadata: Record<string, string>, content: string } {
+    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/;
+    const match = content.match(frontmatterRegex);
+    
+    if (match) {
+      try {
+        const metadata = yaml.load(match[1]) as Record<string, string>;
+        return {
+          metadata: metadata || {},
+          content: match[2].trim()
+        };
+      } catch (error: any) {
+        // If YAML parsing fails, treat the whole content as body
+        return {
+          metadata: {},
+          content: content
+        };
+      }
+    }
+    
+    // No frontmatter found
+    return {
+      metadata: {},
+      content: content
+    };
   }
 
   /**
@@ -245,7 +286,7 @@ class WorkflowParser {
       variables = this.parseVariables(workflow.variables, context.workflowDir);
     }
 
-    let skills: Record<string, string> = {};
+    let skills: Record<string, SkillMetadata> = {};
     if (workflow.skills) {
       skills = this.parseSkills(workflow.skills, context.workflowDir);
     }

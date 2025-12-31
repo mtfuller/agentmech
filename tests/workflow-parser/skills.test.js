@@ -31,12 +31,12 @@ describe('Workflow Skills', () => {
     
     fs.writeFileSync(
       path.join(planningSkillDir, 'SKILLS.md'),
-      '# Planning Skills\n\nBreak down complex tasks into manageable steps.'
+      '---\nname: planning\ndescription: Planning skills\n---\n# Planning Skills\n\nBreak down complex tasks into manageable steps.'
     );
     
     fs.writeFileSync(
       path.join(analysisSkillDir, 'SKILLS.md'),
-      '# Analysis Skills\n\nAnalyze requirements thoroughly.'
+      '---\nname: analysis\ndescription: Analysis skills\n---\n# Analysis Skills\n\nAnalyze requirements thoroughly.'
     );
 
     // Create workflow file
@@ -66,8 +66,13 @@ describe('Workflow Skills', () => {
     });
 
     expect(workflow.skills).toBeDefined();
-    expect(workflow.skills['planning_skills.planning']).toContain('Planning Skills');
-    expect(workflow.skills['planning_skills.analysis']).toContain('Analysis Skills');
+    expect(workflow.skills['planning_skills.planning']).toBeDefined();
+    expect(workflow.skills['planning_skills.planning'].name).toBe('planning');
+    expect(workflow.skills['planning_skills.planning'].description).toBe('Planning skills');
+    expect(workflow.skills['planning_skills.planning'].content).toContain('Planning Skills');
+    expect(workflow.skills['planning_skills.analysis']).toBeDefined();
+    expect(workflow.skills['planning_skills.analysis'].name).toBe('analysis');
+    expect(workflow.skills['planning_skills.analysis'].content).toContain('Analysis Skills');
     expect(workflow.states['test'].skills).toEqual([
       'planning_skills.planning',
       'planning_skills.analysis'
@@ -86,12 +91,12 @@ describe('Workflow Skills', () => {
     
     fs.writeFileSync(
       path.join(planningSubdir, 'SKILLS.md'),
-      '# Basic Planning'
+      '---\nname: basic-planning\ndescription: Basic planning\n---\n# Basic Planning'
     );
     
     fs.writeFileSync(
       path.join(analysisSubdir, 'SKILLS.md'),
-      '# Advanced Analysis'
+      '---\nname: advanced-analysis\ndescription: Advanced analysis\n---\n# Advanced Analysis'
     );
 
     const workflowPath = path.join(testDir, 'workflow.yaml');
@@ -122,8 +127,10 @@ describe('Workflow Skills', () => {
       visitedFiles: new Set()
     });
 
-    expect(workflow.skills['planning.basic']).toContain('Basic Planning');
-    expect(workflow.skills['analysis.advanced']).toContain('Advanced Analysis');
+    expect(workflow.skills['planning.basic']).toBeDefined();
+    expect(workflow.skills['planning.basic'].content).toContain('Basic Planning');
+    expect(workflow.skills['analysis.advanced']).toBeDefined();
+    expect(workflow.skills['analysis.advanced'].content).toContain('Advanced Analysis');
   });
 
   test('should handle workflow steps with skills', () => {
@@ -131,7 +138,7 @@ describe('Workflow Skills', () => {
     fs.mkdirSync(skillDir, { recursive: true });
     fs.writeFileSync(
       path.join(skillDir, 'SKILLS.md'),
-      '# Test Skills'
+      '---\nname: test-skills\ndescription: Test skills\n---\n# Test Skills'
     );
 
     const workflowPath = path.join(testDir, 'workflow.yaml');
@@ -157,7 +164,8 @@ describe('Workflow Skills', () => {
       visitedFiles: new Set()
     });
 
-    expect(workflow.skills['test_skills.test']).toContain('Test Skills');
+    expect(workflow.skills['test_skills.test']).toBeDefined();
+    expect(workflow.skills['test_skills.test'].content).toContain('Test Skills');
     expect(workflow.states['step_0'].skills).toEqual(['test_skills.test']);
   });
 
@@ -222,7 +230,7 @@ describe('Workflow Skills', () => {
     fs.mkdirSync(skillDir, { recursive: true });
     fs.writeFileSync(
       path.join(skillDir, 'SKILLS.md'),
-      '# Multi-step Skills'
+      '---\nname: multi-step-skills\ndescription: Multi-step skills\n---\n# Multi-step Skills'
     );
 
     const workflowPath = path.join(testDir, 'workflow.yaml');
@@ -258,7 +266,8 @@ describe('Workflow Skills', () => {
       visitedFiles: new Set()
     });
 
-    expect(workflow.skills['step_skills.multi']).toContain('Multi-step Skills');
+    expect(workflow.skills['step_skills.multi']).toBeDefined();
+    expect(workflow.skills['step_skills.multi'].content).toContain('Multi-step Skills');
     // First step inherits from state level
     expect(workflow.states['multi'].skills).toEqual(['step_skills.multi']);
     // Second step has its own skills

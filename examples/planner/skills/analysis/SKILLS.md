@@ -1,3 +1,8 @@
+---
+name: analysis-skills
+description: Skills for analyzing requirements, assessing risks, and evaluating feasibility of proposed solutions
+---
+
 # Analysis Skills
 
 ## Requirements Analysis

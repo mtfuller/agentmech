@@ -4,7 +4,7 @@ Skills allow you to define reusable knowledge and capabilities that can be assoc
 
 ## Overview
 
-Skills are markdown files (named `SKILLS.md`) organized in subdirectories. When a state references skills, the content is automatically injected into the prompt, providing the LLM with specialized knowledge and instructions.
+Skills are markdown files (named `SKILLS.md`) organized in subdirectories. Skills can include frontmatter metadata with a name and description. When a state references skills, the content is automatically injected into the prompt. If no skills are explicitly specified, the LLM can automatically select relevant skills based on the task.
 
 ## Configuration
 
@@ -39,12 +39,17 @@ planner/
         └── SKILLS.md
 ```
 
-### 3. Write Skill Content
+### 3. Write Skill Content with Frontmatter
 
-Each `SKILLS.md` file should contain the knowledge and guidelines for that skill:
+Each `SKILLS.md` file should start with YAML frontmatter containing the skill's name and description, followed by the skill content:
 
 **planning/SKILLS.md:**
 ```markdown
+---
+name: planning-skills
+description: Skills for breaking down tasks, estimating timelines, and allocating resources for project planning
+---
+
 # Planning Skills
 
 ## Task Breakdown
@@ -57,9 +62,11 @@ Estimate realistic timelines for tasks based on complexity, resources, and poten
 Identify required resources (people, tools, materials) for each task and allocate them efficiently to maximize productivity.
 ```
 
-### 4. Reference Skills in States
+The frontmatter is used when the LLM automatically selects skills, providing context about what each skill offers.
 
-Reference skills in your states using the format `skill_group.subdirectory`:
+### 4. Reference Skills in States (Optional)
+
+You can explicitly reference skills in your states using the format `skill_group.subdirectory`:
 
 ```yaml
 states:
@@ -75,13 +82,49 @@ states:
     next: "execution"
 ```
 
+Or, let the LLM automatically select relevant skills by omitting the `skills` field:
+
+```yaml
+states:
+  planning:
+    type: "prompt"
+    prompt: |
+      You need to create a plan for the following user request:
+      {{user_request}}
+    # No skills specified - LLM will automatically select from available skills
+    save_as: "plan"
+    next: "execution"
+```
+
 ## How It Works
 
-When a state is executed with skills:
+When a state is executed:
 
 1. **Discovery**: The parser scans the specified directory for subdirectories containing `SKILLS.md` files
-2. **Loading**: Each skill file is loaded and associated with a skill name (e.g., `planning_skills.planning`)
-3. **Injection**: At runtime, the executor prepends the skill content to the prompt with clear formatting
+2. **Parsing**: Each skill file is parsed to extract frontmatter (name, description) and content
+3. **Loading**: Each skill is stored with its metadata (e.g., `planning_skills.planning`)
+4. **Selection**: 
+   - If skills are explicitly specified in the state, those skills are used
+   - If no skills are specified, the LLM automatically selects relevant skills based on the task and skill descriptions
+5. **Injection**: At runtime, the executor prepends the selected skill content to the prompt with clear formatting
+
+### Automatic Skill Selection
+
+When no skills are explicitly specified, the LLM is given a list of available skills with their names and descriptions:
+
+```
+Available Skills:
+1. planning-skills: Skills for breaking down tasks, estimating timelines, and allocating resources
+2. analysis-skills: Skills for analyzing requirements, assessing risks, and evaluating feasibility
+3. communication-skills: Skills for effective stakeholder communication and status reporting
+
+Task:
+Create a project plan for building a mobile app
+
+Respond with the numbers of relevant skills...
+```
+
+The LLM selects the most relevant skills, which are then injected into the main prompt.
 
 The final prompt sent to the LLM looks like:
 

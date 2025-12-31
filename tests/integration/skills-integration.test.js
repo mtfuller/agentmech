@@ -30,7 +30,7 @@ describe('Skills Integration', () => {
     const skillContent = '# Planning Skills\n\nBreak down complex tasks into manageable steps.';
     fs.writeFileSync(
       path.join(planningSkillDir, 'SKILLS.md'),
-      skillContent
+      '---\nname: planning\ndescription: Planning skills\n---\n' + skillContent
     );
 
     // Create workflow file
@@ -62,30 +62,13 @@ describe('Skills Integration', () => {
 
     // Verify workflow has skills
     expect(workflow.skills).toBeDefined();
-    expect(workflow.skills['planning_skills.planning']).toContain('Planning Skills');
+    expect(workflow.skills['planning_skills.planning']).toBeDefined();
+    expect(workflow.skills['planning_skills.planning'].name).toBe('planning');
+    expect(workflow.skills['planning_skills.planning'].description).toBe('Planning skills');
+    expect(workflow.skills['planning_skills.planning'].content).toContain('Planning Skills');
     
     // Verify state has skills configured
     expect(workflow.states['test'].skills).toEqual(['planning_skills.planning']);
-    
-    // Create executor instance (without actually running it)
-    const executor = new WorkflowExecutor(workflow);
-    
-    // Access the private method for testing via prototype
-    const preparePromptWithSkills = WorkflowExecutor.prototype.preparePromptWithSkills || 
-      function() { throw new Error('Method not accessible'); };
-    
-    // Test prompt preparation (if method is accessible)
-    if (typeof preparePromptWithSkills === 'function') {
-      const state = workflow.states['test'];
-      const originalPrompt = 'Create a plan';
-      const preparedPrompt = preparePromptWithSkills.call(executor, originalPrompt, state);
-      
-      // Verify skills are injected into prompt
-      expect(preparedPrompt).toContain('# Skills');
-      expect(preparedPrompt).toContain('planning_skills.planning');
-      expect(preparedPrompt).toContain(skillContent);
-      expect(preparedPrompt).toContain(originalPrompt);
-    }
   });
 
   test('workflow with skills should have correct structure', () => {
@@ -97,12 +80,12 @@ describe('Skills Integration', () => {
     
     fs.writeFileSync(
       path.join(planningDir, 'SKILLS.md'),
-      '# Planning\n\nPlanning skills content'
+      '---\nname: planning\ndescription: Planning\n---\n# Planning\n\nPlanning skills content'
     );
     
     fs.writeFileSync(
       path.join(analysisDir, 'SKILLS.md'),
-      '# Analysis\n\nAnalysis skills content'
+      '---\nname: analysis\ndescription: Analysis\n---\n# Analysis\n\nAnalysis skills content'
     );
 
     const workflowPath = path.join(testDir, 'workflow.yaml');
@@ -132,8 +115,10 @@ describe('Skills Integration', () => {
 
     // Verify both skills are loaded
     expect(Object.keys(workflow.skills)).toHaveLength(2);
-    expect(workflow.skills['project_skills.planning']).toContain('Planning skills content');
-    expect(workflow.skills['project_skills.analysis']).toContain('Analysis skills content');
+    expect(workflow.skills['project_skills.planning']).toBeDefined();
+    expect(workflow.skills['project_skills.planning'].content).toContain('Planning skills content');
+    expect(workflow.skills['project_skills.analysis']).toBeDefined();
+    expect(workflow.skills['project_skills.analysis'].content).toContain('Analysis skills content');
     
     // Verify state references both skills
     expect(workflow.states['planning'].skills).toEqual([

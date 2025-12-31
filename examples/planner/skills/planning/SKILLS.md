@@ -1,3 +1,8 @@
+---
+name: planning-skills
+description: Skills for breaking down tasks, estimating timelines, and allocating resources for project planning
+---
+
 # Planning Skills
 
 ## Task Breakdown

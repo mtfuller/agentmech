@@ -1,3 +1,8 @@
+---
+name: risk-management-skills
+description: Skills for identifying, assessing, and mitigating project risks
+---
+
 # Risk Management Skills
 
 ## Risk Identification

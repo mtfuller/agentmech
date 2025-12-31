@@ -1,3 +1,8 @@
+---
+name: project-management-skills
+description: Core project management skills including planning, scope management, and task prioritization
+---
+
 # Project Management Skills
 
 ## Project Planning

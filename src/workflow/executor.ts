@@ -155,12 +155,29 @@ class WorkflowExecutor {
 
   /**
    * Prepare prompt with skills if configured
+   * If no skills are specified for the state but skills are available,
+   * let the model select which skills to use
    * @param prompt - Original prompt text
    * @param state - State configuration
    * @returns Prompt with skills prepended
    */
-  private preparePromptWithSkills(prompt: string, state: State): string {
-    if (!state.skills || state.skills.length === 0) {
+  private async preparePromptWithSkills(prompt: string, state: State): Promise<string> {
+    // If no skills defined in workflow, return prompt as-is
+    if (!this.workflow.skills || Object.keys(this.workflow.skills).length === 0) {
+      return prompt;
+    }
+
+    let selectedSkills: string[] = [];
+
+    // If state explicitly specifies skills, use those
+    if (state.skills && state.skills.length > 0) {
+      selectedSkills = state.skills;
+    } else {
+      // Let the model select which skills to use
+      selectedSkills = await this.selectSkills(prompt, state);
+    }
+
+    if (selectedSkills.length === 0) {
       return prompt;
     }
 
@@ -169,10 +186,11 @@ class WorkflowExecutor {
     const missingSkills: string[] = [];
 
     // Collect skills content
-    for (const skillName of state.skills) {
-      if (this.workflow.skills && this.workflow.skills[skillName]) {
+    for (const skillName of selectedSkills) {
+      const skillMetadata = this.workflow.skills[skillName];
+      if (skillMetadata) {
         foundSkills.push(skillName);
-        skillsContent += `\n## Skill: ${skillName}\n\n${this.workflow.skills[skillName]}\n`;
+        skillsContent += `\n## Skill: ${skillMetadata.name}\n\n${skillMetadata.content}\n`;
       } else {
         missingSkills.push(skillName);
       }
@@ -194,6 +212,69 @@ class WorkflowExecutor {
     }
 
     return prompt;
+  }
+
+  /**
+   * Ask the model to select which skills are relevant for the current task
+   * @param prompt - The user's prompt
+   * @param state - State configuration
+   * @returns Array of selected skill names
+   */
+  private async selectSkills(prompt: string, state: State): Promise<string[]> {
+    // Build a list of available skills with names and descriptions
+    const skillsList = Object.entries(this.workflow.skills)
+      .map(([key, metadata], index) => 
+        `${index + 1}. ${metadata.name}: ${metadata.description}`
+      )
+      .join('\n');
+
+    const skillNames = Object.keys(this.workflow.skills);
+
+    if (skillsList.length === 0) {
+      return [];
+    }
+
+    const selectionPrompt = `You are given a task and a list of available skills. Select the skills that are most relevant to completing this task.
+
+Available Skills:
+${skillsList}
+
+Task:
+${prompt}
+
+Respond with only the numbers of the relevant skills (comma-separated, e.g., "1,3,5"). If no skills are relevant, respond with "none".`;
+
+    console.log('\n' + CliFormatter.step('LLM selecting relevant skills'));
+    console.log(CliFormatter.loading('Asking LLM to select skills...'));
+
+    try {
+      const model = state.model || this.workflow.defaultModel || 'gemma3:4b';
+      const selectionResponse = await this.ollamaClient.generate(model, selectionPrompt, {});
+      
+      // Parse the response to extract skill indices
+      if (selectionResponse.toLowerCase().includes('none')) {
+        console.log(CliFormatter.info('No skills selected by LLM'));
+        return [];
+      }
+
+      const selectedIndices = selectionResponse
+        .match(/\d+/g)
+        ?.map(num => parseInt(num, 10) - 1)
+        .filter(idx => idx >= 0 && idx < skillNames.length) || [];
+
+      const selectedSkillNames = selectedIndices.map(idx => skillNames[idx]);
+      
+      if (selectedSkillNames.length > 0) {
+        console.log(CliFormatter.success(`LLM selected skills: ${selectedSkillNames.join(', ')}`) + '\n');
+      } else {
+        console.log(CliFormatter.info('No valid skills selected by LLM'));
+      }
+
+      return selectedSkillNames;
+    } catch (error: any) {
+      console.error(CliFormatter.error(`Error during LLM skill selection: ${error.message}. Proceeding without skills.`));
+      return [];
+    }
   }
 
   /**
@@ -419,7 +500,7 @@ class WorkflowExecutor {
     prompt = await this.preparePromptWithRAG(prompt, state);
     
     // Add skills if configured
-    prompt = this.preparePromptWithSkills(prompt, state);
+    prompt = await this.preparePromptWithSkills(prompt, state);
     
     // Connect to MCP servers if specified for this state
     await this.connectMCPServers(state);
