@@ -326,11 +326,11 @@ export class WorkflowValidator {
       }
       
       if (hasNpmPackage) {
-        this.validateFieldType(config.npm_package, 'string', 'npm_package', toolContext);
+        this.validateFieldType(config.npm_package!, 'string', 'npm_package', toolContext);
       }
       
       if (hasFilePath) {
-        this.validateFieldType(config.file_path, 'string', 'file_path', toolContext);
+        this.validateFieldType(config.file_path!, 'string', 'file_path', toolContext);
       }
       
       if (config.args && !Array.isArray(config.args)) {
