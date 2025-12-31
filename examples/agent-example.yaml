@@ -1,0 +1,31 @@
+name: "Adaptive Agent Example"
+description: "A long-running agent that operates in a precept-actuator loop with states"
+type: "agent"
+default_model: "gemma3:4b"
+
+start_state: "perceive"
+
+states:
+  perceive:
+    type: "prompt"
+    prompt: "You are an adaptive agent. Analyze the current situation and decide what action to take. Consider what you've learned from previous interactions."
+    save_as: "perception"
+    next_options:
+      - state: "act"
+        description: "The situation requires immediate action"
+      - state: "learn"
+        description: "More information gathering or learning is needed"
+      - state: "end"
+        description: "The task is complete"
+  
+  act:
+    type: "prompt"
+    prompt: "Based on your perception: {{perception}}, take an appropriate action and describe what you did."
+    save_as: "action"
+    next: "perceive"
+  
+  learn:
+    type: "prompt"
+    prompt: "Based on your perception: {{perception}}, what additional information do you need? Gather and process it."
+    save_as: "learning"
+    next: "perceive"

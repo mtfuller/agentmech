@@ -1,22 +1,40 @@
 /**
- * Specification for a workflow configuration.
- * Represents the YAML structure for defining workflow execution.
+ * Specification for a workflow or agent configuration.
+ * Represents the YAML structure for defining workflow/agent execution.
+ * 
+ * Workflow vs Agent:
+ * - workflow: Linear and deterministic, walks through steps sequentially (uses 'steps' array)
+ * - agent: Long-running and adaptable, operates in a precept-actuator loop with states (uses 'states' object)
  */
 export interface WorkflowSpec {
-  /** Name of the workflow */
+  /** Name of the workflow or agent */
   name: string;
   
-  /** Optional description of the workflow's purpose */
+  /** Optional description of the workflow's or agent's purpose */
   description?: string;
   
-  /** Default model to use for LLM operations (can be overridden per state) */
+  /** 
+   * Type of execution model: 'workflow' or 'agent'
+   * - 'workflow': Linear and deterministic, uses steps for sequential execution
+   * - 'agent': Long-running and adaptable, uses states for precept-actuator loops
+   * When omitted, determined by presence of 'steps' or 'states' field
+   */
+  type?: 'workflow' | 'agent';
+  
+  /** Default model to use for LLM operations (can be overridden per state/step) */
   default_model?: string;
   
-  /** Name of the state to begin workflow execution */
-  start_state: string;
+  /** 
+   * Array of sequential steps for workflows (type: 'workflow')
+   * Steps execute in order, one after another
+   */
+  steps?: WorkflowStepSpec[];
   
-  /** Collection of states that define the workflow state machine */
-  states: Record<string, StateSpec>;
+  /** Name of the state to begin agent execution (for type: 'agent') */
+  start_state?: string;
+  
+  /** Collection of states that define the agent state machine (for type: 'agent') */
+  states?: Record<string, StateSpec>;
   
   /** Optional MCP (Model Context Protocol) server configurations */
   mcp_servers?: Record<string, MCPServerSpec>;
@@ -27,8 +45,64 @@ export interface WorkflowSpec {
   /** Optional variables that can be used in prompts with {{variable_name}} syntax */
   variables?: Record<string, VariableSpec>;
   
-  /** Optional fallback state to transition to on error (workflow-level) */
+  /** Optional fallback state to transition to on error (agent-level) */
   on_error?: string;
+}
+
+/**
+ * Specification for a single step in a workflow.
+ * Workflows use steps that execute sequentially, with optional conditional branching.
+ */
+export interface WorkflowStepSpec {
+  /** Type of step: 'prompt' (LLM interaction) or 'input' (user input) */
+  type: string;
+  
+  /** Inline prompt text (for prompt/input steps) */
+  prompt?: string;
+  
+  /** Path to external file containing prompt text (alternative to inline prompt) */
+  prompt_file?: string;
+  
+  /** Variable name to store the step's output in workflow context */
+  save_as?: string;
+  
+  /** Model to use for this step (overrides workflow default_model) */
+  model?: string;
+  
+  /** Additional options to pass to the LLM (temperature, top_p, etc.) */
+  options?: Record<string, any>;
+  
+  /** List of MCP server names to use for this step */
+  mcp_servers?: string[];
+  
+  /** Name of RAG configuration to use for this step */
+  use_rag?: string;
+  
+  /** Inline RAG configuration for this step (alternative to use_rag) */
+  rag?: RAGSpec;
+  
+  /** List of file paths for multimodal inputs (images, PDFs, text files) */
+  files?: string[];
+  
+  /** Default value for input steps (used if user provides no input) */
+  default_value?: string;
+  
+  /** 
+   * Optional: Index of the next step to execute (0-based).
+   * Allows conditional branching within the workflow.
+   * If not specified, proceeds to the next step in sequence.
+   */
+  next_step?: number;
+  
+  /** 
+   * Optional: Array of possible next steps with descriptions (for LLM-driven step selection).
+   * The LLM will analyze the workflow context and select the appropriate next step.
+   * Each option specifies a step index and description of when that step should be chosen.
+   */
+  next_step_options?: {
+    step: number;
+    description: string;
+  }[];
 }
 
 /**

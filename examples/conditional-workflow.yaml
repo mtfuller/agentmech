@@ -1,0 +1,39 @@
+name: "Conditional Workflow Example"
+description: "A workflow with conditional branching based on LLM decision"
+type: "workflow"
+default_model: "gemma3:4b"
+
+steps:
+  # Step 0: Initial assessment
+  - type: "prompt"
+    prompt: "Analyze this customer request: 'I need help with my account'. Determine if this is a billing issue, technical issue, or general inquiry."
+    save_as: "request_type"
+    next_step_options:
+      - step: 1
+        description: "The request is about billing or payments"
+      - step: 2
+        description: "The request is about technical problems"
+      - step: 3
+        description: "The request is a general inquiry"
+  
+  # Step 1: Handle billing issue
+  - type: "prompt"
+    prompt: "This is a billing issue. Request type: {{request_type}}. Generate a response that addresses billing concerns and offers to connect with the billing department."
+    save_as: "billing_response"
+    next_step: 4  # Jump to final step
+  
+  # Step 2: Handle technical issue
+  - type: "prompt"
+    prompt: "This is a technical issue. Request type: {{request_type}}. Generate a response with troubleshooting steps and offer to escalate to technical support."
+    save_as: "tech_response"
+    next_step: 4  # Jump to final step
+  
+  # Step 3: Handle general inquiry
+  - type: "prompt"
+    prompt: "This is a general inquiry. Request type: {{request_type}}. Generate a helpful response with general information and ask if they need more specific help."
+    save_as: "general_response"
+  
+  # Step 4: Final summary
+  - type: "prompt"
+    prompt: "Summarize the interaction. Original request: {{request_type}}. Response provided: {{billing_response}}{{tech_response}}{{general_response}}"
+    save_as: "summary"
