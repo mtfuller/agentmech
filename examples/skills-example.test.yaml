@@ -1,0 +1,23 @@
+# Test Scenarios for Skills Example Workflow
+
+workflow: skills-example.yaml
+
+test_scenarios:
+  - name: "Skills Loading Test"
+    description: "Test that skills are loaded and workflow executes"
+    assertions:
+      - type: "state_reached"
+        value: "planning"
+        description: "Should reach planning state"
+      - type: "state_reached"
+        value: "review"
+        description: "Should reach review state"
+      - type: "state_reached"
+        value: "end"
+        description: "Should reach end state"
+      - type: "context_contains"
+        key: "plan"
+        description: "Should have plan in context"
+      - type: "context_contains"
+        key: "review"
+        description: "Should have review in context"

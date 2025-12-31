@@ -154,6 +154,56 @@ class WorkflowExecutor {
   }
 
   /**
+   * Prepare prompt with skills if configured
+   * @param prompt - Original prompt text
+   * @param state - State configuration
+   * @returns Prompt with skills prepended
+   */
+  private preparePromptWithSkills(prompt: string, state: State): string {
+    // If no skills explicitly specified for this state, return prompt as-is
+    if (!state.skills || state.skills.length === 0) {
+      return prompt;
+    }
+
+    // If no skills defined in workflow, return prompt as-is
+    if (!this.workflow.skills || Object.keys(this.workflow.skills).length === 0) {
+      return prompt;
+    }
+
+    let skillsContent = '';
+    const foundSkills: string[] = [];
+    const missingSkills: string[] = [];
+
+    // Collect skills content
+    for (const skillName of state.skills) {
+      const skillMetadata = this.workflow.skills[skillName];
+      if (skillMetadata) {
+        foundSkills.push(skillName);
+        skillsContent += `\n## Skill: ${skillMetadata.name}\n\n${skillMetadata.content}\n`;
+      } else {
+        missingSkills.push(skillName);
+      }
+    }
+
+    // Log warnings for missing skills
+    if (missingSkills.length > 0) {
+      console.warn(CliFormatter.warning(`Skills not found: ${missingSkills.join(', ')}`));
+    }
+
+    // Log skills being used
+    if (foundSkills.length > 0) {
+      console.log(CliFormatter.success(`Using skills: ${foundSkills.join(', ')}`));
+    }
+
+    // Prepend skills to prompt if any were found
+    if (skillsContent) {
+      return `# Skills\n\nYou have access to the following skills. Use them to complete the task:\n${skillsContent}\n---\n\n${prompt}`;
+    }
+
+    return prompt;
+  }
+
+  /**
    * Connect to MCP servers configured for a state
    * @param state - State configuration
    */
@@ -374,6 +424,9 @@ class WorkflowExecutor {
     
     // Add RAG context if configured
     prompt = await this.preparePromptWithRAG(prompt, state);
+    
+    // Add skills if configured
+    prompt = this.preparePromptWithSkills(prompt, state);
     
     // Connect to MCP servers if specified for this state
     await this.connectMCPServers(state);

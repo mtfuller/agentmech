@@ -1,0 +1,37 @@
+name: "Planning Agent with Skills"
+description: "An agent that uses planning and analysis skills to create project plans"
+type: "agent"
+default_model: "gemma3:4b"
+
+start_state: "planning"
+
+# Define skills that can be referenced by states
+skills:
+  planning_skills:
+    directory: "./planner/skills"
+
+states:
+  planning:
+    type: "prompt"
+    prompt: |
+      You need to create a plan for the following user request:
+      
+      User Request: Build a simple web application for task management
+      
+      Please analyze the requirements and create a detailed project plan.
+    skills:
+      - planning_skills.planning
+      - planning_skills.analysis
+    save_as: "plan"
+    next: "review"
+  
+  review:
+    type: "prompt"
+    prompt: |
+      Review the following plan and provide feedback:
+      
+      {{plan}}
+      
+      Is the plan comprehensive? Are there any missing elements?
+    save_as: "review"
+    next: "end"
