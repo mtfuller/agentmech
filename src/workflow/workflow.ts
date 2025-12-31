@@ -23,6 +23,7 @@ export interface State {
   mcpServers?: string[];
   useRag?: string;  // true for default, or name of rag config
   rag?: RAGConfig;  // inline RAG configuration
+  skills?: string[];  // List of skill names to include
   defaultValue?: string;  // default value for input state
   onError?: string;  // Fallback state to transition to on error (state-level)
   files: string[];  // Array of file paths for multimodal inputs (images, PDFs, text files, etc.)
@@ -37,6 +38,7 @@ export interface Workflow {
   states: Record<string, State>;
   mcpServers?: Record<string, McpServerConfig>;
   rag: Record<string, RAGConfig>;  // Named RAG configurations
+  skills: Record<string, string>;  // Named skills (skill name -> skill content)
   variables?: Record<string, string>;  // Workflow-level variables for prompt interpolation
   onError?: string;
 }

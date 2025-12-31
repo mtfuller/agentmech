@@ -42,6 +42,9 @@ export interface WorkflowSpec {
   /** Optional named RAG (Retrieval-Augmented Generation) configurations */
   rag?: Record<string, RAGSpec>;
   
+  /** Optional skills that can be associated with specific agent states */
+  skills?: Record<string, SkillsSpec>;
+  
   /** Optional variables that can be used in prompts with {{variable_name}} syntax */
   variables?: Record<string, VariableSpec>;
   
@@ -80,6 +83,9 @@ export interface WorkflowStepSpec {
   
   /** Inline RAG configuration for this step (alternative to use_rag) */
   rag?: RAGSpec;
+  
+  /** List of skill names to include in this step's prompt */
+  skills?: string[];
   
   /** List of file paths for multimodal inputs (images, PDFs, text files) */
   files?: string[];
@@ -134,6 +140,9 @@ export interface StepSpec {
   /** Inline RAG configuration for this step (alternative to use_rag) */
   rag?: RAGSpec;
   
+  /** List of skill names to include in this step's prompt */
+  skills?: string[];
+  
   /** List of file paths for multimodal inputs (images, PDFs, text files) */
   files?: string[];
   
@@ -187,6 +196,9 @@ export interface StateSpec {
   
   /** Inline RAG configuration for this state (alternative to use_rag) */
   rag?: RAGSpec;
+  
+  /** List of skill names to include in this state's prompt */
+  skills?: string[];
   
   /** Default value for input states (used if user provides no input) */
   default_value?: string;
@@ -276,5 +288,14 @@ export interface RAGSpec {
    * - {{number}} - 1-based chunk number
    */
   chunk_template?: string;
+}
+
+/**
+ * Specification for skills configuration.
+ * Skills are markdown files that can be discovered from a directory and injected into prompts.
+ */
+export interface SkillsSpec {
+  /** Path to directory containing skill subdirectories (each with SKILLS.md) */
+  directory: string;
 }
 

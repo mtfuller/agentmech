@@ -82,6 +82,60 @@ class WorkflowParser {
   }
 
   /**
+   * Parse skills from workflow spec
+   * Discovers SKILLS.md files in subdirectories of the specified directory
+   * @param skillsSpec - Skills specification from workflow
+   * @param workflowDir - Directory containing the workflow file
+   * @returns Parsed skills as key-value pairs (skill name -> skill content)
+   */
+  private static parseSkills(skillsSpec: Record<string, any> | undefined, workflowDir: string): Record<string, string> {
+    if (!skillsSpec) {
+      return {};
+    }
+
+    const skills: Record<string, string> = {};
+    
+    for (const [skillName, skillSpec] of Object.entries(skillsSpec)) {
+      // Handle object format with directory
+      if (typeof skillSpec === 'object' && skillSpec !== null && skillSpec.directory) {
+        const skillsDir = path.resolve(workflowDir, skillSpec.directory);
+        
+        try {
+          // Check if directory exists
+          if (!fs.existsSync(skillsDir)) {
+            throw new Error(`Skills directory not found for "${skillName}": ${skillsDir}`);
+          }
+          
+          // Read all subdirectories in the skills directory
+          const subdirs = fs.readdirSync(skillsDir, { withFileTypes: true })
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name);
+          
+          // Look for SKILLS.md in each subdirectory
+          for (const subdir of subdirs) {
+            const skillFilePath = path.join(skillsDir, subdir, 'SKILLS.md');
+            
+            if (fs.existsSync(skillFilePath)) {
+              const skillContent = fs.readFileSync(skillFilePath, 'utf8');
+              const fullSkillName = `${skillName}.${subdir}`;
+              skills[fullSkillName] = skillContent;
+            }
+          }
+        } catch (error: any) {
+          if (error.code === 'ENOENT') {
+            throw new Error(`Skills directory not found for "${skillName}": ${skillsDir}`);
+          }
+          throw new Error(`Failed to load skills for "${skillName}": ${error.message}`);
+        }
+      } else {
+        throw new Error(`Skill "${skillName}" must have a "directory" property`);
+      }
+    }
+    
+    return skills;
+  }
+
+  /**
    * Resolve the prompt text for a state (from inline or file)
    * @param spec - State specification
    * @param context - Parser context
@@ -191,6 +245,11 @@ class WorkflowParser {
       variables = this.parseVariables(workflow.variables, context.workflowDir);
     }
 
+    let skills: Record<string, string> = {};
+    if (workflow.skills) {
+      skills = this.parseSkills(workflow.skills, context.workflowDir);
+    }
+
     return {
       name: workflow.name,
       description: workflow.description,
@@ -200,6 +259,7 @@ class WorkflowParser {
       states,
       mcpServers,
       rag,
+      skills,
       variables,
       onError: workflow.on_error
     } as Workflow;
@@ -256,6 +316,7 @@ class WorkflowParser {
         mcpServers: step.mcp_servers,
         useRag: step.use_rag,
         rag: stepRag,
+        skills: step.skills,
         defaultValue: step.default_value,
         files: step.files || []
       };
@@ -318,6 +379,7 @@ class WorkflowParser {
         mcpServers: step.mcp_servers || spec.mcp_servers,
         useRag: step.use_rag || spec.use_rag,
         rag: stepRag,
+        skills: step.skills || spec.skills,
         defaultValue: step.default_value || spec.default_value,
         onError: spec.on_error,  // onError is inherited from state level
         files: step.files || spec.files || []
@@ -429,6 +491,7 @@ class WorkflowParser {
         mcpServers: spec.mcp_servers,
         useRag: spec.use_rag,
         rag,
+        skills: spec.skills,
         defaultValue: spec.default_value,
         onError: spec.on_error,
         files: spec.files || []
