@@ -266,7 +266,6 @@ class WorkflowParser {
     for (const [toolName, toolSpec] of Object.entries(workflow.tools)) {
       // Skip if the tool name already exists in mcp_servers (mcp_servers takes precedence)
       if (workflow.mcp_servers[toolName]) {
-        console.warn(`Tool "${toolName}" is defined in both tools and mcp_servers. Using mcp_servers configuration.`);
         continue;
       }
 
