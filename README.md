@@ -280,6 +280,15 @@ Steps can also be used with `input` states to collect multiple user inputs seque
 
 **MCP Servers** - Extend with Model Context Protocol
 ```yaml
+# NEW! Simplified tools format (recommended)
+tools:
+  filesystem:
+    npm_package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+  custom_tools:
+    file_path: "examples/custom-tools"
+
+# Legacy format (still supported)
 mcp_servers:
   filesystem:
     type: npx
@@ -287,7 +296,7 @@ mcp_servers:
     args: ["/tmp"]
   custom_tools:
     type: custom-tools
-    toolsDirectory: "examples/custom-tools"
+    tools_directory: "examples/custom-tools"
 ```
 
 **RAG (Retrieval-Augmented Generation)** - Add knowledge base context

@@ -1,19 +1,25 @@
 name: "Data Processing Assistant"
-description: "An advanced workflow demonstrating custom JavaScript tools for data processing with both standard and simplified MCP configurations"
+description: "An advanced workflow demonstrating custom JavaScript tools for data processing with multiple configuration methods"
 default_model: "gemma3:4b"
 start_state: "get_task"
 
 # Configure custom MCP server with JavaScript tools
-# Method 1: Simplified configuration (recommended)
-mcp_servers:
+# Method 1: NEW! Simplified tools format (recommended)
+tools:
   custom_tools:
-    type: custom-tools
-    tools_directory: "examples/custom-tools"
+    file_path: "examples/custom-tools"
+
+# Method 2: Legacy simplified MCP configuration
+# mcp_servers:
+#   custom_tools:
+#     type: custom-tools
+#     tools_directory: "examples/custom-tools"
   
-  # Method 2: Standard configuration (for reference, commented out)
-  # custom_tools:
-  #   command: "node"
-  #   args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
+# Method 3: Standard configuration (for reference)
+# mcp_servers:
+#   custom_tools:
+#     command: "node"
+#     args: ["dist/custom-mcp-server.js", "examples/custom-tools"]
 
 states:
   get_task:

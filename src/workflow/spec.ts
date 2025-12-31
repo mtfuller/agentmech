@@ -36,7 +36,10 @@ export interface WorkflowSpec {
   /** Collection of states that define the agent state machine (for type: 'agent') */
   states?: Record<string, StateSpec>;
   
-  /** Optional MCP (Model Context Protocol) server configurations */
+  /** Optional tools configuration (simplified format) - preferred over mcp_servers */
+  tools?: Record<string, ToolSpec>;
+  
+  /** Optional MCP (Model Context Protocol) server configurations (legacy format) */
   mcp_servers?: Record<string, MCPServerSpec>;
   
   /** Optional named RAG (Retrieval-Augmented Generation) configurations */
@@ -231,6 +234,24 @@ export interface MCPServerSpec {
   args?: string[];
   
   /** Environment variables to set for the server process */
+  env?: Record<string, string>;
+}
+
+/**
+ * Specification for a tool in the simplified tools configuration.
+ * Tools automatically map to MCP servers with the appropriate configuration.
+ */
+export interface ToolSpec {
+  /** NPM package name for npx-based tools (e.g., '@modelcontextprotocol/server-filesystem') */
+  npm_package?: string;
+  
+  /** Path to JavaScript file or directory for custom tools */
+  file_path?: string;
+  
+  /** Command-line arguments to pass to the tool */
+  args?: string[];
+  
+  /** Environment variables to set for the tool process */
   env?: Record<string, string>;
 }
 
