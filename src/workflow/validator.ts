@@ -1,4 +1,4 @@
-import { MCPServerSpec, RAGSpec, StateSpec, StepSpec, WorkflowSpec, WorkflowStepSpec } from "./spec";
+import { MCPServerSpec, RAGSpec, StateSpec, StepSpec, ToolSpec, WorkflowSpec, WorkflowStepSpec } from "./spec";
 
 const END_STATE = 'end';
 
@@ -89,7 +89,7 @@ export class WorkflowValidator {
 
       // Validate each step
       for (let i = 0; i < workflow.steps.length; i++) {
-        this.validateWorkflowStep(i, workflow.steps[i], workflow.steps.length, workflow.mcp_servers, workflow.rag);
+        this.validateWorkflowStep(i, workflow.steps[i], workflow.steps.length, workflow.mcp_servers, workflow.rag, workflow.tools);
       }
 
     } else if (explicitType === 'agent' || (hasStates && !explicitType)) {
@@ -115,7 +115,7 @@ export class WorkflowValidator {
 
       // Validate each state
       for (const [stateName, state] of Object.entries(states)) {
-        this.validateState(stateName, state, states, workflow.mcp_servers, workflow.rag);
+        this.validateState(stateName, state, states, workflow.mcp_servers, workflow.rag, workflow.tools);
       }
 
       // Validate agent-level fallback state if present
@@ -141,6 +141,11 @@ export class WorkflowValidator {
       this.validateVariables(workflow.variables);
     }
 
+    // Validate tools configuration if present
+    if (workflow.tools) {
+      this.validateTools(workflow.tools);
+    }
+
     // Validate MCP servers configuration if present
     if (workflow.mcp_servers) {
       this.validateMCPServers(workflow.mcp_servers);
@@ -153,10 +158,10 @@ export class WorkflowValidator {
    * @param state - State configuration
    * @param allStates - All states for reference validation
    * @param mcpServers - MCP servers available in workflow
-   * @param ragConfig - Default RAG configuration if present
    * @param namedRags - Named RAG configurations if present
+   * @param tools - Tools configuration if present
    */
-  static validateState(name: string, state: StateSpec, allStates: Record<string, StateSpec>, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+  static validateState(name: string, state: StateSpec, allStates: Record<string, StateSpec>, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>, tools?: Record<string, ToolSpec>): void {
     const stateContext = `State "${name}"`;
     
     this.validateRequiredField(state.type, 'type', stateContext);
@@ -194,7 +199,7 @@ export class WorkflowValidator {
       
       // Validate each step
       for (let i = 0; i < state.steps.length; i++) {
-        this.validateStep(name, state.type, state.steps[i], i, mcpServers, namedRags);
+        this.validateStep(name, state.type, state.steps[i], i, mcpServers, namedRags, tools);
       }
     }
 
@@ -223,12 +228,15 @@ export class WorkflowValidator {
       if (!Array.isArray(state.mcp_servers)) {
         throw new Error(`${stateContext} mcp_servers must be an array`);
       }
-      if (!mcpServers) {
-        throw new Error(`${stateContext} references MCP servers but workflow has no mcp_servers defined`);
+      if (!mcpServers && !tools) {
+        throw new Error(`${stateContext} references MCP servers but workflow has no mcp_servers or tools defined`);
       }
       for (const serverName of state.mcp_servers) {
-        if (!mcpServers[serverName]) {
-          throw new Error(`${stateContext} references non-existent MCP server "${serverName}"`);
+        // Check both mcp_servers and tools
+        const existsInMcpServers = mcpServers && mcpServers[serverName];
+        const existsInTools = tools && tools[serverName];
+        if (!existsInMcpServers && !existsInTools) {
+          throw new Error(`${stateContext} references non-existent MCP server or tool "${serverName}"`);
         }
       }
     }
@@ -296,6 +304,44 @@ export class WorkflowValidator {
     }
   }
 
+
+  /**
+   * Validate tools configuration
+   * @param tools - Tools configuration
+   */
+  static validateTools(tools: Record<string, any>): void {
+    for (const [toolName, config] of Object.entries(tools)) {
+      const toolContext = `Tool "${toolName}"`;
+      
+      // Each tool must have either npm_package or file_path
+      const hasNpmPackage = config.npm_package !== undefined;
+      const hasFilePath = config.file_path !== undefined;
+      
+      if (!hasNpmPackage && !hasFilePath) {
+        throw new Error(`${toolContext} must have either "npm_package" or "file_path" field`);
+      }
+      
+      if (hasNpmPackage && hasFilePath) {
+        throw new Error(`${toolContext} cannot have both "npm_package" and "file_path" fields`);
+      }
+      
+      if (hasNpmPackage) {
+        this.validateFieldType(config.npm_package, 'string', 'npm_package', toolContext);
+      }
+      
+      if (hasFilePath) {
+        this.validateFieldType(config.file_path, 'string', 'file_path', toolContext);
+      }
+      
+      if (config.args && !Array.isArray(config.args)) {
+        throw new Error(`${toolContext} args must be an array`);
+      }
+      
+      if (config.env && typeof config.env !== 'object') {
+        throw new Error(`${toolContext} env must be an object`);
+      }
+    }
+  }
 
   /**
    * Validate MCP servers configuration
@@ -370,8 +416,9 @@ export class WorkflowValidator {
    * @param stepIndex - Index of this step in the steps array
    * @param mcpServers - MCP servers available in workflow
    * @param namedRags - Named RAG configurations if present
+   * @param tools - Tools configuration if present
    */
-  static validateStep(stateName: string, stateType: string, step: any, stepIndex: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+  static validateStep(stateName: string, stateType: string, step: any, stepIndex: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>, tools?: Record<string, ToolSpec>): void {
     const stepContext = `State "${stateName}" step ${stepIndex + 1}`;
     
     // Each step must have either prompt or prompt_file
@@ -388,12 +435,15 @@ export class WorkflowValidator {
       if (!Array.isArray(step.mcp_servers)) {
         throw new Error(`${stepContext} mcp_servers must be an array`);
       }
-      if (!mcpServers) {
-        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers defined`);
+      if (!mcpServers && !tools) {
+        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers or tools defined`);
       }
       for (const serverName of step.mcp_servers) {
-        if (!mcpServers[serverName]) {
-          throw new Error(`${stepContext} references non-existent MCP server "${serverName}"`);
+        // Check both mcp_servers and tools
+        const existsInMcpServers = mcpServers && mcpServers[serverName];
+        const existsInTools = tools && tools[serverName];
+        if (!existsInMcpServers && !existsInTools) {
+          throw new Error(`${stepContext} references non-existent MCP server or tool "${serverName}"`);
         }
       }
     }
@@ -430,8 +480,9 @@ export class WorkflowValidator {
    * @param totalSteps - Total number of steps in the workflow
    * @param mcpServers - MCP servers available in workflow
    * @param namedRags - Named RAG configurations if present
+   * @param tools - Tools configuration if present
    */
-  static validateWorkflowStep(stepIndex: number, step: any, totalSteps: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>): void {
+  static validateWorkflowStep(stepIndex: number, step: any, totalSteps: number, mcpServers?: Record<string, MCPServerSpec>, namedRags?: Record<string, RAGSpec>, tools?: Record<string, ToolSpec>): void {
     const stepContext = `Workflow step ${stepIndex + 1}`;
     
     // Each step must have a type
@@ -458,12 +509,15 @@ export class WorkflowValidator {
       if (!Array.isArray(step.mcp_servers)) {
         throw new Error(`${stepContext} mcp_servers must be an array`);
       }
-      if (!mcpServers) {
-        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers defined`);
+      if (!mcpServers && !tools) {
+        throw new Error(`${stepContext} references MCP servers but workflow has no mcp_servers or tools defined`);
       }
       for (const serverName of step.mcp_servers) {
-        if (!mcpServers[serverName]) {
-          throw new Error(`${stepContext} references non-existent MCP server "${serverName}"`);
+        // Check both mcp_servers and tools
+        const existsInMcpServers = mcpServers && mcpServers[serverName];
+        const existsInTools = tools && tools[serverName];
+        if (!existsInMcpServers && !existsInTools) {
+          throw new Error(`${stepContext} references non-existent MCP server or tool "${serverName}"`);
         }
       }
     }

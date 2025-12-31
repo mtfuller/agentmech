@@ -2,7 +2,7 @@ import * as yaml from 'js-yaml';
 import * as fs from 'fs';
 import * as path from 'path';
 import { McpServerConfig, State, Workflow, SkillMetadata } from './workflow';
-import { WorkflowSpec, StateSpec, StepSpec, MCPServerSpec, RAGSpec } from './spec';
+import { WorkflowSpec, StateSpec, StepSpec, MCPServerSpec, RAGSpec, ToolSpec } from './spec';
 import { RAGConfig } from '../rag/rag-service';
 import { WorkflowValidator } from './validator';
 
@@ -247,7 +247,54 @@ class WorkflowParser {
     }
   }
 
+  /**
+   * Convert simplified tools configuration to mcp_servers format
+   * This allows tools and mcp_servers to coexist during transition
+   * @param workflow - Workflow specification to normalize
+   */
+  private static normalizeToolsToMcpServers(workflow: WorkflowSpec): void {
+    if (!workflow.tools) {
+      return;
+    }
+
+    // Initialize mcp_servers if not already present
+    if (!workflow.mcp_servers) {
+      workflow.mcp_servers = {};
+    }
+
+    // Convert each tool to an MCP server configuration
+    for (const [toolName, toolSpec] of Object.entries(workflow.tools)) {
+      // Skip if the tool name already exists in mcp_servers (mcp_servers takes precedence)
+      if (workflow.mcp_servers[toolName]) {
+        console.warn(`Tool "${toolName}" is defined in both tools and mcp_servers. Using mcp_servers configuration.`);
+        continue;
+      }
+
+      const mcpServerSpec: MCPServerSpec = {
+        args: toolSpec.args,
+        env: toolSpec.env
+      };
+
+      if (toolSpec.npm_package) {
+        // Convert npm_package to npx type configuration
+        mcpServerSpec.type = 'npx';
+        mcpServerSpec.package = toolSpec.npm_package;
+      } else if (toolSpec.file_path) {
+        // Convert file_path to custom-tools type configuration
+        mcpServerSpec.type = 'custom-tools';
+        mcpServerSpec.tools_directory = toolSpec.file_path;
+      } else {
+        throw new Error(`Tool "${toolName}" must have either "npm_package" or "file_path" field`);
+      }
+
+      workflow.mcp_servers[toolName] = mcpServerSpec;
+    }
+  }
+
   static parseWorkflowSpec(workflow: WorkflowSpec, context: ParserContext): Workflow {
+    // Convert tools to mcp_servers for backward compatibility
+    this.normalizeToolsToMcpServers(workflow);
+    
     WorkflowValidator.validateWorkflowSpec(workflow);
 
     let states: Record<string, State> = {};

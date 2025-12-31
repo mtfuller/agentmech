@@ -1,5 +1,5 @@
 name: "Comprehensive MCP Integration"
-description: "Demonstrates all MCP server configuration methods: standard, NPX simplified, and custom-tools"
+description: "Demonstrates all MCP server configuration methods: standard, NPX simplified, custom-tools, and new tools format"
 default_model: "gemma3:4b"
 start_state: "choose_mcp_type"
 
@@ -29,6 +29,18 @@ mcp_servers:
   custom_tools:
     type: custom-tools
     tools_directory: "examples/custom-tools"
+
+# Method 5: NEW! Simplified tools format (preferred)
+# Tools automatically map to MCP servers with appropriate configuration
+tools:
+  # NPM package-based tool (maps to npx type)
+  filesystem_new:
+    npm_package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+  
+  # Custom tools via file_path (maps to custom-tools type)
+  my_custom_tools:
+    file_path: "examples/custom-tools"
 
 states:
   choose_mcp_type:

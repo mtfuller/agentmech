@@ -1,0 +1,85 @@
+name: "Tools Configuration Example"
+description: "Demonstrates the new simplified tools configuration format"
+default_model: "gemma3:4b"
+start_state: "choose_tool"
+
+# New simplified tools configuration
+# Use npm_package for NPM packages or file_path for custom tools
+tools:
+  # NPM package-based tool (equivalent to npx type)
+  filesystem:
+    npm_package: "@modelcontextprotocol/server-filesystem"
+    args: ["/tmp"]
+    env:
+      MCP_LOG_LEVEL: "info"
+  
+  # Another NPM package tool
+  memory:
+    npm_package: "@modelcontextprotocol/server-memory"
+  
+  # Custom JavaScript tools (equivalent to custom-tools type)
+  custom_tools:
+    file_path: "examples/custom-tools"
+
+states:
+  choose_tool:
+    type: "input"
+    prompt: |
+      Which tool would you like to use?
+      
+      Available tools:
+      - filesystem: File system operations
+      - memory: Memory storage and recall
+      - custom: Custom JavaScript tools (calculator, text-transform, etc.)
+    save_as: "tool_choice"
+    next: "route_choice"
+  
+  route_choice:
+    type: "prompt"
+    prompt: |
+      User chose: {{tool_choice}}
+      
+      Route to the appropriate tool demonstration.
+    next_options:
+      - state: "filesystem_demo"
+        description: "User wants to use filesystem tool"
+      - state: "memory_demo"
+        description: "User wants to use memory tool"
+      - state: "custom_demo"
+        description: "User wants to use custom tools"
+  
+  filesystem_demo:
+    type: "prompt"
+    prompt: |
+      Using the filesystem tool to analyze the /tmp directory structure.
+      List the contents and suggest best practices for organization.
+    mcp_servers: ["filesystem"]
+    save_as: "filesystem_result"
+    next: "end"
+  
+  memory_demo:
+    type: "prompt"
+    prompt: |
+      Using the memory tool to store and recall information.
+      Try to remember that the user's favorite programming language is Python.
+      Then recall it and confirm.
+    mcp_servers: ["memory"]
+    save_as: "memory_result"
+    next: "end"
+  
+  custom_demo:
+    type: "prompt"
+    prompt: |
+      Using custom tools for data processing.
+      
+      Available custom tools:
+      - calculator: arithmetic operations
+      - text-transform: text processing
+      - date-time: date/time utilities
+      - json-util: JSON operations
+      
+      Use the calculator to add 25 and 17, then use text-transform to
+      convert "hello agentmech" to uppercase.
+    mcp_servers: ["custom_tools"]
+    save_as: "custom_result"
+    next: "end"
