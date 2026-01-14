@@ -1,0 +1,60 @@
+name: "Temperature Demonstration Workflow"
+description: "Demonstrates how to control model creativity using the temperature parameter"
+default_model: "gemma3:4b"
+
+start_state: "explain_temperature"
+
+states:
+  explain_temperature:
+    type: "prompt"
+    prompt: |
+      Explain what the temperature parameter does in AI models in 2-3 sentences.
+    save_as: "explanation"
+    next: "creative_high_temp"
+  
+  creative_high_temp:
+    type: "prompt"
+    prompt: |
+      Write a creative, imaginative one-sentence story about a robot learning to paint.
+    model: "gemma3:4b"
+    options:
+      temperature: 1.2
+      top_p: 0.95
+    save_as: "creative_story"
+    next: "deterministic_low_temp"
+  
+  deterministic_low_temp:
+    type: "prompt"
+    prompt: |
+      Write a creative, imaginative one-sentence story about a robot learning to paint.
+    model: "gemma3:4b"
+    options:
+      temperature: 0.1
+      top_p: 0.9
+    save_as: "deterministic_story"
+    next: "compare_results"
+  
+  compare_results:
+    type: "prompt"
+    prompt: |
+      Compare these two stories and explain how temperature affected the output:
+      
+      High Temperature (1.2): {{creative_story}}
+      
+      Low Temperature (0.1): {{deterministic_story}}
+      
+      Provide a brief analysis of the differences in creativity and randomness.
+    options:
+      temperature: 0.7
+    save_as: "comparison"
+    next: "demonstrate_seed"
+  
+  demonstrate_seed:
+    type: "prompt"
+    prompt: |
+      Generate a random number between 1 and 100.
+    options:
+      temperature: 1.0
+      seed: 42
+    save_as: "seeded_result"
+    next: "end"
