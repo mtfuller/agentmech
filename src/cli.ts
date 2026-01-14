@@ -57,4 +57,14 @@ program
   .option('-m, --model <model>', 'Model to use for generation', 'gemma3:4b')
   .action(Actions.generate);
 
+program
+  .command('finetune')
+  .description('Iteratively improve a workflow using LLM-powered analysis and testing')
+  .argument('<workflow-file>', 'Path to workflow YAML file to finetune')
+  .option('-u, --ollama-url <url>', 'Ollama API URL', 'http://localhost:11434')
+  .option('-o, --output <path>', 'Output file path for the finetuned workflow')
+  .option('-m, --model <model>', 'Model to use for analysis and improvements', 'gemma3:4b')
+  .option('-i, --max-iterations <number>', 'Maximum number of finetune iterations', '5')
+  .action(Actions.finetune);
+
 program.parse();

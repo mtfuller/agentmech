@@ -1,0 +1,12 @@
+name: "Simple Greeter"
+description: "A basic greeting workflow that could use improvement"
+default_model: "gemma3:4b"
+
+start_state: "greet"
+
+states:
+  greet:
+    type: "prompt"
+    prompt: "Say hello"
+    save_as: "greeting"
+    next: "end"

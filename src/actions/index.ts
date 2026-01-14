@@ -4,3 +4,4 @@ export * from './list-models';
 export * from './serve';
 export * from './test';
 export * from './generate';
+export * from './finetune';
