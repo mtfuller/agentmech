@@ -167,56 +167,47 @@ Selected: No, end here
 === Workflow Completed ===
 ```
 
-### 3. Code Review Assistant (examples/code-review.yaml)
+### 3. Advanced Custom Tools (examples/advanced-custom-tools.yaml)
 
-A workflow that performs different types of code reviews.
+A workflow that demonstrates using custom JavaScript tools for data processing.
 
 **Run it:**
 ```bash
-npm start run examples/code-review.yaml
+npm start run examples/advanced-custom-tools.yaml
 ```
 
 **What it does:**
-1. Presents three review types: Security, Performance, Best Practices
-2. Reviews example code based on your selection
-3. Asks if you want another review
-4. Loops back or ends based on your choice
+1. Asks what type of data processing task you want to perform
+2. Suggests appropriate custom tools (calculator, text-transform, date-time, json-util)
+3. Processes your data using the selected tool
+4. Explains the results
+5. Asks if you want to perform another operation
 
 **Example interaction:**
 ```
---- State: choose_review_type ---
+--- State: get_task ---
 
-What type of code review would you like?
+What data processing task would you like to perform? (calculate, transform, analyze)
 
-Choices:
-  1. Security Review
-  2. Performance Review
-  3. Best Practices Review
+User input: calculate
 
-Select an option (enter number): 1
+--- State: choose_operation ---
 
-Selected: Security Review
-
---- State: security_review ---
-
-Prompt: Review the following code for security vulnerabilities...
 Using model: gemma3:4b
 
-Generating response...
+Response: For calculations, I recommend using the calculator tool which supports
+add, subtract, multiply, and divide operations...
 
-Response: [AI-generated security analysis appears here]
+--- State: get_input_data ---
 
---- State: ask_another ---
+Please provide the input data for this operation:
 
-Would you like to perform another review?
+User input: 25 + 17
 
-Choices:
-  1. Yes
-  2. No
+--- State: process_data ---
 
-Select an option (enter number): 2
-
-Selected: No
+Response: Using the calculator tool to add 25 and 17...
+Result: 42
 
 === Workflow Completed ===
 ```
