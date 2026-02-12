@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Decision state type**: New state type for context-based routing without new prompts
 - CI/CD pipeline for automated testing and NPM publishing
 - GitHub Actions workflows for continuous integration
 - Automated NPM publishing on release creation
@@ -15,11 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive publishing documentation
 - LICENSE file (ISC)
 - `.npmignore` for controlling package contents
+- Example workflow demonstrating decision state (`decision-state-demo.yaml`)
+- Comprehensive test suite for decision state (14 tests)
 
 ### Changed
 - Updated README with NPM installation instructions
 - Enhanced package.json with repository, homepage, bugs, and files fields
 - Added additional keywords for better NPM discoverability
+- Updated workflow state type documentation to include decision state
 
 ## [1.0.0] - Initial Release
 

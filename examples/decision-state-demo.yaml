@@ -1,0 +1,88 @@
+name: "Decision State Demo"
+description: "Demonstrates the decision state type that routes based on context without requiring a new prompt"
+default_model: "gemma3:4b"
+start_state: "get_user_mood"
+
+states:
+  get_user_mood:
+    type: "input"
+    prompt: "How are you feeling today? (happy, sad, excited, tired)"
+    save_as: "mood"
+    next: "get_activity_preference"
+  
+  get_activity_preference:
+    type: "input"
+    prompt: "What kind of activity interests you? (indoor, outdoor, creative, social)"
+    save_as: "activity"
+    next: "decide_recommendation"
+  
+  # Decision state - routes based on the captured context (mood and activity)
+  # without requiring a new prompt
+  decide_recommendation:
+    type: "decision"
+    next_options:
+      - state: "recommend_energetic"
+        description: "User is happy or excited and prefers outdoor/social activities"
+      - state: "recommend_relaxing"
+        description: "User is tired or sad and prefers indoor/creative activities"
+      - state: "recommend_balanced"
+        description: "Mixed preferences or unclear pattern"
+  
+  recommend_energetic:
+    type: "prompt"
+    prompt: |
+      Based on your mood ({{mood}}) and activity preference ({{activity}}), 
+      I recommend energetic activities like:
+      - Going for a run or bike ride
+      - Meeting friends for an outdoor game
+      - Dancing or attending a social event
+      
+      Which of these sounds most appealing?
+    save_as: "recommendation"
+    next: "ask_continue"
+  
+  recommend_relaxing:
+    type: "prompt"
+    prompt: |
+      Based on your mood ({{mood}}) and activity preference ({{activity}}), 
+      I recommend relaxing activities like:
+      - Reading a good book
+      - Doing some gentle yoga or meditation
+      - Working on a creative hobby (painting, writing, crafting)
+      
+      Which of these sounds most appealing?
+    save_as: "recommendation"
+    next: "ask_continue"
+  
+  recommend_balanced:
+    type: "prompt"
+    prompt: |
+      Based on your mood ({{mood}}) and activity preference ({{activity}}), 
+      I recommend balanced activities like:
+      - Taking a nature walk
+      - Visiting a museum or gallery
+      - Cooking a new recipe
+      
+      Which of these sounds most appealing?
+    save_as: "recommendation"
+    next: "ask_continue"
+  
+  ask_continue:
+    type: "input"
+    prompt: "Would you like another recommendation? (yes/no)"
+    save_as: "continue_choice"
+    next: "decide_continue"
+  
+  # Another decision state - routes based on user's continue choice
+  decide_continue:
+    type: "decision"
+    next_options:
+      - state: "get_user_mood"
+        description: "User wants to continue and get another recommendation"
+      - state: "farewell"
+        description: "User wants to stop"
+  
+  farewell:
+    type: "prompt"
+    prompt: "Thank you for using the recommendation system! Have a great day!"
+    next: "end"
